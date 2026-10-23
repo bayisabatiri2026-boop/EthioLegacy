@@ -41,6 +41,16 @@
   .header-actions { display: flex; gap: 15px; }
   .header-icon { border:0; background:transparent; color:#fff; font-size:24px; cursor:pointer; }
   .home-search-wrap { padding: 10px 14px; background: #fff; border-bottom: 1px solid #e6e9eb; }
+  .main-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:#008069;padding:0 8px 8px}
+  .main-tab{border:0;border-radius:10px;padding:11px 5px;background:transparent;color:#d7f3ec;font-weight:700;font-size:14px;cursor:pointer}
+  .main-tab.active{background:#fff;color:#006b58;box-shadow:0 2px 7px #003b3020}
+  .home-pane{display:none;flex:1;min-height:0;overflow:auto;background:#fff}.home-pane.active{display:block}
+  .pane-heading{padding:14px 16px 8px;color:#667781;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em}
+  .row-actions{display:flex;gap:8px;margin-left:8px}.mini-action{border:0;border-radius:50%;width:36px;height:36px;background:#e7f6f1;color:#008069;font-size:17px;cursor:pointer}
+  .community-card{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid #f0f2f5;cursor:pointer}.community-icon{width:48px;height:48px;border-radius:16px;display:grid;place-items:center;background:#e7f6f1;font-size:23px}.community-meta{flex:1;min-width:0}.community-meta b{display:block;color:#172b2b}.community-meta small{color:#667781}
+  .empty-state{padding:30px 18px;text-align:center;color:#667781;line-height:1.6}
+  body{height:100dvh;padding-bottom:env(safe-area-inset-bottom)}
+  .screen{min-height:0}.header{padding-top:max(13px,env(safe-area-inset-top))}
   .home-search { width: 100%; padding: 12px 15px; border: 0; outline: none; border-radius: 24px; background: #f0f2f5; font-size: 15px; }
   .chat-item { display: flex; padding: 12px 15px; border-bottom: 1px solid #f0f2f5; cursor: pointer; align-items: center; }
   .avatar { width: 48px; height: 48px; border-radius: 50%; background: #00A884; color: white; display: flex; justify-content: center; align-items: center; font-size: 20px; font-weight: bold; margin-right: 15px; }
@@ -134,10 +144,17 @@
       <button class="header-icon" aria-label="Settings" onclick="openSettings()">⚙️</button>
     </div>
   </div>
-  <div class="home-search-wrap">
+  <div class="main-tabs" role="tablist" aria-label="Main navigation">
+    <button class="main-tab active" data-pane="chatsPane" onclick="switchHomeTab('chatsPane',this)">💬 Chats</button>
+    <button class="main-tab" data-pane="callsPane" onclick="switchHomeTab('callsPane',this)">📞 Calls</button>
+    <button class="main-tab" data-pane="communitiesPane" onclick="switchHomeTab('communitiesPane',this)">👥 Communities</button>
+  </div>
+  <div class="home-search-wrap" id="homeSearchWrap">
     <input id="searchInput" class="home-search" type="text" placeholder="Search users..." oninput="filterUsers(this.value)">
   </div>
-  <div id="userList" style="flex:1; overflow-y:auto; background:#fff;"></div>
+  <div id="chatsPane" class="home-pane active"><div id="userList"></div></div>
+  <div id="callsPane" class="home-pane"><div class="pane-heading">Start a call</div><div id="callList"></div></div>
+  <div id="communitiesPane" class="home-pane"><div class="pane-heading">Your communities</div><div class="community-card" onclick="openNewChatModal()"><div class="community-icon">＋</div><div class="community-meta"><b>Create a community or group</b><small>Bring people together</small></div></div><div id="communityList"></div></div>
 </div>
 
 <!-- SCREEN 3: CHAT -->
@@ -216,16 +233,15 @@
   import { getFirestore, collection, doc, setDoc, getDoc, getDocs, query, where, orderBy, onSnapshot, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
   import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyA-Q_XfHXdIZafqjaxX3n6zQ2DiMQe5t0A",
-  authDomain: "ethiolegacy.firebaseapp.com",
-  projectId: "ethiolegacy",
-  storageBucket: "ethiolegacy.firebasestorage.app",
-  messagingSenderId: "660506612974",
-  appId: "1:660506612974:web:a0dafaf3a379fad4e5cfff",
-  measurementId: "G-RH6G52EX0D"
-};
+  // 🔴 IMPORTANT: PASTE YOUR NEW FIREBASE PROJECT KEYS HERE 🔴
+  const firebaseConfig = {
+    apiKey: "PASTE_YOUR_NEW_API_KEY_HERE",
+    authDomain: "PASTE_YOUR_NEW_AUTH_DOMAIN_HERE",
+    projectId: "PASTE_YOUR_NEW_PROJECT_ID_HERE",
+    storageBucket: "PASTE_YOUR_NEW_STORAGE_BUCKET_HERE",
+    messagingSenderId: "PASTE_YOUR_NEW_MESSAGING_SENDER_ID_HERE",
+    appId: "PASTE_YOUR_NEW_APP_ID_HERE"
+  };
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
@@ -357,6 +373,13 @@ const firebaseConfig = {
   });
 
   window.logout = () => signOut(auth);
+  window.switchHomeTab = (paneId, button) => {
+    document.querySelectorAll('.main-tab').forEach(b=>b.classList.toggle('active',b===button));
+    document.querySelectorAll('.home-pane').forEach(p=>p.classList.toggle('active',p.id===paneId));
+    document.getElementById('homeSearchWrap').style.display = paneId==='chatsPane' ? 'block' : 'none';
+    if(paneId==='callsPane') renderCallList(allUsers);
+    if(paneId==='communitiesPane') loadCommunities();
+  };
 
   // --- CHAT LOGIC ---
   let allUsers = [];
@@ -365,6 +388,8 @@ const firebaseConfig = {
     allUsers = [];
     snap.forEach(d => { if (d.id !== currentUser.uid) allUsers.push(d.data()); });
     renderUsers(allUsers);
+    renderCallList(allUsers);
+    loadCommunities();
   }
 
   function renderUsers(users) {
@@ -375,14 +400,29 @@ const firebaseConfig = {
       const div = document.createElement('div');
       div.className = 'chat-item';
       div.onclick = () => openChat(u.uid, u.displayName);
-      div.innerHTML = `<div class="avatar">${u.displayName.charAt(0).toUpperCase()}</div><div class="chat-info"><div class="chat-name">${u.displayName}</div></div>`;
+      const safeName = escapeHTML(u.displayName || 'Member');
+      div.innerHTML = `<div class="avatar">${safeName.charAt(0).toUpperCase()}</div><div class="chat-info"><div class="chat-name">${safeName}</div><small class="muted">Tap to message</small></div>`;
       list.appendChild(div);
     });
   }
 
   window.filterUsers = (val) => {
-    renderUsers(allUsers.filter(u => u.displayName.toLowerCase().includes(val.toLowerCase())));
+    renderUsers(allUsers.filter(u => (u.displayName||'').toLowerCase().includes(val.toLowerCase()) || (u.email||'').toLowerCase().includes(val.toLowerCase())));
   };
+
+  function renderCallList(users){
+    const list=document.getElementById('callList'); if(!list)return; list.innerHTML='';
+    if(!users.length){list.innerHTML='<div class="empty-state">No other members yet. Invite someone to EthioLegacy to start calling.</div>';return;}
+    users.forEach(u=>{const row=document.createElement('div');row.className='chat-item';const name=escapeHTML(u.displayName||'Member');row.innerHTML=`<div class="avatar">${name.charAt(0).toUpperCase()}</div><div class="chat-info"><div class="chat-name">${name}</div><small class="muted">Voice or video call</small></div><div class="row-actions"><button class="mini-action" title="Voice call">📞</button><button class="mini-action" title="Video call">🎥</button></div>`;const buttons=row.querySelectorAll('button');buttons[0].onclick=e=>{e.stopPropagation();openChat(u.uid,u.displayName);setTimeout(()=>startCall('audio'),100)};buttons[1].onclick=e=>{e.stopPropagation();openChat(u.uid,u.displayName);setTimeout(()=>startCall('video'),100)};list.appendChild(row);});
+  }
+
+  async function loadCommunities(){
+    const list=document.getElementById('communityList'); if(!list||!currentUser)return;
+    try{const snap=await getDocs(query(collection(db,'chats'),where('isGroup','==',true)));list.innerHTML='';let count=0;
+      snap.forEach(d=>{const g=d.data();if(Array.isArray(g.members)&&!g.members.includes(currentUser.uid))return;count++;const row=document.createElement('div');row.className='community-card';const name=escapeHTML(g.name||'Community');row.innerHTML=`<div class="community-icon">👥</div><div class="community-meta"><b>${name}</b><small>Group conversation</small></div><span>›</span>`;row.onclick=()=>openChat(d.id,g.name||'Community');list.appendChild(row);});
+      if(!count)list.innerHTML='<div class="empty-state">No communities yet. Tap “Create a community or group” to start one.</div>';
+    }catch(e){list.innerHTML='<div class="empty-state">Communities could not load. Check your Firebase Firestore rules and connection.</div>';}
+  }
 
   window.openNewChatModal = () => document.getElementById('newChatModal').classList.add('active');
 
@@ -392,8 +432,10 @@ const firebaseConfig = {
     
     if (groupName) {
       const groupId = "group_" + Date.now();
-      await setDoc(doc(db, "chats", groupId), { isGroup: true, name: groupName });
+      await setDoc(doc(db, "chats", groupId), { isGroup: true, name: groupName, createdBy: currentUser.uid, members: [currentUser.uid], createdAt: serverTimestamp() });
       document.getElementById('newChatModal').classList.remove('active');
+      document.getElementById('newGroupName').value='';
+      await loadCommunities();
       openChat(groupId, groupName);
     } else if (email) {
       const snap = await getDocs(query(collection(db, "users"), where("email", "==", email)));
@@ -422,8 +464,8 @@ const firebaseConfig = {
         const time = m.timestamp ? new Date(m.timestamp.seconds * 1000).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '';
         box.innerHTML += `
           <div class="message ${isMine ? 'mine' : ''}">
-            ${!isMine ? `<div class="msg-name">${m.senderName}</div>` : ''}
-            <div>${m.text}</div>
+            ${!isMine ? `<div class="msg-name">${escapeHTML(m.senderName||'Member')}</div>` : ''}
+            <div>${escapeHTML(m.text||'')}</div>
             <div style="font-size:10px; color:#999; text-align:right; margin-top:4px;">${time}</div>
           </div>`;
       });
@@ -434,6 +476,7 @@ const firebaseConfig = {
   window.sendMessage = async () => {
     const input = document.getElementById('msgInput');
     const text = input.value.trim();
+    if (!currentUser || !currentChatId) return toast('Open a chat first.');
     if (!text) return;
     input.value = '';
     await addDoc(collection(db, "chats", currentChatId, "messages"), {
