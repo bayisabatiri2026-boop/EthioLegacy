@@ -1,14 +1,25 @@
-EthioLegacy - call audio controls update
+ETHIOLEGACY — UPDATED WEBSITE SOURCE
 
-Includes the latest available mobile send-arrow/attachment/voice-recording source plus:
-- Call playback volume slider (0-100%)
-- Optional generated incoming-call tone, with a toggle
-- Stops the tone when a call is accepted, rejected, or ended
+Included updates:
+- Chat text input plus separate photo and file/media upload buttons.
+- Invite action now shares/copies the current live website URL with invitation text.
+- Search field on Calls filters members by display name/email.
+- Settings > Change password supports show/hide and uses Firebase re-authentication before updating the password.
+- Screen/browser notifications work only after permission is granted and while the page is running/connected to Firebase.
 
-IMPORTANT LIMITATIONS:
-1. This is source code, not a compiled APK.
-2. The Firebase configuration in index.html currently contains placeholder values. Replace them with the exact Web app config from your Firebase Console before use. Without this, sign-in, Firestore messages, and Storage uploads will fail.
-3. File visibility to another member requires matching chat IDs and correct Firestore/Storage security rules. This source cannot be verified against your live Firebase project without its real configuration and rules.
-4. This is not a claim that calls, group calls, push notifications, or uploads are fully tested. WebRTC here is one-to-one only and has STUN but no TURN server; some networks will fail without TURN. Group calls need separate implementation.
-5. Browser call tones can be blocked until the user interacts with the page; mobile browser autoplay/permissions differ by device. The volume slider changes remote audio element volume, not Android's hardware volume.
-6. Never use open Firebase rules in production. Configure Authentication, Firestore, and Storage rules to restrict access to signed-in members and chat participants.
+IMPORTANT SETUP
+1. Replace all PASTE_YOUR_NEW_* values in index.html with your Firebase Web App config.
+2. Enable Firebase Authentication (Email/Password), Firestore and Storage.
+3. Set secure Firestore and Storage rules; do not use public write access.
+4. Host over HTTPS (Netlify is fine). Test signup, chat, uploads and calls with two real accounts/devices.
+5. For reliable background notifications when the app is closed, configure Firebase Cloud Messaging (FCM), a VAPID key, service worker and a server/Cloud Function that sends push notifications. This source update does not by itself enable background push.
+6. WebRTC calling currently has STUN only; some mobile networks need a TURN server for reliable calling. Calls must be tested on two devices/networks.
+
+PASSWORD CHANGE
+The password change feature requires an Email/Password Firebase account and the current password. Accounts using other sign-in methods need provider-specific credential management.
+
+APK
+The Android Studio wrapper project is provided separately in EthioLegacy-Android-Project.zip. It opens the hosted HTTPS website in a WebView. Set your deployed website URL in MainActivity.java before building. This is a source project, not a compiled APK. An Android SDK/Gradle build environment is required to compile the APK.
+
+SPEED
+The app uses Firebase live listeners and cloud storage; actual speed depends on internet quality, Firebase region/rules, file sizes and device performance. No source code can guarantee highest speed on every connection.

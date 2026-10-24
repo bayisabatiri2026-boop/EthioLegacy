@@ -90,18 +90,6 @@
 
   .brand{display:flex;align-items:center;gap:10px}.brand-mark{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#f7c948,#ef7f32 48%,#008069 49%,#075e54);display:flex;align-items:center;justify-content:center;color:#fff;position:relative;font-size:11px;font-weight:800;box-shadow:0 3px 9px #0002;flex-shrink:0}.brand-mark span{position:absolute;left:4px;top:7px;font-size:9px}.brand-mark b{font-size:22px;margin:8px 0 0 13px;text-shadow:0 1px 2px #333}.brand-mark.large{width:54px;height:54px;border-radius:50%}.notification-badge{position:absolute;top:0;right:0;background:#ef4444;color:white;border-radius:20px;min-width:17px;height:17px;font-size:11px;display:inline-flex;align-items:center;justify-content:center}.header-icon{position:relative}.toast{position:fixed;top:14px;left:50%;transform:translate(-50%,-150%);background:#243746;color:#fff;padding:12px 18px;border-radius:12px;z-index:3000;box-shadow:0 6px 24px #0003;max-width:90vw;transition:transform .25s ease}.toast.show{transform:translate(-50%,0)}.notification-panel{display:none;position:fixed;z-index:1500;top:72px;right:12px;width:min(360px,calc(100vw - 24px));max-height:65vh;overflow:auto;background:#fff;border-radius:16px;box-shadow:0 12px 35px #0003;padding:16px;color:#243746}.notification-panel.open{display:block}.panel-heading{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.panel-heading button,.close-settings{border:0;background:transparent;font-size:20px;cursor:pointer}.notification-entry{padding:11px 4px;border-bottom:1px solid #edf0f2;font-size:14px}.muted{color:#7b8790;font-size:13px}.settings-overlay{z-index:2000;overflow-y:auto;padding:16px}.settings-content{max-height:90vh;overflow-y:auto;text-align:left;max-width:480px;padding:20px}.settings-title{display:flex;gap:12px;align-items:center;margin-bottom:20px}.settings-title h2{font-size:19px;color:#243746}.settings-title p{font-size:12px;color:#77838e;margin:4px 0 0}.close-settings{margin-left:auto;align-self:flex-start}.profile-upload{display:flex;align-items:center;gap:14px;padding:14px 0 18px;border-bottom:1px solid #e8ecef;margin-bottom:8px}.profile-initial,.profile-upload img{width:64px;height:64px;border-radius:50%;background:#008069;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:22px;object-fit:cover}.upload-label{display:inline-block;color:#008069;font-weight:700;font-size:13px;margin-top:8px;cursor:pointer}.setting-row{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 3px;border:0;border-bottom:1px solid #edf0f2;background:white;color:#273746;font-size:14px;text-align:left}.setting-row select{max-width:145px;padding:8px;border:1px solid #d4d9df;border-radius:8px;background:#fff}.setting-button{cursor:pointer}.logout-button{width:100%;margin-top:18px;padding:13px;border:0;border-radius:10px;background:#b91c1c;color:#fff;font-weight:700}.settings-note{line-height:1.5;margin-top:14px}.call-history-entry{padding:10px 0;border-bottom:1px solid #eee;text-align:left;font-size:14px}
 
-
-  /* Mobile chat composer visibility fix: keep send arrow above browser/navigation bars */
-  html { height: 100%; }
-  body { height: 100vh; height: 100dvh; min-height: 0; }
-  .screen { min-height: 0; height: 100%; }
-  #chatScreen { min-height: 0; overflow: hidden; }
-  #chatBox { min-height: 0; overscroll-behavior: contain; }
-  .input-area { position: sticky; bottom: 0; z-index: 20; flex: 0 0 auto; width: 100%; padding: 10px 10px calc(10px + env(safe-area-inset-bottom, 0px)); }
-  .input-area input { min-width: 0; width: 0; flex: 1 1 auto; }
-  .input-area .attach-btn, .input-area button { flex: 0 0 45px; min-width: 45px; min-height: 45px; display: inline-flex; align-items: center; justify-content: center; }
-  @media (max-height: 500px) { .header { padding: 8px 12px; } .input-area { padding-top: 6px; } }
-
 </style>
 </head>
 <body>
@@ -195,7 +183,6 @@
     <input id="photoInput" type="file" accept="image/*" hidden onchange="sendAttachment(event)">
     <button class="attach-btn" type="button" title="Upload file or media" aria-label="Upload file or media" onclick="document.getElementById('messageFileInput').click()">📎</button>
     <input id="messageFileInput" type="file" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.ppt,.pptx,.zip" hidden onchange="sendAttachment(event)">
-    <button class="attach-btn" id="recordVoiceBtn" type="button" title="Record voice message" aria-label="Record voice message" onclick="toggleVoiceRecording()">🎙️</button>
     <input id="msgInput" placeholder="Type a message..." onkeypress="if(event.key==='Enter') sendMessage()">
     <button onclick="sendMessage()" aria-label="Send message">➤</button>
   </div>
@@ -246,13 +233,7 @@
 
 <div id="activeCallModal" class="call-modal">
   <div class="call-title" id="activeCallName" style="font-size:24px; margin-bottom:10px;">EthioLegacy</div>
-  <div id="callDuration" style="font-size:18px;margin:8px 0 16px">00:00</div>
   <audio id="remoteAudio" autoplay></audio>
-  <div class="call-audio-settings" style="margin:10px auto 14px;max-width:280px;text-align:left;color:inherit">
-    <label for="callVolume" style="display:flex;justify-content:space-between;gap:12px;font-size:14px">🔊 Call volume <span id="callVolumeValue">100%</span></label>
-    <input id="callVolume" type="range" min="0" max="100" value="100" style="width:100%;accent-color:#00a884" oninput="setCallVolume(this.value)">
-    <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-top:8px"><input id="callToneEnabled" type="checkbox" checked onchange="setCallToneEnabled(this.checked)"> Play incoming call tone</label>
-  </div>
   <div class="video-container" id="videoContainer" style="display:none;">
     <video id="remoteVideo" autoplay playsinline></video>
     <video id="localVideo" autoplay playsinline muted></video>
@@ -268,19 +249,18 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
   import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-  import { getFirestore, collection, doc, setDoc, getDoc, getDocs, query, where, orderBy, onSnapshot, addDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-  import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
+  import { getFirestore, collection, doc, setDoc, getDoc, getDocs, query, where, orderBy, onSnapshot, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+  import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyA-Q_XfHXdIZafqjaxX3n6zQ2DiMQe5t0A",
-  authDomain: "ethiolegacy.firebaseapp.com",
-  projectId: "ethiolegacy",
-  storageBucket: "ethiolegacy.firebasestorage.app",
-  messagingSenderId: "660506612974",
-  appId: "1:660506612974:web:a0dafaf3a379fad4e5cfff",
-  measurementId: "G-RH6G52EX0D"
-};
+  // 🔴 IMPORTANT: PASTE YOUR NEW FIREBASE PROJECT KEYS HERE 🔴
+  const firebaseConfig = {
+    apiKey: "PASTE_YOUR_NEW_API_KEY_HERE",
+    authDomain: "PASTE_YOUR_NEW_AUTH_DOMAIN_HERE",
+    projectId: "PASTE_YOUR_NEW_PROJECT_ID_HERE",
+    storageBucket: "PASTE_YOUR_NEW_STORAGE_BUCKET_HERE",
+    messagingSenderId: "PASTE_YOUR_NEW_MESSAGING_SENDER_ID_HERE",
+    appId: "PASTE_YOUR_NEW_APP_ID_HERE"
+  };
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
@@ -585,15 +565,14 @@ const firebaseConfig = {
       box.innerHTML = '';
       snap.docChanges().forEach(change=>{if(change.type==='added'){const m=change.doc.data();if(m.senderId!==currentUser.uid)pushNotice('New message from '+(m.senderName||'member'),m.text||'You received a message.');}});
       snap.forEach(d => {
-        const m = { id: d.id, ...d.data() };
+        const m = d.data();
         const isMine = m.senderId === currentUser.uid;
         const time = m.timestamp ? new Date(m.timestamp.seconds * 1000).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '';
         box.innerHTML += `
           <div class="message ${isMine ? 'mine' : ''}">
             ${!isMine ? `<div class="msg-name">${escapeHTML(m.senderName||'Member')}</div>` : ''}
             ${m.text ? `<div>${escapeHTML(m.text)}</div>` : ''}
-            ${m.attachmentUrl ? (String(m.attachmentType||'').startsWith('image/') ? `<a href="${escapeHTML(m.attachmentUrl)}" target="_blank" rel="noopener"><img src="${escapeHTML(m.attachmentUrl)}" alt="Shared image" style="display:block;max-width:220px;max-height:260px;border-radius:8px;margin-top:6px"></a>` : (String(m.attachmentType||'').startsWith('video/') ? `<video controls playsinline src="${escapeHTML(m.attachmentUrl)}" style="max-width:240px;max-height:260px;margin-top:6px;border-radius:8px"></video>` : (String(m.attachmentType||'').startsWith('audio/') ? `<audio controls preload="metadata" src="${escapeHTML(m.attachmentUrl)}" style="display:block;max-width:240px;margin-top:8px"></audio><a class="file-card" href="${escapeHTML(m.attachmentUrl)}" target="_blank" rel="noopener" download>⬇️ Save ${escapeHTML(m.attachmentName||'audio')}</a>` : `<a class="file-card" href="${escapeHTML(m.attachmentUrl)}" target="_blank" rel="noopener" download>📎 ${escapeHTML(m.attachmentName||'Download file')} · ⬇️ Download</a>`))) : ''}
-            ${m.senderId===currentUser.uid ? `<button class="mini-action" onclick="deleteChatMessage('${m.id}','${m.attachmentUrl||''}')" title="Delete this message">🗑️ Delete</button>` : ''}
+            ${m.attachmentUrl ? (String(m.attachmentType||'').startsWith('image/') ? `<a href="${escapeHTML(m.attachmentUrl)}" target="_blank" rel="noopener"><img src="${escapeHTML(m.attachmentUrl)}" alt="Shared image" style="display:block;max-width:220px;max-height:260px;border-radius:8px;margin-top:6px"></a>` : (String(m.attachmentType||'').startsWith('video/') ? `<video controls playsinline src="${escapeHTML(m.attachmentUrl)}" style="max-width:240px;max-height:260px;margin-top:6px;border-radius:8px"></video>` : `<a class="file-card" href="${escapeHTML(m.attachmentUrl)}" target="_blank" rel="noopener" download>📎 ${escapeHTML(m.attachmentName||'Download file')}</a>`)) : ''}
             <div style="font-size:10px; color:#999; text-align:right; margin-top:4px;">${time}</div>
           </div>`;
       });
@@ -636,192 +615,132 @@ const firebaseConfig = {
     }catch(err){console.error(err);toast('Upload failed. Check Firebase Storage setup, internet, and Storage rules.');}
   };
 
-  let voiceRecorder=null, voiceChunks=[], voiceStream=null;
-  window.toggleVoiceRecording=async()=>{
-    const btn=document.getElementById('recordVoiceBtn');
-    if(voiceRecorder && voiceRecorder.state==='recording'){voiceRecorder.stop();btn.textContent='🎙️';btn.title='Record voice message';return;}
-    if(!currentUser||!currentChatId)return toast('Open a chat first.');
-    if(!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder)return toast('Voice recording is not supported by this browser.');
-    try{
-      voiceStream=await navigator.mediaDevices.getUserMedia({audio:true});
-      voiceChunks=[];voiceRecorder=new MediaRecorder(voiceStream);
-      voiceRecorder.ondataavailable=e=>{if(e.data.size)voiceChunks.push(e.data)};
-      voiceRecorder.onstop=async()=>{
-        try{const blob=new Blob(voiceChunks,{type:voiceRecorder.mimeType||'audio/webm'});const file=new File([blob],`voice-${Date.now()}.webm`,{type:blob.type});await uploadChatBlob(file);}
-        catch(e){console.error(e);toast('Could not send voice recording.');}
-        finally{voiceStream?.getTracks().forEach(t=>t.stop());voiceStream=null;btn.textContent='🎙️';btn.title='Record voice message';}
-      };
-      voiceRecorder.start();btn.textContent='⏹️';btn.title='Stop and send voice message';toast('Recording… tap stop to send.');
-    }catch(e){toast('Allow microphone permission to record a voice message.');}
-  };
-  async function uploadChatBlob(file){
-    if(!navigator.onLine)throw new Error('offline');
-    const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
-    const fileRef=ref(storage,`chatFiles/${currentChatId}/${currentUser.uid}/${Date.now()}_${safeName}`);
-    await uploadBytes(fileRef,file,{contentType:file.type||'audio/webm'});
-    const url=await getDownloadURL(fileRef);
-    await addDoc(collection(db,'chats',currentChatId,'messages'),{senderId:currentUser.uid,senderName:currentUser.displayName||'Member',text:'',attachmentUrl:url,attachmentName:file.name,attachmentType:file.type||'audio/webm',attachmentSize:file.size,timestamp:serverTimestamp()});
-    toast('Voice message sent.');
-  }
-  window.deleteChatMessage=async(messageId,attachmentUrl)=>{
-    if(!confirm('Delete this message for everyone in this chat?'))return;
-    try{
-      await deleteDoc(doc(db,'chats',currentChatId,'messages',messageId));
-      if(attachmentUrl){try{const u=new URL(attachmentUrl);const match=u.pathname.match(/\/o\/(.+)$/);if(match)await deleteObject(ref(storage,decodeURIComponent(match[1])))}catch(e){console.warn('Storage file could not be deleted; check Storage rules.',e)}}
-      toast('Message deleted.');
-    }catch(e){console.error(e);toast('Delete failed. Check Firestore and Storage rules.');}
-  };
-
   window.openPrivacyControls=()=>alert('Privacy and security\n\n• Sign out when using a shared device.\n• Choose carefully which contacts you sync. Selected contacts stay in this browser session.\n• Only share files with people you trust.\n• Use HTTPS and Firebase Authentication.\n• Configure restrictive Firestore and Storage rules before deployment.\n• This starter app does not provide end-to-end encryption.\n• Block/report and account deletion need backend implementation before production.');
 
-  window.setCallVolume(100);
-
-  // --- WEBRTC CALLING (one-to-one; Firebase signaling) ---
-  // STUN alone is not enough for every carrier/network. Configure a TURN service for production.
-  const servers = { iceServers: [
-    { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }
-    // Add your authenticated TURN server here for reliable cross-network calls.
-  ] };
+  // --- WEBRTC CALLING ---
+  const servers = { iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }] };
   let pc = null, localStream = null, currentCallDocId = null, unsubscribeCall = null;
-  let unsubscribeCandidates = null, callTimer = null, callStartedAt = null;
-  let callRole = null, callIsVideo = false, callFinalizing = false;
-  const pendingRemoteCandidates = [];
-  const seenCandidateIds = new Set();
 
-  function startCallClock(){
-    clearInterval(callTimer); callStartedAt=Date.now();
-    const el=document.getElementById('callDuration');
-    const tick=()=>{const sec=Math.floor((Date.now()-callStartedAt)/1000);if(el)el.textContent=String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0')};
-    tick(); callTimer=setInterval(tick,1000);
+  async function setupMedia(video) {
+    try { return await navigator.mediaDevices.getUserMedia({ video: video, audio: true }); } 
+    catch (e) { alert("Camera/Mic access denied. Please allow permissions."); throw e; }
   }
-  let callToneContext=null, callToneTimer=null, callToneEnabled=true;
-  window.setCallVolume=(value)=>{const audio=document.getElementById('remoteAudio');const n=Math.max(0,Math.min(100,Number(value)||0));if(audio)audio.volume=n/100;const label=document.getElementById('callVolumeValue');if(label)label.textContent=n+'%';};
-  window.setCallToneEnabled=(enabled)=>{callToneEnabled=!!enabled;if(!callToneEnabled)stopCallTone();};
-  function stopCallTone(){if(callToneTimer){clearInterval(callToneTimer);callToneTimer=null;}if(callToneContext){callToneContext.close().catch(()=>{});callToneContext=null;}}
-  function playTonePulse(){if(!callToneContext||callToneContext.state==='closed')return;try{const osc=callToneContext.createOscillator(),gain=callToneContext.createGain();osc.type='sine';osc.frequency.value=440;gain.gain.setValueAtTime(0.0001,callToneContext.currentTime);gain.gain.exponentialRampToValueAtTime(0.12,callToneContext.currentTime+0.04);gain.gain.setValueAtTime(0.12,callToneContext.currentTime+0.25);gain.gain.exponentialRampToValueAtTime(0.0001,callToneContext.currentTime+0.4);osc.connect(gain);gain.connect(callToneContext.destination);osc.start();osc.stop(callToneContext.currentTime+0.42);}catch(e){console.debug('Call tone unavailable',e);}}
-  function startCallTone(){stopCallTone();if(!callToneEnabled)return;try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;callToneContext=new AC();callToneContext.resume().then(playTonePulse).catch(()=>{});callToneTimer=setInterval(playTonePulse,1100);}catch(e){console.debug('Call tone unavailable',e);}}
-  async function setupMedia(video){
-    if(!navigator.mediaDevices?.getUserMedia) throw new Error('Camera/microphone are unavailable. Open the site over HTTPS and use a supported browser.');
-    try { return await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true},video:video?{facingMode:'user',width:{ideal:640},height:{ideal:480},frameRate:{ideal:24,max:30}}:false}); }
-    catch(e){let msg='Could not access the microphone/camera. Check browser permissions and try again.';if(e.name==='NotAllowedError'||e.name==='PermissionDeniedError')msg='Permission denied. Allow microphone'+(video?' and camera':'')+' for this website, then try again.';else if(e.name==='NotFoundError')msg='No compatible '+(video?'camera or microphone':'microphone')+' was found.';else if(e.name==='NotReadableError')msg='The camera or microphone is being used by another app. Close it and try again.';alert(msg);throw e;}
-  }
-  function setCallMediaMode(video){
-    callIsVideo=!!video;
-    const container=document.getElementById('videoContainer'); if(container)container.style.display=video?'block':'none';
-    const btn=document.getElementById('cameraToggleBtn');if(btn){btn.style.display='';btn.textContent=video?'📷 Camera off':'📷 Enable video';}
-  }
-  function attachRemoteMedia(stream){
-    const audio=document.getElementById('remoteAudio'), video=document.getElementById('remoteVideo');
-    if(audio){audio.srcObject=stream;audio.autoplay=true;audio.play?.().catch(()=>{});}
-    if(video){video.srcObject=stream;video.autoplay=true;video.playsInline=true;video.play?.().catch(()=>{});}
-  }
-  async function applyRemoteCandidate(candidate){
-    if(!pc||!pc.remoteDescription){pendingRemoteCandidates.push(candidate);return;}
-    try{await pc.addIceCandidate(new RTCIceCandidate(candidate));}catch(e){console.warn('Could not apply remote ICE candidate',e);}
-  }
-  async function flushRemoteCandidates(){while(pendingRemoteCandidates.length&&pc&&pc.remoteDescription){const c=pendingRemoteCandidates.shift();try{await pc.addIceCandidate(new RTCIceCandidate(c));}catch(e){console.warn('Queued ICE candidate skipped',e);}}}
-  function watchRemoteCandidates(callDoc, subcollection){
-    if(unsubscribeCandidates){unsubscribeCandidates();unsubscribeCandidates=null;}
-    unsubscribeCandidates=onSnapshot(collection(callDoc,subcollection),snap=>{
-      snap.docChanges().forEach(change=>{if(change.type!=='added'||seenCandidateIds.has(change.doc.id))return;seenCandidateIds.add(change.doc.id);applyRemoteCandidate(change.doc.data());});
-    },err=>{console.error('ICE candidate listener failed',err);toast('Call network setup failed. Check Firestore rules.');});
-  }
-  function makePeerConnection(callDoc, localCandidateCollection, remoteCandidateCollection){
-    pc=new RTCPeerConnection(servers);
-    pc.ontrack=event=>{const stream=event.streams?.[0]||new MediaStream([event.track]);attachRemoteMedia(stream);};
-    pc.onicecandidate=event=>{if(event.candidate)addDoc(collection(callDoc,localCandidateCollection),event.candidate.toJSON()).catch(e=>console.error('Saving ICE candidate failed',e));};
-    pc.onconnectionstatechange=()=>{
-      if(!pc)return;
-      if(pc.connectionState==='connected'){stopCallTone();document.getElementById('activeCallName').textContent='Connected';if(!callStartedAt)startCallClock();}
-      if(pc.connectionState==='failed'){toast('Call connection failed. Your network may need a TURN server.');}
-      if(pc.connectionState==='disconnected'){toast('Call connection interrupted. Trying to reconnect…');}
-    };
-    localStream.getTracks().forEach(track=>pc.addTrack(track,localStream));
-    watchRemoteCandidates(callDoc,remoteCandidateCollection);
-    return pc;
-  }
-  function resetCallState(){
-    stopCallTone();clearInterval(callTimer);callTimer=null;callStartedAt=null;
-    const duration=document.getElementById('callDuration');if(duration)duration.textContent='00:00';
-    if(unsubscribeCall){unsubscribeCall();unsubscribeCall=null;}if(unsubscribeCandidates){unsubscribeCandidates();unsubscribeCandidates=null;}
-    if(pc){pc.ontrack=null;pc.onicecandidate=null;pc.close();pc=null;}
-    if(localStream){localStream.getTracks().forEach(t=>t.stop());localStream=null;}
-    ['localVideo','remoteVideo','remoteAudio'].forEach(id=>{const el=document.getElementById(id);if(el)el.srcObject=null;});
-    pendingRemoteCandidates.length=0;seenCandidateIds.clear();callRole=null;callIsVideo=false;callFinalizing=false;
-    document.getElementById('activeCallModal')?.classList.remove('active');document.getElementById('incomingCallModal')?.classList.remove('active');
-  }
+
   window.startCall = async (type) => {
-    if(!currentUser)return alert('Please sign in before calling.');
-    if(!currentPartner)return alert('Open a chat with the person you want to call first.');
-    if(String(currentPartner).startsWith('group_'))return alert('Group voice/video calls are not supported in this version.');
-    if(pc||localStream)return alert('End the current call before starting another.');
-    callRole='caller';const isVideo=type==='video';
-    currentCallDocId=null;callFinalizing=false;
-    document.getElementById('activeCallName').textContent='Requesting permissions…';document.getElementById('activeCallModal').classList.add('active');setCallMediaMode(isVideo);
-    try{
-      localStream=await setupMedia(isVideo);const localVideo=document.getElementById('localVideo');if(localVideo){localVideo.srcObject=localStream;localVideo.muted=true;localVideo.play?.().catch(()=>{});}
-      const callDoc=doc(collection(db,'calls'));currentCallDocId=callDoc.id;
-      makePeerConnection(callDoc,'offerCandidates','answerCandidates');
-      const offer=await pc.createOffer();await pc.setLocalDescription(offer);
-      await setDoc(callDoc,{offer:{type:offer.type,sdp:offer.sdp},callerId:currentUser.uid,receiverId:currentPartner,type:isVideo?'video':'audio',status:'ringing',createdAt:serverTimestamp()});
-      document.getElementById('activeCallName').textContent='Calling…';
-      unsubscribeCall=onSnapshot(callDoc,async snap=>{
-        const data=snap.data();if(!data)return;
-        if(data.answer&&pc&& !pc.remoteDescription){try{await pc.setRemoteDescription(new RTCSessionDescription(data.answer));await flushRemoteCandidates();}catch(e){console.error('Setting call answer failed',e);toast('Could not establish the call. Please try again.');}}
-        if(data.status==='ended'&&!callFinalizing)resetCallState();
-        if(data.status==='rejected'&&!callFinalizing){toast('Call was declined.');resetCallState();}
-      },err=>{console.error(err);toast('Call signaling failed. Check Firebase rules/configuration.');resetCallState();});
-      // The callee may have created candidates before the caller starts listening; snapshot returns existing docs too.
-      saveCallHistory(isVideo?'video':'audio','Outgoing call');
-    }catch(e){console.error('Call start failed',e);resetCallState();}
-  };
-  let incomingCallUnsubscribe=null;
-  onAuthStateChanged(auth,user=>{
-    if(incomingCallUnsubscribe){incomingCallUnsubscribe();incomingCallUnsubscribe=null;}
-    if(!user)return;
-    const q=query(collection(db,'calls'),where('receiverId','==',user.uid),where('status','==','ringing'));
-    incomingCallUnsubscribe=onSnapshot(q,snapshot=>{
-      snapshot.docChanges().forEach(change=>{
-        if(change.type!=='added')return;const callData=change.doc.data();
-        if(callData.callerId===user.uid||pc||localStream||document.getElementById('activeCallModal').classList.contains('active'))return;
-        currentCallDocId=change.doc.id;document.getElementById('incomingCaller').textContent=(callData.type==='video'?'Incoming video call':'Incoming voice call');
-        pushNotice(callData.type==='video'?'Incoming video call':'Incoming voice call','Open EthioLegacy to answer.');document.getElementById('incomingCallModal').classList.add('active');startCallTone();
+    if (!currentPartner || currentPartner.startsWith("group_")) return alert("Group calling is not supported yet.");
+    const isVideo = type === 'video';
+    saveCallHistory(type,'Outgoing call');
+    document.getElementById('activeCallName').textContent = "Calling...";
+    document.getElementById('activeCallModal').classList.add('active');
+    document.getElementById('videoContainer').style.display = isVideo ? 'block' : 'none';
+
+    try {
+      localStream = await setupMedia(isVideo);
+      document.getElementById('localVideo').srcObject = localStream;
+      pc = new RTCPeerConnection(servers);
+      localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+      pc.ontrack = (event) => { document.getElementById('remoteVideo').srcObject = event.streams[0]; document.getElementById('remoteAudio').srcObject = event.streams[0]; };
+
+      const callDoc = doc(collection(db, "calls"));
+      currentCallDocId = callDoc.id;
+      const offerCandidates = collection(callDoc, "offerCandidates");
+      const answerCandidates = collection(callDoc, "answerCandidates");
+
+      pc.onicecandidate = (event) => { if (event.candidate) addDoc(offerCandidates, event.candidate.toJSON()); };
+      const offerDescription = await pc.createOffer();
+      await pc.setLocalDescription(offerDescription);
+
+      await setDoc(callDoc, {
+        offer: { type: offerDescription.type, sdp: offerDescription.sdp },
+        callerId: currentUser.uid, receiverId: currentPartner, type: type, status: 'ringing'
       });
-    },err=>console.error('Incoming call listener failed',err));
+
+      unsubscribeCall = onSnapshot(callDoc, (snapshot) => {
+        const data = snapshot.data();
+        if (!data) return;
+        if (data.answer && pc.signalingState !== 'stable') pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+        if (data.status === 'ended') endCall();
+      });
+
+      onSnapshot(answerCandidates, (snapshot) => {
+        snapshot.docChanges().forEach(change => { if (change.type === 'added') pc.addIceCandidate(new RTCIceCandidate(change.doc.data())); });
+      });
+    } catch (e) { endCall(); }
+  };
+
+  onAuthStateChanged(auth, (user) => {
+    if (!user) return;
+    const q = query(collection(db, "calls"), where("receiverId", "==", user.uid), where("status", "==", "ringing"));
+    onSnapshot(q, (snapshot) => {
+      snapshot.docChanges().forEach(change => {
+        if (change.type === 'added') {
+          const callData = change.doc.data();
+          if (document.getElementById('activeCallModal').classList.contains('active')) return;
+          currentCallDocId = change.doc.id;
+          document.getElementById('incomingCaller').textContent = "Incoming Call";
+          pushNotice(callData.type==='video'?'Incoming video call':'Incoming voice call','Tap the app to answer.');
+          document.getElementById('incomingCallModal').classList.add('active');
+        }
+      });
+    });
   });
+
   window.acceptCall = async () => {
-    if(!currentCallDocId)return alert('This call is no longer available.');
-    stopCallTone();const id=currentCallDocId;document.getElementById('incomingCallModal').classList.remove('active');
-    try{
-      const callDoc=doc(db,'calls',id),snap=await getDoc(callDoc);if(!snap.exists())throw new Error('Call no longer exists');const data=snap.data();
-      if(data.status!=='ringing')throw new Error('Call is no longer ringing');
-      callRole='callee';const isVideo=data.type==='video';document.getElementById('activeCallModal').classList.add('active');document.getElementById('activeCallName').textContent='Connecting…';setCallMediaMode(isVideo);
-      localStream=await setupMedia(isVideo);const localVideo=document.getElementById('localVideo');if(localVideo){localVideo.srcObject=localStream;localVideo.muted=true;localVideo.play?.().catch(()=>{});}
-      makePeerConnection(callDoc,'answerCandidates','offerCandidates');
-      await pc.setRemoteDescription(new RTCSessionDescription(data.offer));await flushRemoteCandidates();
-      const answer=await pc.createAnswer();await pc.setLocalDescription(answer);
-      await setDoc(callDoc,{answer:{type:answer.type,sdp:answer.sdp},status:'active',acceptedAt:serverTimestamp()},{merge:true});
-      document.getElementById('activeCallName').textContent='Connecting…';
-      unsubscribeCall=onSnapshot(callDoc,s=>{const d=s.data();if(d&&d.status==='ended'&&!callFinalizing)resetCallState();},err=>{console.error(err);resetCallState();});
-      saveCallHistory(isVideo?'video':'audio','Accepted');
-    }catch(e){console.error('Accept call failed',e);alert(e.message||'Could not answer the call. Check camera/microphone permissions and Firebase configuration.');resetCallState();if(currentCallDocId){await setDoc(doc(db,'calls',currentCallDocId),{status:'ended'},{merge:true}).catch(()=>{});currentCallDocId=null;}}
+    document.getElementById('incomingCallModal').classList.remove('active');
+    saveCallHistory('incoming', 'Accepted');
+    const callDoc = doc(db, "calls", currentCallDocId);
+    const callData = (await getDoc(callDoc)).data();
+    const isVideo = callData.type === 'video';
+
+    document.getElementById('activeCallModal').classList.add('active');
+    document.getElementById('videoContainer').style.display = isVideo ? 'block' : 'none';
+
+    try {
+      localStream = await setupMedia(isVideo);
+      document.getElementById('localVideo').srcObject = localStream;
+      pc = new RTCPeerConnection(servers);
+      localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+      pc.ontrack = (event) => { document.getElementById('remoteVideo').srcObject = event.streams[0]; document.getElementById('remoteAudio').srcObject = event.streams[0]; };
+
+      const offerCandidates = collection(callDoc, "offerCandidates");
+      const answerCandidates = collection(callDoc, "answerCandidates");
+      pc.onicecandidate = (event) => { if (event.candidate) addDoc(answerCandidates, event.candidate.toJSON()); };
+
+      await pc.setRemoteDescription(new RTCSessionDescription(callData.offer));
+      const answerDescription = await pc.createAnswer();
+      await pc.setLocalDescription(answerDescription);
+      await setDoc(callDoc, { answer: { type: answerDescription.type, sdp: answerDescription.sdp }, status: 'active' }, { merge: true });
+
+      onSnapshot(offerCandidates, (snapshot) => {
+        snapshot.docChanges().forEach(change => { if (change.type === 'added') pc.addIceCandidate(new RTCIceCandidate(change.doc.data())); });
+      });
+
+      unsubscribeCall = onSnapshot(callDoc, (snapshot) => {
+        const data = snapshot.data();
+        if (data && data.status === 'ended') endCall();
+      });
+    } catch (e) { endCall(); }
   };
-  window.toggleCallMic=()=>{if(!localStream)return toast('Microphone is not active.');const tracks=localStream.getAudioTracks();if(!tracks.length)return toast('No microphone track is available.');const enabled=!tracks[0].enabled;tracks.forEach(t=>t.enabled=enabled);const btn=document.querySelector('#activeCallModal [onclick="toggleCallMic()"]');if(btn)btn.textContent=enabled?'🎙️ Mute':'🔇 Unmute';};
-  window.toggleCallCamera=async()=>{
-    if(!localStream)return toast('Camera is not active.');
-    let tracks=localStream.getVideoTracks();
-    if(!tracks.length){
-      try{const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640},height:{ideal:480}},audio:false});const track=stream.getVideoTracks()[0];localStream.addTrack(track);if(!pc)throw new Error('Call is not active');const sender=pc.getSenders().find(s=>s.track&&s.track.kind==='video');if(sender)await sender.replaceTrack(track);else await pc.addTrack(track,localStream);const lv=document.getElementById('localVideo');if(lv){lv.srcObject=localStream;lv.muted=true;}setCallMediaMode(true);track.enabled=true;document.getElementById('cameraToggleBtn').textContent='📷 Camera off';toast('Camera enabled. If the other person does not receive video, end the call and start a video call.');return;}catch(e){console.error(e);toast('Could not enable camera. Check permission and try again.');return;}
-    }
-    tracks.forEach(t=>t.enabled=!t.enabled);const on=tracks.some(t=>t.enabled);setCallMediaMode(true);document.getElementById('cameraToggleBtn').textContent=on?'📷 Camera off':'📷 Camera on';
-  };
+
+  window.toggleCallMic=()=>{if(!localStream)return;const tracks=localStream.getAudioTracks();tracks.forEach(t=>t.enabled=!t.enabled);toast(tracks.some(t=>t.enabled)?'Microphone on':'Microphone muted');};
+  window.toggleCallCamera=()=>{if(!localStream)return;const tracks=localStream.getVideoTracks();if(!tracks.length)return toast('Video is not enabled for this call.');tracks.forEach(t=>t.enabled=!t.enabled);const on=tracks.some(t=>t.enabled);document.getElementById('cameraToggleBtn').textContent=on?'📷 Camera off':'📷 Camera on';};
+
   window.rejectCall = async () => {
-    stopCallTone();document.getElementById('incomingCallModal').classList.remove('active');const id=currentCallDocId;currentCallDocId=null;
-    if(id)await setDoc(doc(db,'calls',id),{status:'ended',endedAt:serverTimestamp()},{merge:true}).catch(e=>console.error(e));
+    saveCallHistory('incoming','Rejected');
+    document.getElementById('incomingCallModal').classList.remove('active');
+    if (currentCallDocId) await setDoc(doc(db, "calls", currentCallDocId), { status: 'ended' }, { merge: true });
   };
+
   window.endCall = async () => {
-    const id=currentCallDocId;callFinalizing=true;resetCallState();currentCallDocId=null;
-    if(id)await setDoc(doc(db,'calls',id),{status:'ended',endedAt:serverTimestamp()},{merge:true}).catch(e=>console.error('Could not mark call ended',e));
+    saveCallHistory('call','Ended');
+    document.getElementById('activeCallModal').classList.remove('active');
+    if (pc) { pc.close(); pc = null; }
+    if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+    if (currentCallDocId) {
+      await setDoc(doc(db, "calls", currentCallDocId), { status: 'ended' }, { merge: true }).catch(()=>{});
+      currentCallDocId = null;
+    }
+    if (unsubscribeCall) { unsubscribeCall(); unsubscribeCall = null; }
   };
 </script>
 </body>
