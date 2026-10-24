@@ -1,0 +1,11 @@
+EthioLegacy calling update notes
+
+This update repairs the one-to-one WebRTC call flow in the source code, including candidate listener cleanup, handling ICE candidates arriving before the remote description, permission errors, call-state cleanup, call timer start on connection, and camera/microphone controls.
+
+Before deploying:
+1. Replace the Firebase config placeholders in index.html with the actual Firebase Web App config. The previously reported auth/api-key-not-valid error means the current config is not valid.
+2. Use HTTPS (GitHub Pages is HTTPS).
+3. Enable Firebase Authentication, Firestore, and required rules for authenticated users to create/read/update calls and candidate subcollections. Do not make all Firestore data public.
+4. STUN servers are included but TURN is not configured. Calls may still fail on some mobile carriers/NATs until you add a TURN service with authenticated credentials.
+5. This supports one-to-one voice/video only. Group voice/video calling is not implemented by this patch.
+6. Must test with two accounts on two devices. Syntax checks do not guarantee live calling.
