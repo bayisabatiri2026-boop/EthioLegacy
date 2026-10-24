@@ -614,6 +614,41 @@
       pushNotice('File shared',file.name);
     }catch(err){console.error(err);toast('Upload failed. Check Firebase Storage setup, internet, and Storage rules.');}
   };
+    let voiceRecorder=null, voiceChunks=[], voiceStream=null;
+  window.toggleVoiceRecording=async()=>{
+    const btn=document.getElementById('recordVoiceBtn');
+    if(voiceRecorder && voiceRecorder.state==='recording'){voiceRecorder.stop();btn.textContent='🎙️';btn.title='Record voice message';return;}
+    if(!currentUser||!currentChatId)return toast('Open a chat first.');
+    if(!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder)return toast('Voice recording is not supported by this browser.');
+    try{
+      voiceStream=await navigator.mediaDevices.getUserMedia({audio:true});
+      voiceChunks=[];voiceRecorder=new MediaRecorder(voiceStream);
+      voiceRecorder.ondataavailable=e=>{if(e.data.size)voiceChunks.push(e.data)};
+      voiceRecorder.onstop=async()=>{
+        try{const blob=new Blob(voiceChunks,{type:voiceRecorder.mimeType||'audio/webm'});const file=new File([blob],`voice-${Date.now()}.webm`,{type:blob.type});await uploadChatBlob(file);}
+        catch(e){console.error(e);toast('Could not send voice recording.');}
+        finally{voiceStream?.getTracks().forEach(t=>t.stop());voiceStream=null;btn.textContent='🎙️';btn.title='Record voice message';}
+      };
+      voiceRecorder.start();btn.textContent='⏹️';btn.title='Stop and send voice message';toast('Recording… tap stop to send.');
+    }catch(e){toast('Allow microphone permission to record a voice message.');}
+  };
+  async function uploadChatBlob(file){
+    if(!navigator.onLine)throw new Error('offline');
+    const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+    const fileRef=ref(storage,`chatFiles/${currentChatId}/${currentUser.uid}/${Date.now()}_${safeName}`);
+    await uploadBytes(fileRef,file,{contentType:file.type||'audio/webm'});
+    const url=await getDownloadURL(fileRef);
+    await addDoc(collection(db,'chats',currentChatId,'messages'),{senderId:currentUser.uid,senderName:currentUser.displayName||'Member',text:'',attachmentUrl:url,attachmentName:file.name,attachmentType:file.type||'audio/webm',attachmentSize:file.size,timestamp:serverTimestamp()});
+    toast('Voice message sent.');
+  }
+  window.deleteChatMessage=async(messageId,attachmentUrl)=>{
+    if(!confirm('Delete this message for everyone in this chat?'))return;
+    try{
+      await deleteDoc(doc(db,'chats',currentChatId,'messages',messageId));
+      if(attachmentUrl){try{const u=new URL(attachmentUrl);const match=u.pathname.match(/\/o\/(.+)$/);if(match)await deleteObject(ref(storage,decodeURIComponent(match[1])))}catch(e){console.warn('Storage file could not be deleted; check Storage rules.',e)}}
+      toast('Message deleted.');
+    }catch(e){console.error(e);toast('Delete failed. Check Firestore and Storage rules.');}
+  };
 
   window.openPrivacyControls=()=>alert('Privacy and security\n\n• Sign out when using a shared device.\n• Choose carefully which contacts you sync. Selected contacts stay in this browser session.\n• Only share files with people you trust.\n• Use HTTPS and Firebase Authentication.\n• Configure restrictive Firestore and Storage rules before deployment.\n• This starter app does not provide end-to-end encryption.\n• Block/report and account deletion need backend implementation before production.');
 
@@ -732,6 +767,7 @@
   };
 
   window.endCall = async () => {
+    clearInterval(callTimer); callTimer=null; callStartedAt=null; document.getElementById('callDuration').textContent='00:00';
     saveCallHistory('call','Ended');
     document.getElementById('activeCallModal').classList.remove('active');
     if (pc) { pc.close(); pc = null; }
