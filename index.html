@@ -183,6 +183,7 @@
     <input id="photoInput" type="file" accept="image/*" hidden onchange="sendAttachment(event)">
     <button class="attach-btn" type="button" title="Upload file or media" aria-label="Upload file or media" onclick="document.getElementById('messageFileInput').click()">📎</button>
     <input id="messageFileInput" type="file" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.ppt,.pptx,.zip" hidden onchange="sendAttachment(event)">
+    <button class="attach-btn" id="recordVoiceBtn" type="button" title="Record voice message" aria-label="Record voice message" onclick="toggleVoiceRecording()">🎙️</button>
     <input id="msgInput" placeholder="Type a message..." onkeypress="if(event.key==='Enter') sendMessage()">
     <button onclick="sendMessage()" aria-label="Send message">➤</button>
   </div>
@@ -233,6 +234,7 @@
 
 <div id="activeCallModal" class="call-modal">
   <div class="call-title" id="activeCallName" style="font-size:24px; margin-bottom:10px;">EthioLegacy</div>
+  <div id="callDuration" style="font-size:18px;margin:8px 0 16px">00:00</div>
   <audio id="remoteAudio" autoplay></audio>
   <div class="video-container" id="videoContainer" style="display:none;">
     <video id="remoteVideo" autoplay playsinline></video>
@@ -249,20 +251,19 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
   import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-  import { getFirestore, collection, doc, setDoc, getDoc, getDocs, query, where, orderBy, onSnapshot, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-  import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
+  import { getFirestore, collection, doc, setDoc, getDoc, getDocs, query, where, orderBy, onSnapshot, addDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+  import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyA-Q_XfHXdIZafqjaxX3n6zQ2DiMQe5t0A",
-  authDomain: "ethiolegacy.firebaseapp.com",
-  projectId: "ethiolegacy",
-  storageBucket: "ethiolegacy.firebasestorage.app",
-  messagingSenderId: "660506612974",
-  appId: "1:660506612974:web:a0dafaf3a379fad4e5cfff",
-  measurementId: "G-RH6G52EX0D"
-};
-  
+  // 🔴 IMPORTANT: PASTE YOUR NEW FIREBASE PROJECT KEYS HERE 🔴
+  const firebaseConfig = {
+    apiKey: "PASTE_YOUR_NEW_API_KEY_HERE",
+    authDomain: "PASTE_YOUR_NEW_AUTH_DOMAIN_HERE",
+    projectId: "PASTE_YOUR_NEW_PROJECT_ID_HERE",
+    storageBucket: "PASTE_YOUR_NEW_STORAGE_BUCKET_HERE",
+    messagingSenderId: "PASTE_YOUR_NEW_MESSAGING_SENDER_ID_HERE",
+    appId: "PASTE_YOUR_NEW_APP_ID_HERE"
+  };
+
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
@@ -566,14 +567,15 @@ const firebaseConfig = {
       box.innerHTML = '';
       snap.docChanges().forEach(change=>{if(change.type==='added'){const m=change.doc.data();if(m.senderId!==currentUser.uid)pushNotice('New message from '+(m.senderName||'member'),m.text||'You received a message.');}});
       snap.forEach(d => {
-        const m = d.data();
+        const m = { id: d.id, ...d.data() };
         const isMine = m.senderId === currentUser.uid;
         const time = m.timestamp ? new Date(m.timestamp.seconds * 1000).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '';
         box.innerHTML += `
           <div class="message ${isMine ? 'mine' : ''}">
             ${!isMine ? `<div class="msg-name">${escapeHTML(m.senderName||'Member')}</div>` : ''}
             ${m.text ? `<div>${escapeHTML(m.text)}</div>` : ''}
-            ${m.attachmentUrl ? (String(m.attachmentType||'').startsWith('image/') ? `<a href="${escapeHTML(m.attachmentUrl)}" target="_blank" rel="noopener"><img src="${escapeHTML(m.attachmentUrl)}" alt="Shared image" style="display:block;max-width:220px;max-height:260px;border-radius:8px;margin-top:6px"></a>` : (String(m.attachmentType||'').startsWith('video/') ? `<video controls playsinline src="${escapeHTML(m.attachmentUrl)}" style="max-width:240px;max-height:260px;margin-top:6px;border-radius:8px"></video>` : `<a class="file-card" href="${escapeHTML(m.attachmentUrl)}" target="_blank" rel="noopener" download>📎 ${escapeHTML(m.attachmentName||'Download file')}</a>`)) : ''}
+            ${m.attachmentUrl ? (String(m.attachmentType||'').startsWith('image/') ? `<a href="${escapeHTML(m.attachmentUrl)}" target="_blank" rel="noopener"><img src="${escapeHTML(m.attachmentUrl)}" alt="Shared image" style="display:block;max-width:220px;max-height:260px;border-radius:8px;margin-top:6px"></a>` : (String(m.attachmentType||'').startsWith('video/') ? `<video controls playsinline src="${escapeHTML(m.attachmentUrl)}" style="max-width:240px;max-height:260px;margin-top:6px;border-radius:8px"></video>` : (String(m.attachmentType||'').startsWith('audio/') ? `<audio controls preload="metadata" src="${escapeHTML(m.attachmentUrl)}" style="display:block;max-width:240px;margin-top:8px"></audio><a class="file-card" href="${escapeHTML(m.attachmentUrl)}" target="_blank" rel="noopener" download>⬇️ Save ${escapeHTML(m.attachmentName||'audio')}</a>` : `<a class="file-card" href="${escapeHTML(m.attachmentUrl)}" target="_blank" rel="noopener" download>📎 ${escapeHTML(m.attachmentName||'Download file')} · ⬇️ Download</a>`))) : ''}
+            ${m.senderId===currentUser.uid ? `<button class="mini-action" onclick="deleteChatMessage('${m.id}','${m.attachmentUrl||''}')" title="Delete this message">🗑️ Delete</button>` : ''}
             <div style="font-size:10px; color:#999; text-align:right; margin-top:4px;">${time}</div>
           </div>`;
       });
@@ -616,11 +618,48 @@ const firebaseConfig = {
     }catch(err){console.error(err);toast('Upload failed. Check Firebase Storage setup, internet, and Storage rules.');}
   };
 
+  let voiceRecorder=null, voiceChunks=[], voiceStream=null;
+  window.toggleVoiceRecording=async()=>{
+    const btn=document.getElementById('recordVoiceBtn');
+    if(voiceRecorder && voiceRecorder.state==='recording'){voiceRecorder.stop();btn.textContent='🎙️';btn.title='Record voice message';return;}
+    if(!currentUser||!currentChatId)return toast('Open a chat first.');
+    if(!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder)return toast('Voice recording is not supported by this browser.');
+    try{
+      voiceStream=await navigator.mediaDevices.getUserMedia({audio:true});
+      voiceChunks=[];voiceRecorder=new MediaRecorder(voiceStream);
+      voiceRecorder.ondataavailable=e=>{if(e.data.size)voiceChunks.push(e.data)};
+      voiceRecorder.onstop=async()=>{
+        try{const blob=new Blob(voiceChunks,{type:voiceRecorder.mimeType||'audio/webm'});const file=new File([blob],`voice-${Date.now()}.webm`,{type:blob.type});await uploadChatBlob(file);}
+        catch(e){console.error(e);toast('Could not send voice recording.');}
+        finally{voiceStream?.getTracks().forEach(t=>t.stop());voiceStream=null;btn.textContent='🎙️';btn.title='Record voice message';}
+      };
+      voiceRecorder.start();btn.textContent='⏹️';btn.title='Stop and send voice message';toast('Recording… tap stop to send.');
+    }catch(e){toast('Allow microphone permission to record a voice message.');}
+  };
+  async function uploadChatBlob(file){
+    if(!navigator.onLine)throw new Error('offline');
+    const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+    const fileRef=ref(storage,`chatFiles/${currentChatId}/${currentUser.uid}/${Date.now()}_${safeName}`);
+    await uploadBytes(fileRef,file,{contentType:file.type||'audio/webm'});
+    const url=await getDownloadURL(fileRef);
+    await addDoc(collection(db,'chats',currentChatId,'messages'),{senderId:currentUser.uid,senderName:currentUser.displayName||'Member',text:'',attachmentUrl:url,attachmentName:file.name,attachmentType:file.type||'audio/webm',attachmentSize:file.size,timestamp:serverTimestamp()});
+    toast('Voice message sent.');
+  }
+  window.deleteChatMessage=async(messageId,attachmentUrl)=>{
+    if(!confirm('Delete this message for everyone in this chat?'))return;
+    try{
+      await deleteDoc(doc(db,'chats',currentChatId,'messages',messageId));
+      if(attachmentUrl){try{const u=new URL(attachmentUrl);const match=u.pathname.match(/\/o\/(.+)$/);if(match)await deleteObject(ref(storage,decodeURIComponent(match[1])))}catch(e){console.warn('Storage file could not be deleted; check Storage rules.',e)}}
+      toast('Message deleted.');
+    }catch(e){console.error(e);toast('Delete failed. Check Firestore and Storage rules.');}
+  };
+
   window.openPrivacyControls=()=>alert('Privacy and security\n\n• Sign out when using a shared device.\n• Choose carefully which contacts you sync. Selected contacts stay in this browser session.\n• Only share files with people you trust.\n• Use HTTPS and Firebase Authentication.\n• Configure restrictive Firestore and Storage rules before deployment.\n• This starter app does not provide end-to-end encryption.\n• Block/report and account deletion need backend implementation before production.');
 
   // --- WEBRTC CALLING ---
   const servers = { iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }] };
-  let pc = null, localStream = null, currentCallDocId = null, unsubscribeCall = null;
+  let pc = null, localStream = null, currentCallDocId = null, unsubscribeCall = null, callTimer=null, callStartedAt=null;
+  function startCallClock(){clearInterval(callTimer);callStartedAt=Date.now();const el=document.getElementById('callDuration');const tick=()=>{const sec=Math.floor((Date.now()-callStartedAt)/1000);el.textContent=String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0')};tick();callTimer=setInterval(tick,1000)}
 
   async function setupMedia(video) {
     try { return await navigator.mediaDevices.getUserMedia({ video: video, audio: true }); } 
@@ -659,7 +698,7 @@ const firebaseConfig = {
       unsubscribeCall = onSnapshot(callDoc, (snapshot) => {
         const data = snapshot.data();
         if (!data) return;
-        if (data.answer && pc.signalingState !== 'stable') pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+        if (data.answer && pc.signalingState !== 'stable') { pc.setRemoteDescription(new RTCSessionDescription(data.answer)); startCallClock(); document.getElementById('activeCallName').textContent = 'Connected'; }
         if (data.status === 'ended') endCall();
       });
 
@@ -710,7 +749,8 @@ const firebaseConfig = {
       await pc.setRemoteDescription(new RTCSessionDescription(callData.offer));
       const answerDescription = await pc.createAnswer();
       await pc.setLocalDescription(answerDescription);
-      await setDoc(callDoc, { answer: { type: answerDescription.type, sdp: answerDescription.sdp }, status: 'active' }, { merge: true });
+      await setDoc(callDoc, { answer: { type: answerDescription.type, sdp: answerDescription.sdp }, status: 'active', acceptedAt: serverTimestamp() }, { merge: true });
+      document.getElementById('activeCallName').textContent = 'Connected'; startCallClock();
 
       onSnapshot(offerCandidates, (snapshot) => {
         snapshot.docChanges().forEach(change => { if (change.type === 'added') pc.addIceCandidate(new RTCIceCandidate(change.doc.data())); });
@@ -724,7 +764,7 @@ const firebaseConfig = {
   };
 
   window.toggleCallMic=()=>{if(!localStream)return;const tracks=localStream.getAudioTracks();tracks.forEach(t=>t.enabled=!t.enabled);toast(tracks.some(t=>t.enabled)?'Microphone on':'Microphone muted');};
-  window.toggleCallCamera=()=>{if(!localStream)return;const tracks=localStream.getVideoTracks();if(!tracks.length)return toast('Video is not enabled for this call.');tracks.forEach(t=>t.enabled=!t.enabled);const on=tracks.some(t=>t.enabled);document.getElementById('cameraToggleBtn').textContent=on?'📷 Camera off':'📷 Camera on';};
+  window.toggleCallCamera=()=>{if(!localStream)return;const tracks=localStream.getVideoTracks();if(!tracks.length)return toast('This call started as voice-only. End it and start a video call to enable the camera.');tracks.forEach(t=>t.enabled=!t.enabled);const on=tracks.some(t=>t.enabled);document.getElementById('cameraToggleBtn').textContent=on?'📷 Camera off':'📷 Camera on';};
 
   window.rejectCall = async () => {
     saveCallHistory('incoming','Rejected');
@@ -733,6 +773,7 @@ const firebaseConfig = {
   };
 
   window.endCall = async () => {
+    clearInterval(callTimer); callTimer=null; callStartedAt=null; document.getElementById('callDuration').textContent='00:00';
     saveCallHistory('call','Ended');
     document.getElementById('activeCallModal').classList.remove('active');
     if (pc) { pc.close(); pc = null; }
