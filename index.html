@@ -161,7 +161,7 @@
     <div class="contacts-toolbar"><button class="contacts-button" onclick="importDeviceContacts()">📱 Sync device contacts</button><span class="contacts-hint">Choose contacts to show here. Your browser will ask permission.</span></div>
   </div>
   <div id="chatsPane" class="home-pane active"><div id="deviceContactsList"></div><div id="userList"></div></div>
-  <div id="callsPane" class="home-pane"><div class="pane-heading">Start a call</div><div id="callList"></div></div>
+  <div id="callsPane" class="home-pane"><div class="pane-heading">Start a call</div><div style="padding:0 14px 10px"><input id="callsSearchInput" class="home-search" type="search" placeholder="Search calls or members…" oninput="filterCalls(this.value)" aria-label="Search calls or members"></div><div id="callList"></div></div>
   <div id="communitiesPane" class="home-pane"><div class="pane-heading">Your communities</div><div class="community-card" onclick="openNewChatModal()"><div class="community-icon">＋</div><div class="community-meta"><b>Create a community or group</b><small>Bring people together</small></div></div><div id="communityList"></div></div>
 </div>
 
@@ -179,7 +179,9 @@
   </div>
   <div id="chatBox"></div>
   <div class="input-area">
-    <button class="attach-btn" type="button" title="Attach media or file" onclick="document.getElementById('messageFileInput').click()">＋</button>
+    <button class="attach-btn" type="button" title="Upload photo" aria-label="Upload photo" onclick="document.getElementById('photoInput').click()">📷</button>
+    <input id="photoInput" type="file" accept="image/*" hidden onchange="sendAttachment(event)">
+    <button class="attach-btn" type="button" title="Upload file or media" aria-label="Upload file or media" onclick="document.getElementById('messageFileInput').click()">📎</button>
     <input id="messageFileInput" type="file" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.ppt,.pptx,.zip" hidden onchange="sendAttachment(event)">
     <input id="msgInput" placeholder="Type a message..." onkeypress="if(event.key==='Enter') sendMessage()">
     <button onclick="sendMessage()" aria-label="Send message">➤</button>
@@ -198,6 +200,7 @@
     <button class="setting-row setting-button" onclick="showLinkedDevices()"><span id="settingsLinkedLabel">📱 Linked device / current session</span><b>›</b></button>
     <button class="setting-row setting-button" onclick="showCallHistory()"><span id="settingsHistoryLabel">📞 Call history</span><b>›</b></button>
     <button class="setting-row setting-button" onclick="showMessageSettings()"><span id="settingsMessageLabel">💬 Message settings</span><b>›</b></button>
+    <button class="setting-row setting-button" onclick="openPasswordChange()"><span>🔑 Change password</span><b>›</b></button>
     <button class="setting-row setting-button" onclick="openPrivacyControls()"><span>🛡️ Privacy and security</span><b>›</b></button>
     <p class="privacy-note">Your contacts are only selected when you choose them. Use a strong, unique password. Messages are stored in Firebase; end-to-end encryption is not provided by this starter app. Never share private passwords or verification codes.</p>
     <button class="setting-row setting-button" onclick="showAbout()"><span id="settingsAboutLabel">ℹ️ About EthioLegacy</span><b>›</b></button>
@@ -207,6 +210,7 @@
 </div>
 
 <!-- MODALS -->
+<div id="passwordChangeModal" class="modal"><div class="modal-content" style="text-align:left"><h3 style="margin-bottom:8px">Change password</h3><p class="muted">For security, enter your current password first.</p><label for="currentPassword">Current password</label><div class="password-wrap"><input id="currentPassword" type="password" autocomplete="current-password" placeholder="Current password"><button class="show-password" type="button" onclick="toggleFieldPassword('currentPassword',this)">👁️</button></div><label for="newPassword">New password</label><div class="password-wrap"><input id="newPassword" type="password" autocomplete="new-password" placeholder="At least 6 characters"><button class="show-password" type="button" onclick="toggleFieldPassword('newPassword',this)">👁️</button></div><label for="confirmNewPassword">Confirm new password</label><div class="password-wrap"><input id="confirmNewPassword" type="password" autocomplete="new-password" placeholder="Repeat new password"><button class="show-password" type="button" onclick="toggleFieldPassword('confirmNewPassword',this)">👁️</button></div><div id="passwordChangeError" class="auth-error" aria-live="polite"></div><div class="modal-btns"><button style="background:#eee;color:#333" onclick="closePasswordChange()">Cancel</button><button class="btn-primary" style="width:auto;margin:0;padding:10px 20px" onclick="changeAccountPassword()">Update password</button></div></div></div>
 <div id="newChatModal" class="modal">
   <div class="modal-content">
     <h3>New Chat or Group</h3>
@@ -244,20 +248,19 @@
 <!-- Firebase & App Logic -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
   import { getFirestore, collection, doc, setDoc, getDoc, getDocs, query, where, orderBy, onSnapshot, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
   import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 
- // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyA-Q_XfHXdIZafqjaxX3n6zQ2DiMQe5t0A",
-  authDomain: "ethiolegacy.firebaseapp.com",
-  projectId: "ethiolegacy",
-  storageBucket: "ethiolegacy.firebasestorage.app",
-  messagingSenderId: "660506612974",
-  appId: "1:660506612974:web:a0dafaf3a379fad4e5cfff",
-  measurementId: "G-RH6G52EX0D"
-};
+  // 🔴 IMPORTANT: PASTE YOUR NEW FIREBASE PROJECT KEYS HERE 🔴
+  const firebaseConfig = {
+    apiKey: "PASTE_YOUR_NEW_API_KEY_HERE",
+    authDomain: "PASTE_YOUR_NEW_AUTH_DOMAIN_HERE",
+    projectId: "PASTE_YOUR_NEW_PROJECT_ID_HERE",
+    storageBucket: "PASTE_YOUR_NEW_STORAGE_BUCKET_HERE",
+    messagingSenderId: "PASTE_YOUR_NEW_MESSAGING_SENDER_ID_HERE",
+    appId: "PASTE_YOUR_NEW_APP_ID_HERE"
+  };
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
@@ -289,7 +292,7 @@ const firebaseConfig = {
     so:{settings:'Dejinta',notifications:'Ogeysiisyada',logout:'Ka bax',search:'Raadi isticmaaleyaasha...',message:'Qor fariin...',signupTitle:'Samee akoonkaaga EthioLegacy',signinTitle:'Soo gal si aad u sii wadato',fullName:'Magaca oo buuxa',yourName:'Magacaaga',emailPhone:'Iimayl / lambarka telefoonka',emailPlaceholder:'Iimayl ama lambarka telefoonka',password:'Furaha sirta ah',enterPassword:'Geli furaha sirta ah',confirmPassword:'Xaqiiji furaha sirta ah',confirmPlaceholder:'Mar kale geli furaha sirta ah',signup:'Is diiwaangeli',signin:'Soo gal',already:'Akoon ma leedahay?',noAccount:'Akoon ma lihid?',newChat:'Sheeko cusub ama koox',userEmail:'Iimaylka isticmaalaha',groupName:'Magaca kooxda',cancel:'Jooji',start:'Bilow',profile:'Astaantaada',uploadPhoto:'📷 Soo geli sawirka astaanta',language:'🌐 Luqad',permissions:'🔐 Oggolaanshaha (kamarad, makarafoon, ogeysiisyo)',linkedDevices:'📱 Qalab ku xiran / gelitaanka hadda',callHistory:'📞 Taariikhda wicitaannada',messageSettings:'💬 Dejinta fariimaha',about:'ℹ️ Ku saabsan EthioLegacy',profilePrivacy:'Astaan, asturnaan iyo doorashooyinka app-ka',incoming:'Wicitaan soo socda...',accept:'Aqbal',reject:'Diid',endCall:'Dhammee wicitaanka',emptyUsers:'Weli ma jiraan isticmaaleyaal kale.',caughtUp:'Wax ogeysiis cusub ah ma jiro.'}
   };
   function toast(message){const el=document.getElementById('toast');if(!el)return;el.textContent=message;el.classList.add('show');clearTimeout(window.__toastTimer);window.__toastTimer=setTimeout(()=>el.classList.remove('show'),3200);}
-  function pushNotice(title,body){notifications.unshift({title,body,time:new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})});notifications=notifications.slice(0,40);const badge=document.getElementById('notificationBadge');badge.textContent=notifications.length;badge.style.display=notifications.length?'inline-flex':'none';renderNotifications();toast(title+(body?': '+body:''));if('Notification' in window && Notification.permission==='granted' && document.visibilityState!=='visible'){try{new Notification(title,{body,icon:'data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="20" fill="%23008069"/><text x="8" y="42" fill="white" font-size="23">Eth</text><text x="48" y="78" fill="white" font-size="48">L</text></svg>')});}catch(e){}}}
+  function pushNotice(title,body){notifications.unshift({title,body,time:new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})});notifications=notifications.slice(0,40);const badge=document.getElementById('notificationBadge');badge.textContent=notifications.length;badge.style.display=notifications.length?'inline-flex':'none';renderNotifications();toast(title+(body?': '+body:''));if('Notification' in window && Notification.permission==='granted' && (document.visibilityState!=='visible' || !document.hasFocus())){try{new Notification(title,{body,icon:'data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="20" fill="%23008069"/><text x="8" y="42" fill="white" font-size="23">Eth</text><text x="48" y="78" fill="white" font-size="48">L</text></svg>')});}catch(e){}}}
   window.showNotifications=()=>{document.getElementById('notificationPanel').classList.toggle('open');renderNotifications();};
   window.closeNotifications=()=>document.getElementById('notificationPanel').classList.remove('open');
   function renderNotifications(){const box=document.getElementById('notificationList');if(!box)return;box.innerHTML=notifications.length?notifications.map(n=>`<div class="notification-entry"><b>${escapeHTML(n.title)}</b><div>${escapeHTML(n.body||'')}</div><small class="muted">${n.time}</small></div>`).join(''):'<p class="muted">You’re all caught up.</p>';}
@@ -301,6 +304,21 @@ const firebaseConfig = {
   window.showLinkedDevices=()=>alert('Current device/session\n'+navigator.userAgent+'\n\nThis page cannot reliably list or remotely unlink other devices without a trusted backend/session registry. Sign out on a shared device when finished.');
   window.showCallHistory=()=>{const h=JSON.parse(localStorage.getItem('ethiolegacy_call_history')||'[]');alert(h.length?h.slice(0,20).map(x=>`${x.type.toUpperCase()} • ${x.name} • ${x.time} • ${x.status}`).join('\n'):'No call history yet.');};
   window.showMessageSettings=()=>alert('Message settings\n• Messages sync through Firestore when connected to the internet.\n• Screen/browser notifications require permission.\n• Background notifications require Firebase Cloud Messaging and a service worker.');
+  window.openPasswordChange=()=>{document.getElementById('passwordChangeError').textContent='';['currentPassword','newPassword','confirmNewPassword'].forEach(id=>document.getElementById(id).value='');document.getElementById('passwordChangeModal').classList.add('active');};
+  window.closePasswordChange=()=>document.getElementById('passwordChangeModal').classList.remove('active');
+  window.toggleFieldPassword=(id,btn)=>{const el=document.getElementById(id);el.type=el.type==='password'?'text':'password';btn.textContent=el.type==='password'?'👁️':'🙈';};
+  window.changeAccountPassword=async()=>{
+    const err=document.getElementById('passwordChangeError');err.textContent='';
+    const current=document.getElementById('currentPassword').value;
+    const next=document.getElementById('newPassword').value;
+    const confirm=document.getElementById('confirmNewPassword').value;
+    if(!current||!next||!confirm){err.textContent='Complete all password fields.';return;}
+    if(next.length<6){err.textContent='New password must be at least 6 characters.';return;}
+    if(next!==confirm){err.textContent='New passwords do not match.';return;}
+    if(!currentUser?.email){err.textContent='This account does not have an email/password login. Use your account provider to change credentials.';return;}
+    try{const credential=EmailAuthProvider.credential(currentUser.email,current);await reauthenticateWithCredential(auth.currentUser,credential);await updatePassword(auth.currentUser,next);closePasswordChange();toast('Password changed successfully.');}
+    catch(e){console.error(e);err.textContent=e.code==='auth/wrong-password'||e.code==='auth/invalid-credential'?'Current password is incorrect.':e.code==='auth/weak-password'?'Choose a stronger password.':e.code==='auth/requires-recent-login'?'Please sign out and sign in again, then retry.':'Could not change password. Check your current password and connection.';}
+  };
   window.showAbout=()=>alert('EthioLegacy\nConnect with people through messages and audio/video calls.\nVersion 1.1\nA secure Firebase configuration and appropriate database/storage rules are required.');
   window.changeLanguage=(code)=>{
     const t=translations[code]||translations.en;localStorage.setItem('ethiolegacy_language',code);
@@ -397,7 +415,7 @@ const firebaseConfig = {
     document.querySelectorAll('.main-tab').forEach(b=>b.classList.toggle('active',b===button));
     document.querySelectorAll('.home-pane').forEach(p=>p.classList.toggle('active',p.id===paneId));
     document.getElementById('homeSearchWrap').style.display = paneId==='chatsPane' ? 'block' : 'none';
-    if(paneId==='callsPane') renderCallList(allUsers);
+    if(paneId==='callsPane'){const cs=document.getElementById('callsSearchInput');if(cs)cs.value='';renderCallList(allUsers);}
     if(paneId==='communitiesPane') loadCommunities();
   };
 
@@ -474,10 +492,11 @@ const firebaseConfig = {
       const action = document.createElement('button'); action.className = 'contact-action';
       if (match) { action.textContent = 'Chat'; action.onclick = () => openChat(match.uid, match.displayName || c.name); }
       else { action.textContent = 'Invite'; action.onclick = async () => {
-        const shareText = 'Join me on EthioLegacy for chats, voice/video calls and communities.';
-        if (navigator.share) { try { await navigator.share({title:'EthioLegacy', text:shareText}); } catch(e) {} }
-        else if (navigator.clipboard?.writeText) { try { await navigator.clipboard.writeText(shareText); toast('Invite message copied. Send it to your contact.'); } catch(e) { toast('Please share the EthioLegacy link manually.'); } }
-        else toast('Please share the EthioLegacy link manually.');
+        const inviteUrl = window.location.href.split('#')[0];
+        const shareText = 'Join me on EthioLegacy for chats, photo/file sharing, voice/video calls and communities: ' + inviteUrl;
+        if (navigator.share) { try { await navigator.share({title:'Join EthioLegacy', text:shareText, url:inviteUrl}); } catch(e) { if(e.name!=='AbortError') toast('Invite could not be shared. Copy the website link from your browser.'); } }
+        else if (navigator.clipboard?.writeText) { try { await navigator.clipboard.writeText(shareText); toast('Invite link copied. Send it to your contact.'); } catch(e) { window.prompt('Copy this invite link and send it:', shareText); } }
+        else window.prompt('Copy this invite link and send it:', shareText);
       }; }
       row.appendChild(action); box.appendChild(row);
     });
@@ -496,6 +515,12 @@ const firebaseConfig = {
     if(!users.length){list.innerHTML='<div class="empty-state">No other members yet. Invite someone to EthioLegacy to start calling.</div>';return;}
     users.forEach(u=>{const row=document.createElement('div');row.className='chat-item';const name=escapeHTML(u.displayName||'Member');row.innerHTML=`<div class="avatar">${name.charAt(0).toUpperCase()}</div><div class="chat-info"><div class="chat-name">${name}</div><small class="muted">Voice or video call</small></div><div class="row-actions"><button class="mini-action" title="Voice call">📞</button><button class="mini-action" title="Video call">🎥</button></div>`;const buttons=row.querySelectorAll('button');buttons[0].onclick=e=>{e.stopPropagation();openChat(u.uid,u.displayName);setTimeout(()=>startCall('audio'),100)};buttons[1].onclick=e=>{e.stopPropagation();openChat(u.uid,u.displayName);setTimeout(()=>startCall('video'),100)};list.appendChild(row);});
   }
+
+  window.filterCalls = (value) => {
+    const term=(value||'').trim().toLowerCase();
+    const filtered=allUsers.filter(u => (u.displayName||'').toLowerCase().includes(term) || (u.email||'').toLowerCase().includes(term));
+    renderCallList(filtered);
+  };
 
   async function loadCommunities(){
     const list=document.getElementById('communityList'); if(!list||!currentUser)return;
