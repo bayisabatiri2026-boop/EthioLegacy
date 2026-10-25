@@ -1,0 +1,16 @@
+{
+  "id": "./",
+  "name": "EthioLegacy",
+  "short_name": "EthioLegacy",
+  "description": "EthioLegacy messaging and calling app",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#4b1020",
+  "theme_color": "#6f172c",
+  "icons": [
+    {"src":"icons/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
+    {"src":"icons/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
+  ]
+}

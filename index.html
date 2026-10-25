@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>EthioLegacy</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#6f172c">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Roboto', sans-serif; }
@@ -61,12 +68,7 @@
   .message { background: white; padding: 10px 14px; margin-bottom: 10px; border-radius: 12px; max-width: 85%; align-self: flex-start; word-wrap: break-word; box-shadow: 0 1px 1px rgba(0,0,0,0.1);}
   .message.mine { background: #D9FDD3; align-self: flex-end; }
   .msg-name { font-size: 12px; color: #008069; font-weight: bold; margin-bottom: 4px; }
-  .input-area { display: flex; gap:6px; padding: 10px; background: #f0f2f5; align-items: center; }
-  .input-area .attach-btn{background:#e0eee9;color:#006b58;border-radius:50%;width:42px;height:42px;border:0;font-size:20px;cursor:pointer;flex-shrink:0}
-  .connection-status{font-size:11px;font-weight:600;padding:4px 8px;border-radius:12px;background:#d9fdd3;color:#075e54}
-  .privacy-note{font-size:12px;line-height:1.5;color:#526170;padding:12px 3px}
-  .call-toggle{background:#475569!important}
-  .file-card{display:block;padding:9px 12px;border-radius:10px;background:#edf7f4;color:#075e54;text-decoration:none;overflow-wrap:anywhere;margin-top:5px}
+  .input-area { display: flex; padding: 10px; background: #f0f2f5; align-items: center; }
   .input-area input { flex: 1; padding: 14px; border-radius: 24px; border: none; outline: none; font-size: 15px; margin-right: 10px; }
   .input-area button { background: #00A884; color: white; border: none; border-radius: 50%; width: 45px; height: 45px; font-size: 20px; cursor: pointer; }
   
@@ -145,7 +147,6 @@
   <div class="header">
     <div class="brand"><div class="brand-mark"><span>Eth</span><b>L</b></div><span>EthioLegacy</span></div>
     <div class="header-actions">
-      <span id="connectionStatus" class="connection-status">● Online</span>
       <button class="header-icon" aria-label="Notifications" onclick="showNotifications()">🔔<span id="notificationBadge" class="notification-badge" style="display:none">0</span></button>
       <button class="header-icon" aria-label="New chat" onclick="openNewChatModal()">✚</button>
       <button class="header-icon" aria-label="Settings" onclick="openSettings()">⚙️</button>
@@ -161,7 +162,7 @@
     <div class="contacts-toolbar"><button class="contacts-button" onclick="importDeviceContacts()">📱 Sync device contacts</button><span class="contacts-hint">Choose contacts to show here. Your browser will ask permission.</span></div>
   </div>
   <div id="chatsPane" class="home-pane active"><div id="deviceContactsList"></div><div id="userList"></div></div>
-  <div id="callsPane" class="home-pane"><div class="pane-heading">Start a call</div><div style="padding:0 14px 10px"><input id="callsSearchInput" class="home-search" type="search" placeholder="Search calls or members…" oninput="filterCalls(this.value)" aria-label="Search calls or members"></div><div id="callList"></div></div>
+  <div id="callsPane" class="home-pane"><div class="pane-heading">Start a call</div><div id="callList"></div></div>
   <div id="communitiesPane" class="home-pane"><div class="pane-heading">Your communities</div><div class="community-card" onclick="openNewChatModal()"><div class="community-icon">＋</div><div class="community-meta"><b>Create a community or group</b><small>Bring people together</small></div></div><div id="communityList"></div></div>
 </div>
 
@@ -179,12 +180,8 @@
   </div>
   <div id="chatBox"></div>
   <div class="input-area">
-    <button class="attach-btn" type="button" title="Upload photo" aria-label="Upload photo" onclick="document.getElementById('photoInput').click()">📷</button>
-    <input id="photoInput" type="file" accept="image/*" hidden onchange="sendAttachment(event)">
-    <button class="attach-btn" type="button" title="Upload file or media" aria-label="Upload file or media" onclick="document.getElementById('messageFileInput').click()">📎</button>
-    <input id="messageFileInput" type="file" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.ppt,.pptx,.zip" hidden onchange="sendAttachment(event)">
     <input id="msgInput" placeholder="Type a message..." onkeypress="if(event.key==='Enter') sendMessage()">
-    <button onclick="sendMessage()" aria-label="Send message">➤</button>
+    <button onclick="sendMessage()">➤</button>
   </div>
 </div>
 
@@ -200,9 +197,6 @@
     <button class="setting-row setting-button" onclick="showLinkedDevices()"><span id="settingsLinkedLabel">📱 Linked device / current session</span><b>›</b></button>
     <button class="setting-row setting-button" onclick="showCallHistory()"><span id="settingsHistoryLabel">📞 Call history</span><b>›</b></button>
     <button class="setting-row setting-button" onclick="showMessageSettings()"><span id="settingsMessageLabel">💬 Message settings</span><b>›</b></button>
-    <button class="setting-row setting-button" onclick="openPasswordChange()"><span>🔑 Change password</span><b>›</b></button>
-    <button class="setting-row setting-button" onclick="openPrivacyControls()"><span>🛡️ Privacy and security</span><b>›</b></button>
-    <p class="privacy-note">Your contacts are only selected when you choose them. Use a strong, unique password. Messages are stored in Firebase; end-to-end encryption is not provided by this starter app. Never share private passwords or verification codes.</p>
     <button class="setting-row setting-button" onclick="showAbout()"><span id="settingsAboutLabel">ℹ️ About EthioLegacy</span><b>›</b></button>
     <button id="settingsLogout" class="logout-button" onclick="logout()">Log out</button>
     <p class="muted settings-note">Camera, microphone and notifications are controlled by your browser/device. Background push notifications require Firebase Cloud Messaging setup.</p>
@@ -210,7 +204,6 @@
 </div>
 
 <!-- MODALS -->
-<div id="passwordChangeModal" class="modal"><div class="modal-content" style="text-align:left"><h3 style="margin-bottom:8px">Change password</h3><p class="muted">For security, enter your current password first.</p><label for="currentPassword">Current password</label><div class="password-wrap"><input id="currentPassword" type="password" autocomplete="current-password" placeholder="Current password"><button class="show-password" type="button" onclick="toggleFieldPassword('currentPassword',this)">👁️</button></div><label for="newPassword">New password</label><div class="password-wrap"><input id="newPassword" type="password" autocomplete="new-password" placeholder="At least 6 characters"><button class="show-password" type="button" onclick="toggleFieldPassword('newPassword',this)">👁️</button></div><label for="confirmNewPassword">Confirm new password</label><div class="password-wrap"><input id="confirmNewPassword" type="password" autocomplete="new-password" placeholder="Repeat new password"><button class="show-password" type="button" onclick="toggleFieldPassword('confirmNewPassword',this)">👁️</button></div><div id="passwordChangeError" class="auth-error" aria-live="polite"></div><div class="modal-btns"><button style="background:#eee;color:#333" onclick="closePasswordChange()">Cancel</button><button class="btn-primary" style="width:auto;margin:0;padding:10px 20px" onclick="changeAccountPassword()">Update password</button></div></div></div>
 <div id="newChatModal" class="modal">
   <div class="modal-content">
     <h3>New Chat or Group</h3>
@@ -233,14 +226,11 @@
 
 <div id="activeCallModal" class="call-modal">
   <div class="call-title" id="activeCallName" style="font-size:24px; margin-bottom:10px;">EthioLegacy</div>
-  <audio id="remoteAudio" autoplay></audio>
   <div class="video-container" id="videoContainer" style="display:none;">
     <video id="remoteVideo" autoplay playsinline></video>
     <video id="localVideo" autoplay playsinline muted></video>
   </div>
   <div class="call-controls">
-    <button class="btn-call call-toggle" onclick="toggleCallMic()">🎙️ Mute</button>
-    <button class="btn-call call-toggle" id="cameraToggleBtn" onclick="toggleCallCamera()">📷 Camera off</button>
     <button class="btn-call btn-reject" onclick="endCall()">End Call</button>
   </div>
 </div>
@@ -248,28 +238,24 @@
 <!-- Firebase & App Logic -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
   import { getFirestore, collection, doc, setDoc, getDoc, getDocs, query, where, orderBy, onSnapshot, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
   import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  // 🔴 IMPORTANT: PASTE YOUR NEW FIREBASE PROJECT KEYS HERE 🔴
   const firebaseConfig = {
-  apiKey: "AIzaSyA-Q_XfHXdIZafqjaxX3n6zQ2DiMQe5t0A",
-  authDomain: "ethiolegacy.firebaseapp.com",
-  projectId: "ethiolegacy",
-  storageBucket: "ethiolegacy.firebasestorage.app",
-  messagingSenderId: "660506612974",
-  appId: "1:660506612974:web:a0dafaf3a379fad4e5cfff",
-  measurementId: "G-RH6G52EX0D"
-};
+    apiKey: "PASTE_YOUR_NEW_API_KEY_HERE",
+    authDomain: "PASTE_YOUR_NEW_AUTH_DOMAIN_HERE",
+    projectId: "PASTE_YOUR_NEW_PROJECT_ID_HERE",
+    storageBucket: "PASTE_YOUR_NEW_STORAGE_BUCKET_HERE",
+    messagingSenderId: "PASTE_YOUR_NEW_MESSAGING_SENDER_ID_HERE",
+    appId: "PASTE_YOUR_NEW_APP_ID_HERE"
+  };
+
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
   const storage = getStorage(app);
-  // Clear online/offline indicator; online means the device has a network connection,
-  // not that Firebase or another user is guaranteed reachable.
-  function updateConnectionStatus(){const el=document.getElementById('connectionStatus');if(!el)return;el.textContent=navigator.onLine?'● Internet available':'● Offline';el.style.background=navigator.onLine?'#d9fdd3':'#fee2e2';el.style.color=navigator.onLine?'#075e54':'#991b1b';}
-  window.addEventListener('online',updateConnectionStatus);window.addEventListener('offline',updateConnectionStatus);window.addEventListener('load',updateConnectionStatus);
 
   window.showScreen = (id) => {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -292,7 +278,7 @@
     so:{settings:'Dejinta',notifications:'Ogeysiisyada',logout:'Ka bax',search:'Raadi isticmaaleyaasha...',message:'Qor fariin...',signupTitle:'Samee akoonkaaga EthioLegacy',signinTitle:'Soo gal si aad u sii wadato',fullName:'Magaca oo buuxa',yourName:'Magacaaga',emailPhone:'Iimayl / lambarka telefoonka',emailPlaceholder:'Iimayl ama lambarka telefoonka',password:'Furaha sirta ah',enterPassword:'Geli furaha sirta ah',confirmPassword:'Xaqiiji furaha sirta ah',confirmPlaceholder:'Mar kale geli furaha sirta ah',signup:'Is diiwaangeli',signin:'Soo gal',already:'Akoon ma leedahay?',noAccount:'Akoon ma lihid?',newChat:'Sheeko cusub ama koox',userEmail:'Iimaylka isticmaalaha',groupName:'Magaca kooxda',cancel:'Jooji',start:'Bilow',profile:'Astaantaada',uploadPhoto:'📷 Soo geli sawirka astaanta',language:'🌐 Luqad',permissions:'🔐 Oggolaanshaha (kamarad, makarafoon, ogeysiisyo)',linkedDevices:'📱 Qalab ku xiran / gelitaanka hadda',callHistory:'📞 Taariikhda wicitaannada',messageSettings:'💬 Dejinta fariimaha',about:'ℹ️ Ku saabsan EthioLegacy',profilePrivacy:'Astaan, asturnaan iyo doorashooyinka app-ka',incoming:'Wicitaan soo socda...',accept:'Aqbal',reject:'Diid',endCall:'Dhammee wicitaanka',emptyUsers:'Weli ma jiraan isticmaaleyaal kale.',caughtUp:'Wax ogeysiis cusub ah ma jiro.'}
   };
   function toast(message){const el=document.getElementById('toast');if(!el)return;el.textContent=message;el.classList.add('show');clearTimeout(window.__toastTimer);window.__toastTimer=setTimeout(()=>el.classList.remove('show'),3200);}
-  function pushNotice(title,body){notifications.unshift({title,body,time:new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})});notifications=notifications.slice(0,40);const badge=document.getElementById('notificationBadge');badge.textContent=notifications.length;badge.style.display=notifications.length?'inline-flex':'none';renderNotifications();toast(title+(body?': '+body:''));if('Notification' in window && Notification.permission==='granted' && (document.visibilityState!=='visible' || !document.hasFocus())){try{new Notification(title,{body,icon:'data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="20" fill="%23008069"/><text x="8" y="42" fill="white" font-size="23">Eth</text><text x="48" y="78" fill="white" font-size="48">L</text></svg>')});}catch(e){}}}
+  function pushNotice(title,body){notifications.unshift({title,body,time:new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})});notifications=notifications.slice(0,40);const badge=document.getElementById('notificationBadge');badge.textContent=notifications.length;badge.style.display=notifications.length?'inline-flex':'none';renderNotifications();toast(title+(body?': '+body:''));if('Notification' in window && Notification.permission==='granted' && document.visibilityState!=='visible'){try{new Notification(title,{body,icon:'data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="20" fill="%23008069"/><text x="8" y="42" fill="white" font-size="23">Eth</text><text x="48" y="78" fill="white" font-size="48">L</text></svg>')});}catch(e){}}}
   window.showNotifications=()=>{document.getElementById('notificationPanel').classList.toggle('open');renderNotifications();};
   window.closeNotifications=()=>document.getElementById('notificationPanel').classList.remove('open');
   function renderNotifications(){const box=document.getElementById('notificationList');if(!box)return;box.innerHTML=notifications.length?notifications.map(n=>`<div class="notification-entry"><b>${escapeHTML(n.title)}</b><div>${escapeHTML(n.body||'')}</div><small class="muted">${n.time}</small></div>`).join(''):'<p class="muted">You’re all caught up.</p>';}
@@ -304,21 +290,6 @@
   window.showLinkedDevices=()=>alert('Current device/session\n'+navigator.userAgent+'\n\nThis page cannot reliably list or remotely unlink other devices without a trusted backend/session registry. Sign out on a shared device when finished.');
   window.showCallHistory=()=>{const h=JSON.parse(localStorage.getItem('ethiolegacy_call_history')||'[]');alert(h.length?h.slice(0,20).map(x=>`${x.type.toUpperCase()} • ${x.name} • ${x.time} • ${x.status}`).join('\n'):'No call history yet.');};
   window.showMessageSettings=()=>alert('Message settings\n• Messages sync through Firestore when connected to the internet.\n• Screen/browser notifications require permission.\n• Background notifications require Firebase Cloud Messaging and a service worker.');
-  window.openPasswordChange=()=>{document.getElementById('passwordChangeError').textContent='';['currentPassword','newPassword','confirmNewPassword'].forEach(id=>document.getElementById(id).value='');document.getElementById('passwordChangeModal').classList.add('active');};
-  window.closePasswordChange=()=>document.getElementById('passwordChangeModal').classList.remove('active');
-  window.toggleFieldPassword=(id,btn)=>{const el=document.getElementById(id);el.type=el.type==='password'?'text':'password';btn.textContent=el.type==='password'?'👁️':'🙈';};
-  window.changeAccountPassword=async()=>{
-    const err=document.getElementById('passwordChangeError');err.textContent='';
-    const current=document.getElementById('currentPassword').value;
-    const next=document.getElementById('newPassword').value;
-    const confirm=document.getElementById('confirmNewPassword').value;
-    if(!current||!next||!confirm){err.textContent='Complete all password fields.';return;}
-    if(next.length<6){err.textContent='New password must be at least 6 characters.';return;}
-    if(next!==confirm){err.textContent='New passwords do not match.';return;}
-    if(!currentUser?.email){err.textContent='This account does not have an email/password login. Use your account provider to change credentials.';return;}
-    try{const credential=EmailAuthProvider.credential(currentUser.email,current);await reauthenticateWithCredential(auth.currentUser,credential);await updatePassword(auth.currentUser,next);closePasswordChange();toast('Password changed successfully.');}
-    catch(e){console.error(e);err.textContent=e.code==='auth/wrong-password'||e.code==='auth/invalid-credential'?'Current password is incorrect.':e.code==='auth/weak-password'?'Choose a stronger password.':e.code==='auth/requires-recent-login'?'Please sign out and sign in again, then retry.':'Could not change password. Check your current password and connection.';}
-  };
   window.showAbout=()=>alert('EthioLegacy\nConnect with people through messages and audio/video calls.\nVersion 1.1\nA secure Firebase configuration and appropriate database/storage rules are required.');
   window.changeLanguage=(code)=>{
     const t=translations[code]||translations.en;localStorage.setItem('ethiolegacy_language',code);
@@ -415,7 +386,7 @@
     document.querySelectorAll('.main-tab').forEach(b=>b.classList.toggle('active',b===button));
     document.querySelectorAll('.home-pane').forEach(p=>p.classList.toggle('active',p.id===paneId));
     document.getElementById('homeSearchWrap').style.display = paneId==='chatsPane' ? 'block' : 'none';
-    if(paneId==='callsPane'){const cs=document.getElementById('callsSearchInput');if(cs)cs.value='';renderCallList(allUsers);}
+    if(paneId==='callsPane') renderCallList(allUsers);
     if(paneId==='communitiesPane') loadCommunities();
   };
 
@@ -492,11 +463,10 @@
       const action = document.createElement('button'); action.className = 'contact-action';
       if (match) { action.textContent = 'Chat'; action.onclick = () => openChat(match.uid, match.displayName || c.name); }
       else { action.textContent = 'Invite'; action.onclick = async () => {
-        const inviteUrl = window.location.href.split('#')[0];
-        const shareText = 'Join me on EthioLegacy for chats, photo/file sharing, voice/video calls and communities: ' + inviteUrl;
-        if (navigator.share) { try { await navigator.share({title:'Join EthioLegacy', text:shareText, url:inviteUrl}); } catch(e) { if(e.name!=='AbortError') toast('Invite could not be shared. Copy the website link from your browser.'); } }
-        else if (navigator.clipboard?.writeText) { try { await navigator.clipboard.writeText(shareText); toast('Invite link copied. Send it to your contact.'); } catch(e) { window.prompt('Copy this invite link and send it:', shareText); } }
-        else window.prompt('Copy this invite link and send it:', shareText);
+        const shareText = 'Join me on EthioLegacy for chats, voice/video calls and communities.';
+        if (navigator.share) { try { await navigator.share({title:'EthioLegacy', text:shareText}); } catch(e) {} }
+        else if (navigator.clipboard?.writeText) { try { await navigator.clipboard.writeText(shareText); toast('Invite message copied. Send it to your contact.'); } catch(e) { toast('Please share the EthioLegacy link manually.'); } }
+        else toast('Please share the EthioLegacy link manually.');
       }; }
       row.appendChild(action); box.appendChild(row);
     });
@@ -515,12 +485,6 @@
     if(!users.length){list.innerHTML='<div class="empty-state">No other members yet. Invite someone to EthioLegacy to start calling.</div>';return;}
     users.forEach(u=>{const row=document.createElement('div');row.className='chat-item';const name=escapeHTML(u.displayName||'Member');row.innerHTML=`<div class="avatar">${name.charAt(0).toUpperCase()}</div><div class="chat-info"><div class="chat-name">${name}</div><small class="muted">Voice or video call</small></div><div class="row-actions"><button class="mini-action" title="Voice call">📞</button><button class="mini-action" title="Video call">🎥</button></div>`;const buttons=row.querySelectorAll('button');buttons[0].onclick=e=>{e.stopPropagation();openChat(u.uid,u.displayName);setTimeout(()=>startCall('audio'),100)};buttons[1].onclick=e=>{e.stopPropagation();openChat(u.uid,u.displayName);setTimeout(()=>startCall('video'),100)};list.appendChild(row);});
   }
-
-  window.filterCalls = (value) => {
-    const term=(value||'').trim().toLowerCase();
-    const filtered=allUsers.filter(u => (u.displayName||'').toLowerCase().includes(term) || (u.email||'').toLowerCase().includes(term));
-    renderCallList(filtered);
-  };
 
   async function loadCommunities(){
     const list=document.getElementById('communityList'); if(!list||!currentUser)return;
@@ -571,8 +535,7 @@
         box.innerHTML += `
           <div class="message ${isMine ? 'mine' : ''}">
             ${!isMine ? `<div class="msg-name">${escapeHTML(m.senderName||'Member')}</div>` : ''}
-            ${m.text ? `<div>${escapeHTML(m.text)}</div>` : ''}
-            ${m.attachmentUrl ? (String(m.attachmentType||'').startsWith('image/') ? `<a href="${escapeHTML(m.attachmentUrl)}" target="_blank" rel="noopener"><img src="${escapeHTML(m.attachmentUrl)}" alt="Shared image" style="display:block;max-width:220px;max-height:260px;border-radius:8px;margin-top:6px"></a>` : (String(m.attachmentType||'').startsWith('video/') ? `<video controls playsinline src="${escapeHTML(m.attachmentUrl)}" style="max-width:240px;max-height:260px;margin-top:6px;border-radius:8px"></video>` : `<a class="file-card" href="${escapeHTML(m.attachmentUrl)}" target="_blank" rel="noopener" download>📎 ${escapeHTML(m.attachmentName||'Download file')}</a>`)) : ''}
+            <div>${escapeHTML(m.text||'')}</div>
             <div style="font-size:10px; color:#999; text-align:right; margin-top:4px;">${time}</div>
           </div>`;
       });
@@ -585,72 +548,14 @@
     const text = input.value.trim();
     if (!currentUser || !currentChatId) return toast('Open a chat first.');
     if (!text) return;
-    if(!navigator.onLine)return toast('You are offline. Reconnect to send messages.');
     input.value = '';
-    try { await addDoc(collection(db, "chats", currentChatId, "messages"), {
+    await addDoc(collection(db, "chats", currentChatId, "messages"), {
       senderId: currentUser.uid,
       senderName: currentUser.displayName,
       text: text,
       timestamp: serverTimestamp()
-    }); } catch(err) { console.error(err); input.value=text; toast('Message failed to send. Check connection and Firestore rules.'); }
+    });
   };
-
-  window.sendAttachment = async (event) => {
-    const file=event.target.files?.[0]; event.target.value='';
-    if(!file)return;
-    if(!currentUser||!currentChatId)return toast('Open a chat first.');
-    if(!navigator.onLine)return toast('Connect to the internet before uploading.');
-    const maxBytes=50*1024*1024;
-    if(file.size>maxBytes)return toast('Files must be 50 MB or smaller.');
-    const allowed=/^(image\/|video\/|audio\/|application\/pdf|application\/msword|application\/vnd\.|text\/plain|application\/zip)/i;
-    if(file.type&&!allowed.test(file.type))return toast('This file type is not supported.');
-    try{
-      toast('Uploading media or file…');
-      const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
-      const fileRef=ref(storage,`chatFiles/${currentChatId}/${currentUser.uid}/${Date.now()}_${safeName}`);
-      await uploadBytes(fileRef,file,{contentType:file.type||'application/octet-stream'});
-      const url=await getDownloadURL(fileRef);
-      await addDoc(collection(db,'chats',currentChatId,'messages'),{senderId:currentUser.uid,senderName:currentUser.displayName||'Member',text:'',attachmentUrl:url,attachmentName:file.name,attachmentType:file.type||'application/octet-stream',attachmentSize:file.size,timestamp:serverTimestamp()});
-      pushNotice('File shared',file.name);
-    }catch(err){console.error(err);toast('Upload failed. Check Firebase Storage setup, internet, and Storage rules.');}
-  };
-    let voiceRecorder=null, voiceChunks=[], voiceStream=null;
-  window.toggleVoiceRecording=async()=>{
-    const btn=document.getElementById('recordVoiceBtn');
-    if(voiceRecorder && voiceRecorder.state==='recording'){voiceRecorder.stop();btn.textContent='🎙️';btn.title='Record voice message';return;}
-    if(!currentUser||!currentChatId)return toast('Open a chat first.');
-    if(!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder)return toast('Voice recording is not supported by this browser.');
-    try{
-      voiceStream=await navigator.mediaDevices.getUserMedia({audio:true});
-      voiceChunks=[];voiceRecorder=new MediaRecorder(voiceStream);
-      voiceRecorder.ondataavailable=e=>{if(e.data.size)voiceChunks.push(e.data)};
-      voiceRecorder.onstop=async()=>{
-        try{const blob=new Blob(voiceChunks,{type:voiceRecorder.mimeType||'audio/webm'});const file=new File([blob],`voice-${Date.now()}.webm`,{type:blob.type});await uploadChatBlob(file);}
-        catch(e){console.error(e);toast('Could not send voice recording.');}
-        finally{voiceStream?.getTracks().forEach(t=>t.stop());voiceStream=null;btn.textContent='🎙️';btn.title='Record voice message';}
-      };
-      voiceRecorder.start();btn.textContent='⏹️';btn.title='Stop and send voice message';toast('Recording… tap stop to send.');
-    }catch(e){toast('Allow microphone permission to record a voice message.');}
-  };
-  async function uploadChatBlob(file){
-    if(!navigator.onLine)throw new Error('offline');
-    const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
-    const fileRef=ref(storage,`chatFiles/${currentChatId}/${currentUser.uid}/${Date.now()}_${safeName}`);
-    await uploadBytes(fileRef,file,{contentType:file.type||'audio/webm'});
-    const url=await getDownloadURL(fileRef);
-    await addDoc(collection(db,'chats',currentChatId,'messages'),{senderId:currentUser.uid,senderName:currentUser.displayName||'Member',text:'',attachmentUrl:url,attachmentName:file.name,attachmentType:file.type||'audio/webm',attachmentSize:file.size,timestamp:serverTimestamp()});
-    toast('Voice message sent.');
-  }
-  window.deleteChatMessage=async(messageId,attachmentUrl)=>{
-    if(!confirm('Delete this message for everyone in this chat?'))return;
-    try{
-      await deleteDoc(doc(db,'chats',currentChatId,'messages',messageId));
-      if(attachmentUrl){try{const u=new URL(attachmentUrl);const match=u.pathname.match(/\/o\/(.+)$/);if(match)await deleteObject(ref(storage,decodeURIComponent(match[1])))}catch(e){console.warn('Storage file could not be deleted; check Storage rules.',e)}}
-      toast('Message deleted.');
-    }catch(e){console.error(e);toast('Delete failed. Check Firestore and Storage rules.');}
-  };
-
-  window.openPrivacyControls=()=>alert('Privacy and security\n\n• Sign out when using a shared device.\n• Choose carefully which contacts you sync. Selected contacts stay in this browser session.\n• Only share files with people you trust.\n• Use HTTPS and Firebase Authentication.\n• Configure restrictive Firestore and Storage rules before deployment.\n• This starter app does not provide end-to-end encryption.\n• Block/report and account deletion need backend implementation before production.');
 
   // --- WEBRTC CALLING ---
   const servers = { iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }] };
@@ -674,7 +579,7 @@
       document.getElementById('localVideo').srcObject = localStream;
       pc = new RTCPeerConnection(servers);
       localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-      pc.ontrack = (event) => { document.getElementById('remoteVideo').srcObject = event.streams[0]; document.getElementById('remoteAudio').srcObject = event.streams[0]; };
+      pc.ontrack = (event) => { document.getElementById('remoteVideo').srcObject = event.streams[0]; };
 
       const callDoc = doc(collection(db, "calls"));
       currentCallDocId = callDoc.id;
@@ -735,7 +640,7 @@
       document.getElementById('localVideo').srcObject = localStream;
       pc = new RTCPeerConnection(servers);
       localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-      pc.ontrack = (event) => { document.getElementById('remoteVideo').srcObject = event.streams[0]; document.getElementById('remoteAudio').srcObject = event.streams[0]; };
+      pc.ontrack = (event) => { document.getElementById('remoteVideo').srcObject = event.streams[0]; };
 
       const offerCandidates = collection(callDoc, "offerCandidates");
       const answerCandidates = collection(callDoc, "answerCandidates");
@@ -757,9 +662,6 @@
     } catch (e) { endCall(); }
   };
 
-  window.toggleCallMic=()=>{if(!localStream)return;const tracks=localStream.getAudioTracks();tracks.forEach(t=>t.enabled=!t.enabled);toast(tracks.some(t=>t.enabled)?'Microphone on':'Microphone muted');};
-  window.toggleCallCamera=()=>{if(!localStream)return;const tracks=localStream.getVideoTracks();if(!tracks.length)return toast('Video is not enabled for this call.');tracks.forEach(t=>t.enabled=!t.enabled);const on=tracks.some(t=>t.enabled);document.getElementById('cameraToggleBtn').textContent=on?'📷 Camera off':'📷 Camera on';};
-
   window.rejectCall = async () => {
     saveCallHistory('incoming','Rejected');
     document.getElementById('incomingCallModal').classList.remove('active');
@@ -767,7 +669,6 @@
   };
 
   window.endCall = async () => {
-    clearInterval(callTimer); callTimer=null; callStartedAt=null; document.getElementById('callDuration').textContent='00:00';
     saveCallHistory('call','Ended');
     document.getElementById('activeCallModal').classList.remove('active');
     if (pc) { pc.close(); pc = null; }
@@ -778,6 +679,13 @@
     }
     if (unsubscribeCall) { unsubscribeCall(); unsubscribeCall = null; }
   };
+</script>
+
+<script>
+// Register the service worker only on HTTPS or localhost.
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(err => console.warn('Service worker registration failed:', err)));
+}
 </script>
 </body>
 </html>
