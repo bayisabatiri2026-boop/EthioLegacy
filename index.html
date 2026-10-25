@@ -41,7 +41,6 @@
   .header-actions { display: flex; gap: 15px; }
   .header-icon { border:0; background:transparent; color:#fff; font-size:24px; cursor:pointer; }
   .home-search-wrap { padding: 10px 14px; background: #fff; border-bottom: 1px solid #e6e9eb; }
-  .contacts-toolbar{display:flex;gap:8px;margin-top:9px;align-items:center}.contacts-button{border:0;border-radius:20px;padding:10px 13px;background:#e7f6f1;color:#006b58;font-weight:700;cursor:pointer}.contacts-hint{font-size:11px;color:#667781;line-height:1.35}.device-contact{display:flex;align-items:center;gap:12px;padding:12px 15px;border-bottom:1px solid #f0f2f5}.device-contact .contact-details{flex:1;min-width:0}.device-contact b{display:block;color:#172b2b}.device-contact small{color:#667781;overflow-wrap:anywhere}.contact-action{border:0;border-radius:18px;padding:8px 11px;background:#008069;color:#fff;font-weight:700;cursor:pointer;white-space:nowrap}
   .main-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:#008069;padding:0 8px 8px}
   .main-tab{border:0;border-radius:10px;padding:11px 5px;background:transparent;color:#d7f3ec;font-weight:700;font-size:14px;cursor:pointer}
   .main-tab.active{background:#fff;color:#006b58;box-shadow:0 2px 7px #003b3020}
@@ -50,7 +49,10 @@
   .row-actions{display:flex;gap:8px;margin-left:8px}.mini-action{border:0;border-radius:50%;width:36px;height:36px;background:#e7f6f1;color:#008069;font-size:17px;cursor:pointer}
   .community-card{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid #f0f2f5;cursor:pointer}.community-icon{width:48px;height:48px;border-radius:16px;display:grid;place-items:center;background:#e7f6f1;font-size:23px}.community-meta{flex:1;min-width:0}.community-meta b{display:block;color:#172b2b}.community-meta small{color:#667781}
   .empty-state{padding:30px 18px;text-align:center;color:#667781;line-height:1.6}
-  body{height:100dvh;padding-bottom:env(safe-area-inset-bottom)}
+  body{height:100dvh;min-height:100dvh;padding-bottom:0;overflow:hidden}
+  #chatScreen{height:100%;min-height:0}
+  #chatBox{min-height:0;overscroll-behavior:contain}
+  .header{flex-shrink:0}
   .screen{min-height:0}.header{padding-top:max(13px,env(safe-area-inset-top))}
   .home-search { width: 100%; padding: 12px 15px; border: 0; outline: none; border-radius: 24px; background: #f0f2f5; font-size: 15px; }
   .chat-item { display: flex; padding: 12px 15px; border-bottom: 1px solid #f0f2f5; cursor: pointer; align-items: center; }
@@ -61,14 +63,14 @@
   .message { background: white; padding: 10px 14px; margin-bottom: 10px; border-radius: 12px; max-width: 85%; align-self: flex-start; word-wrap: break-word; box-shadow: 0 1px 1px rgba(0,0,0,0.1);}
   .message.mine { background: #D9FDD3; align-self: flex-end; }
   .msg-name { font-size: 12px; color: #008069; font-weight: bold; margin-bottom: 4px; }
-  .input-area { display: flex; padding: 8px; background: #f0f2f5; align-items: center; gap:5px; flex-wrap:wrap; }
-  .attach-btn{flex:0 0 40px;width:40px;height:42px;border:0;border-radius:12px;background:#e0f2ed;color:#006b58;font-size:20px;cursor:pointer;display:grid;place-items:center}
-  .input-area input[type=text], .input-area input:not([type]) { flex:1; min-width:80px; padding:12px; border-radius:24px; border:none; outline:none; font-size:16px; margin:0; }
+  .input-area { display:flex; flex-wrap:wrap; gap:7px; padding:8px 10px calc(8px + env(safe-area-inset-bottom)); background:#f0f2f5; align-items:center; flex-shrink:0; }
+  .attachment-btn{background:#00A884;color:#fff;border:0;border-radius:50%;width:42px;height:42px;font-size:20px;flex:0 0 42px;cursor:pointer}
+  .input-area #msgInput{flex:1;min-width:80px;width:20px;padding:13px 14px;border-radius:24px;border:0;font-size:16px;margin:0}
   .input-area .send-btn{flex:0 0 44px;width:44px;height:44px}
-  .attachment-preview{display:block;max-width:min(260px,70vw);max-height:300px;object-fit:contain;border-radius:8px;margin:6px 0}
-  .message-file{display:flex;align-items:center;gap:8px;max-width:260px;padding:10px;background:#ffffffb8;border-radius:8px;overflow-wrap:anywhere}
-  .message-file a{color:#006b58;font-weight:600;text-decoration:none}
-  .pending-attachment{display:none;padding:6px 12px;background:#fff;color:#006b58;font-size:13px;}
+  .message-media{display:block;max-width:min(260px,65vw);max-height:320px;border-radius:10px;margin-top:6px;object-fit:contain}
+  .message-file{display:block;margin-top:7px;padding:10px;border-radius:8px;background:#ffffffa8;overflow-wrap:anywhere;color:#075e54}
+  .delete-message{display:block;margin:5px 0 0 auto;background:transparent;border:0;color:#b42318;font-size:12px;padding:3px;cursor:pointer}
+  .ring-setting{padding:12px 3px;border-bottom:1px solid #eee;font-size:14px}.ring-setting input{width:100%;margin-top:8px}
   .input-area input { flex: 1; padding: 14px; border-radius: 24px; border: none; outline: none; font-size: 15px; margin-right: 10px; }
   .input-area button { background: #00A884; color: white; border: none; border-radius: 50%; width: 45px; height: 45px; font-size: 20px; cursor: pointer; }
   
@@ -159,9 +161,8 @@
   </div>
   <div class="home-search-wrap" id="homeSearchWrap">
     <input id="searchInput" class="home-search" type="text" placeholder="Search users..." oninput="filterUsers(this.value)">
-    <div class="contacts-toolbar"><button class="contacts-button" onclick="importDeviceContacts()">📱 Sync device contacts</button><span class="contacts-hint">Choose contacts to show here. Your browser will ask permission.</span></div>
   </div>
-  <div id="chatsPane" class="home-pane active"><div id="deviceContactsList"></div><div id="userList"></div></div>
+  <div id="chatsPane" class="home-pane active"><div id="userList"></div></div>
   <div id="callsPane" class="home-pane"><div class="pane-heading">Start a call</div><div id="callList"></div></div>
   <div id="communitiesPane" class="home-pane"><div class="pane-heading">Your communities</div><div class="community-card" onclick="openNewChatModal()"><div class="community-icon">＋</div><div class="community-meta"><b>Create a community or group</b><small>Bring people together</small></div></div><div id="communityList"></div></div>
 </div>
@@ -179,16 +180,15 @@
     </div>
   </div>
   <div id="chatBox"></div>
-  <div id="attachmentPreview" class="pending-attachment" aria-live="polite"></div>
   <div class="input-area">
-    <button type="button" class="attach-btn" title="Take a photo" aria-label="Take a photo" onclick="document.getElementById('cameraInput').click()">📷</button>
-    <button type="button" class="attach-btn" title="Choose photo" aria-label="Choose photo" onclick="document.getElementById('photoInput').click()">🖼️</button>
-    <button type="button" class="attach-btn" title="Attach file" aria-label="Attach file" onclick="document.getElementById('fileInput').click()">📎</button>
-    <input id="cameraInput" type="file" accept="image/*" capture="environment" hidden onchange="selectChatAttachment(event,'camera')">
-    <input id="photoInput" type="file" accept="image/*,video/*" hidden onchange="selectChatAttachment(event,'photo')">
-    <input id="fileInput" type="file" hidden onchange="selectChatAttachment(event,'file')">
-    <input id="msgInput" type="text" placeholder="Type a message..." onkeypress="if(event.key==='Enter'){event.preventDefault();sendMessage()}">
-    <button class="send-btn" onclick="sendMessage()" aria-label="Send message">➤</button>
+    <button class="attachment-btn" type="button" title="Take photo" onclick="document.getElementById('cameraInput').click()">📷</button>
+    <button class="attachment-btn" type="button" title="Choose photo or video" onclick="document.getElementById('mediaInput').click()">🖼️</button>
+    <button class="attachment-btn" type="button" title="Attach file" onclick="document.getElementById('fileInput').click()">📎</button>
+    <input id="cameraInput" type="file" accept="image/*" capture="environment" hidden onchange="sendAttachment(event)">
+    <input id="mediaInput" type="file" accept="image/*,video/*" hidden onchange="sendAttachment(event)">
+    <input id="fileInput" type="file" hidden onchange="sendAttachment(event)">
+    <input id="msgInput" placeholder="Type a message..." onkeypress="if(event.key==='Enter') sendMessage()">
+    <button class="send-btn" onclick="sendMessage()" title="Send">➤</button>
   </div>
 </div>
 
@@ -199,6 +199,7 @@
   <div class="modal-content settings-content">
     <div class="settings-title"><div class="brand-mark large"><span>Eth</span><b>L</b></div><div><h2 id="settingsHeading">EthioLegacy Settings</h2><p id="settingsDescription">Profile, privacy and app preferences</p></div><button class="close-settings" onclick="closeSettings()">✕</button></div>
     <div class="profile-upload"><img id="profilePreview" alt="Profile photo" src="" style="display:none"><div id="profileInitial" class="profile-initial">EL</div><div><b id="settingsDisplayName">Your profile</b><p class="muted" id="settingsEmail"></p><label class="upload-label" for="profilePhotoInput" id="settingsUploadLabel">📷 Upload profile photo</label><input id="profilePhotoInput" type="file" accept="image/*" hidden onchange="uploadProfilePhoto(event)"></div></div>
+    <div class="ring-setting"><label for="ringVolume">🔔 Incoming call ringtone volume: <span id="ringVolumeLabel">60%</span></label><input id="ringVolume" type="range" min="0" max="100" value="60" oninput="setRingVolume(this.value)"><button class="upload-label" type="button" onclick="testRingtone()">▶ Test ringtone</button></div>
     <label class="setting-row"><span id="settingsLanguageLabel">🌐 Language</span><select id="appLanguage" onchange="changeLanguage(this.value)"><option value="en">English</option><option value="om">Afaan Oromoo</option><option value="am">አማርኛ</option><option value="ti">ትግርኛ</option><option value="so">Soomaali</option></select></label>
     <button class="setting-row setting-button" onclick="requestAppPermissions()"><span id="settingsPermissionsLabel">🔐 Permissions (camera, microphone, notifications)</span><b>›</b></button>
     <button class="setting-row setting-button" onclick="showLinkedDevices()"><span id="settingsLinkedLabel">📱 Linked device / current session</span><b>›</b></button>
@@ -246,19 +247,18 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
   import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-  import { getFirestore, collection, doc, setDoc, getDoc, getDocs, query, where, orderBy, onSnapshot, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-  import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
+  import { getFirestore, collection, doc, setDoc, getDoc, getDocs, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+  import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  // 🔴 IMPORTANT: PASTE YOUR NEW FIREBASE PROJECT KEYS HERE 🔴
   const firebaseConfig = {
-  apiKey: "AIzaSyA-Q_XfHXdIZafqjaxX3n6zQ2DiMQe5t0A",
-  authDomain: "ethiolegacy.firebaseapp.com",
-  projectId: "ethiolegacy",
-  storageBucket: "ethiolegacy.firebasestorage.app",
-  messagingSenderId: "660506612974",
-  appId: "1:660506612974:web:a0dafaf3a379fad4e5cfff",
-  measurementId: "G-RH6G52EX0D"
-};
+    apiKey: "PASTE_YOUR_NEW_API_KEY_HERE",
+    authDomain: "PASTE_YOUR_NEW_AUTH_DOMAIN_HERE",
+    projectId: "PASTE_YOUR_NEW_PROJECT_ID_HERE",
+    storageBucket: "PASTE_YOUR_NEW_STORAGE_BUCKET_HERE",
+    messagingSenderId: "PASTE_YOUR_NEW_MESSAGING_SENDER_ID_HERE",
+    appId: "PASTE_YOUR_NEW_APP_ID_HERE"
+  };
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
@@ -275,7 +275,6 @@
   let currentChatId = null;
   let currentPartner = null;
   let unsubscribeMessages = null;
-  let selectedChatAttachment = null;
   let isSignupMode = true;
   let notifications = [];
   const languageNames = {en:'English',om:'Afaan Oromoo',am:'አማርኛ',ti:'ትግርኛ',so:'Soomaali'};
@@ -406,7 +405,6 @@
     allUsers = [];
     snap.forEach(d => { if (d.id !== currentUser.uid) allUsers.push(d.data()); });
     renderUsers(allUsers);
-    renderDeviceContacts();
     renderCallList(allUsers);
     loadCommunities();
   }
@@ -425,68 +423,8 @@
     });
   }
 
-  // Browser contact access is opt-in. The Contact Picker API does not allow a website
-  // to silently read the whole address book; the user chooses which contacts to share.
-  let importedDeviceContacts = [];
-  window.importDeviceContacts = async () => {
-    if (!currentUser) return toast('Please sign in first.');
-    if (!('contacts' in navigator) || !navigator.contacts?.select) {
-      toast('Device contact picker is not supported here. Open EthioLegacy in Chrome on Android over HTTPS.');
-      return;
-    }
-    try {
-      const props = ['name', 'tel', 'email'];
-      const picked = await navigator.contacts.select(props, { multiple: true });
-      const seen = new Set();
-      importedDeviceContacts = picked.map(c => ({
-        name: (c.name && c.name[0]) || 'Unnamed contact',
-        tel: (c.tel && c.tel[0]) || '',
-        email: (c.email && c.email[0]) || ''
-      })).filter(c => {
-        const key = (c.email+'|'+c.tel+'|'+c.name).toLowerCase();
-        if (seen.has(key)) return false; seen.add(key); return true;
-      });
-      // Keep this import only on this device; contacts are not uploaded to EthioLegacy.
-      renderDeviceContacts();
-      toast(importedDeviceContacts.length + ' contacts selected on this device.');
-    } catch (e) {
-      if (e.name !== 'AbortError') toast('Could not read selected contacts. Check browser permission.');
-    }
-  };
-
-  function renderDeviceContacts() {
-    const box = document.getElementById('deviceContactsList');
-    if (!box) return;
-    box.innerHTML = '';
-    if (!importedDeviceContacts.length) return;
-    const heading = document.createElement('div'); heading.className = 'pane-heading';
-    heading.textContent = 'Device contacts (' + importedDeviceContacts.length + ')'; box.appendChild(heading);
-    importedDeviceContacts.forEach(c => {
-      const match = allUsers.find(u => (c.email && (u.email||'').toLowerCase() === c.email.toLowerCase()) || (c.tel && (u.phone||u.phoneNumber||'').replace(/\D/g,'') === c.tel.replace(/\D/g,'')));
-      const row = document.createElement('div'); row.className = 'device-contact';
-      const avatar = document.createElement('div'); avatar.className = 'avatar'; avatar.textContent = (c.name || '?').charAt(0).toUpperCase();
-      const details = document.createElement('div'); details.className = 'contact-details';
-      const name = document.createElement('b'); name.textContent = c.name;
-      const info = document.createElement('small'); info.textContent = c.tel || c.email || 'No phone or email shared';
-      details.append(name, info); row.append(avatar, details);
-      const action = document.createElement('button'); action.className = 'contact-action';
-      if (match) { action.textContent = 'Chat'; action.onclick = () => openChat(match.uid, match.displayName || c.name); }
-      else { action.textContent = 'Invite'; action.onclick = async () => {
-        const shareText = 'Join me on EthioLegacy for chats, voice/video calls and communities.';
-        if (navigator.share) { try { await navigator.share({title:'EthioLegacy', text:shareText}); } catch(e) {} }
-        else if (navigator.clipboard?.writeText) { try { await navigator.clipboard.writeText(shareText); toast('Invite message copied. Send it to your contact.'); } catch(e) { toast('Please share the EthioLegacy link manually.'); } }
-        else toast('Please share the EthioLegacy link manually.');
-      }; }
-      row.appendChild(action); box.appendChild(row);
-    });
-  }
-
   window.filterUsers = (val) => {
     renderUsers(allUsers.filter(u => (u.displayName||'').toLowerCase().includes(val.toLowerCase()) || (u.email||'').toLowerCase().includes(val.toLowerCase())));
-    if (val.trim()) {
-      const box = document.getElementById('deviceContactsList');
-      if (box) Array.from(box.querySelectorAll('.device-contact')).forEach(row => row.style.display = row.textContent.toLowerCase().includes(val.toLowerCase()) ? 'flex' : 'none');
-    } else renderDeviceContacts();
   };
 
   function renderCallList(users){
@@ -541,70 +479,78 @@
         const m = d.data();
         const isMine = m.senderId === currentUser.uid;
         const time = m.timestamp ? new Date(m.timestamp.seconds * 1000).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '';
+        let mediaHtml = '';
+        if (m.mediaURL) {
+          const url = escapeHTML(m.mediaURL), filename = escapeHTML(m.fileName || 'Attachment');
+          if ((m.mediaType||'').startsWith('image/')) mediaHtml = `<a href="${url}" target="_blank" rel="noopener"><img class="message-media" src="${url}" alt="${filename}" loading="lazy"></a>`;
+          else if ((m.mediaType||'').startsWith('video/')) mediaHtml = `<video class="message-media" controls playsinline preload="metadata" src="${url}"></video>`;
+          else if ((m.mediaType||'').startsWith('audio/')) mediaHtml = `<audio controls preload="metadata" src="${url}" style="display:block;max-width:230px;margin-top:8px"></audio>`;
+          else mediaHtml = `<a class="message-file" href="${url}" target="_blank" rel="noopener" download="${filename}">📎 ${filename} · Open / Download</a>`;
+        }
         box.innerHTML += `
           <div class="message ${isMine ? 'mine' : ''}">
             ${!isMine ? `<div class="msg-name">${escapeHTML(m.senderName||'Member')}</div>` : ''}
-            ${m.text ? `<div style="white-space:pre-wrap;overflow-wrap:anywhere">${escapeHTML(m.text)}</div>` : ''}
-            ${m.attachmentUrl ? (String(m.attachmentType||'').startsWith('image/') ? `<a href="${escapeHTML(m.attachmentUrl)}" target="_blank" rel="noopener"><img class="attachment-preview" src="${escapeHTML(m.attachmentUrl)}" alt="Shared photo" loading="lazy"></a>` : (String(m.attachmentType||'').startsWith('video/') ? `<video class="attachment-preview" controls playsinline preload="metadata" src="${escapeHTML(m.attachmentUrl)}"></video>` : `<div class="message-file"><span>📄</span><a href="${escapeHTML(m.attachmentUrl)}" target="_blank" rel="noopener" download="${escapeHTML(m.attachmentName||'download')}">${escapeHTML(m.attachmentName||'Download file')}</a></div>`)) : ''}
-            <div style="font-size:10px; color:#667781; text-align:right; margin-top:4px;">${time}${m.attachmentUrl ? ' · Attachment' : ''}</div>
+            ${m.text ? `<div>${escapeHTML(m.text)}</div>` : ''}${mediaHtml}
+            <div style="font-size:10px;color:#777;text-align:right;margin-top:4px;">${time}</div>
+            ${isMine ? `<button class="delete-message" data-id="${d.id}" title="Delete this message">🗑 Delete</button>` : ''}
           </div>`;
       });
+      box.querySelectorAll('.delete-message').forEach(btn=>btn.addEventListener('click',()=>deleteMessage(btn.dataset.id)));
       box.scrollTop = box.scrollHeight;
-    });
-  };
-
-  window.selectChatAttachment = (event, source) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    if (file.size > 25 * 1024 * 1024) { toast('Please choose a file smaller than 25 MB.'); event.target.value=''; return; }
-    selectedChatAttachment = file;
-    const preview = document.getElementById('attachmentPreview');
-    preview.style.display = 'block';
-    preview.textContent = (source === 'camera' ? '📷 Camera photo: ' : source === 'photo' ? '🖼️ Selected media: ' : '📎 Selected file: ') + file.name + ' (' + (file.size/1024/1024).toFixed(2) + ' MB) — tap send to share. ';
-    const cancel = document.createElement('button'); cancel.type='button'; cancel.textContent='✕'; cancel.style.cssText='margin-left:8px;border:0;background:transparent;color:#b91c1c;font-weight:bold;padding:4px 8px';
-    cancel.onclick=()=>{selectedChatAttachment=null;preview.style.display='none';preview.textContent='';['cameraInput','photoInput','fileInput'].forEach(id=>document.getElementById(id).value='');};
-    preview.appendChild(cancel);
+    }, err => { console.error(err); toast('Could not load messages. Check Firestore rules/configuration.'); });
   };
 
   window.sendMessage = async () => {
     const input = document.getElementById('msgInput');
     const text = input.value.trim();
-    const file = selectedChatAttachment;
     if (!currentUser || !currentChatId) return toast('Open a chat first.');
-    if (!text && !file) return;
-    const sendButton = document.querySelector('.send-btn');
-    sendButton.disabled = true; sendButton.textContent = '…';
+    if (!text) return;
+    input.value = '';
+    try { await addDoc(collection(db, "chats", currentChatId, "messages"), {senderId:currentUser.uid,senderName:currentUser.displayName||currentUser.email||'Member',text,timestamp:serverTimestamp()}); }
+    catch(e){ console.error(e); input.value=text; toast('Message failed to send. Check Firebase configuration and Firestore rules.'); }
+  };
+
+  window.sendAttachment = async (event) => {
+    const file=event.target.files?.[0]; event.target.value='';
+    if(!file) return;
+    if(!currentUser || !currentChatId) return toast('Open a chat first.');
+    if(file.size>25*1024*1024) return toast('Files must be 25 MB or smaller.');
     try {
-      let attachment = {};
-      if (file) {
-        toast('Uploading attachment…');
-        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-        const fileRef = ref(storage, `chatAttachments/${currentChatId}/${currentUser.uid}/${Date.now()}_${safeName}`);
-        await uploadBytes(fileRef, file, { contentType: file.type || 'application/octet-stream' });
-        const url = await getDownloadURL(fileRef);
-        attachment = { attachmentUrl: url, attachmentName: file.name, attachmentType: file.type || 'application/octet-stream', attachmentSize: file.size };
-      }
-      await addDoc(collection(db, 'chats', currentChatId, 'messages'), {
-        senderId: currentUser.uid,
-        senderName: currentUser.displayName || currentUser.email || 'Member',
-        text,
-        ...attachment,
-        timestamp: serverTimestamp()
-      });
-      input.value = '';
-      selectedChatAttachment = null;
-      const preview = document.getElementById('attachmentPreview'); preview.style.display='none'; preview.textContent='';
-      ['cameraInput','photoInput','fileInput'].forEach(id=>document.getElementById(id).value='');
-      toast(file ? 'Message and attachment sent.' : 'Message sent.');
-    } catch (e) {
-      console.error('Message/attachment send failed:', e);
-      toast(e.code === 'storage/unauthorized' ? 'Upload blocked by Firebase Storage rules. Check chatAttachments permissions.' : 'Could not send. Check internet and Firebase configuration.');
-    } finally { sendButton.disabled = false; sendButton.textContent = '➤'; }
+      toast('Uploading attachment…');
+      const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+      const storageRef=ref(storage,`chatAttachments/${currentChatId}/${currentUser.uid}/${Date.now()}_${safeName}`);
+      await uploadBytes(storageRef,file,{contentType:file.type||'application/octet-stream'});
+      const url=await getDownloadURL(storageRef);
+      await addDoc(collection(db,'chats',currentChatId,'messages'),{senderId:currentUser.uid,senderName:currentUser.displayName||currentUser.email||'Member',text:'',mediaURL:url,mediaType:file.type||'application/octet-stream',fileName:file.name,storagePath:storageRef.fullPath,fileSize:file.size,timestamp:serverTimestamp()});
+      toast('Attachment sent and added to chat.');
+    } catch(e){console.error(e);toast('Upload failed. Check Firebase Storage/Firestore setup and rules.');}
+  };
+
+  window.deleteMessage = async (messageId) => {
+    if(!currentUser||!currentChatId||!messageId)return;
+    if(!confirm('Delete this message for everyone?'))return;
+    try {
+      const messageRef=doc(db,'chats',currentChatId,'messages',messageId);
+      const snap=await getDoc(messageRef);
+      if(!snap.exists())return toast('Message was already deleted.');
+      const m=snap.data();
+      if(m.senderId!==currentUser.uid)return toast('You can delete only your own messages.');
+      await deleteDoc(messageRef);
+      if(m.storagePath) await deleteObject(ref(storage,m.storagePath)).catch(err=>console.warn('Attachment cleanup failed',err));
+      toast('Message deleted.');
+    } catch(e){console.error(e);toast('Delete failed. Check Firestore/Storage rules.');}
   };
 
   // --- WEBRTC CALLING ---
   const servers = { iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }] };
   let pc = null, localStream = null, currentCallDocId = null, unsubscribeCall = null;
+  let ringAudioContext=null, ringTimer=null, ringVolume=0.6;
+  window.setRingVolume=(value)=>{ringVolume=Math.max(0,Math.min(1,Number(value)/100));const label=document.getElementById('ringVolumeLabel');if(label)label.textContent=Math.round(ringVolume*100)+'%';try{localStorage.setItem('ethiolegacy_ring_volume',String(ringVolume));}catch(e){}};
+  try{ringVolume=Number(localStorage.getItem('ethiolegacy_ring_volume')??0.6);const slider=document.getElementById('ringVolume');if(slider){slider.value=Math.round(ringVolume*100);document.getElementById('ringVolumeLabel').textContent=slider.value+'%';}}catch(e){}
+  function stopRingtone(){if(ringTimer){clearInterval(ringTimer);ringTimer=null;}if(ringAudioContext){ringAudioContext.close().catch(()=>{});ringAudioContext=null;}}
+  function ringPulse(){if(!ringAudioContext||ringVolume<=0)return;const now=ringAudioContext.currentTime;[0,0.22].forEach(offset=>{const osc=ringAudioContext.createOscillator(),gain=ringAudioContext.createGain();osc.type='sine';osc.frequency.value=offset?660:880;gain.gain.setValueAtTime(0.0001,now+offset);gain.gain.exponentialRampToValueAtTime(Math.max(0.001,ringVolume*0.18),now+offset+0.025);gain.gain.exponentialRampToValueAtTime(0.0001,now+offset+0.18);osc.connect(gain);gain.connect(ringAudioContext.destination);osc.start(now+offset);osc.stop(now+offset+0.2);});}
+  window.testRingtone=()=>{stopRingtone();try{ringAudioContext=new (window.AudioContext||window.webkitAudioContext)();ringPulse();setTimeout(stopRingtone,700);}catch(e){toast('Ringtone is not supported in this browser.');}};
+  function startRingtone(){stopRingtone();if(!ringVolume)return;try{ringAudioContext=new (window.AudioContext||window.webkitAudioContext)();ringPulse();ringTimer=setInterval(ringPulse,1800);}catch(e){console.warn('Ringtone unavailable',e);}}
 
   async function setupMedia(video) {
     try { return await navigator.mediaDevices.getUserMedia({ video: video, audio: true }); } 
@@ -664,14 +610,14 @@
           currentCallDocId = change.doc.id;
           document.getElementById('incomingCaller').textContent = "Incoming Call";
           pushNotice(callData.type==='video'?'Incoming video call':'Incoming voice call','Tap the app to answer.');
-          document.getElementById('incomingCallModal').classList.add('active');
+          document.getElementById('incomingCallModal').classList.add('active'); startRingtone();
         }
       });
     });
   });
 
   window.acceptCall = async () => {
-    document.getElementById('incomingCallModal').classList.remove('active');
+    stopRingtone(); document.getElementById('incomingCallModal').classList.remove('active');
     saveCallHistory('incoming', 'Accepted');
     const callDoc = doc(db, "calls", currentCallDocId);
     const callData = (await getDoc(callDoc)).data();
@@ -708,13 +654,13 @@
   };
 
   window.rejectCall = async () => {
-    saveCallHistory('incoming','Rejected');
+    stopRingtone(); saveCallHistory('incoming','Rejected');
     document.getElementById('incomingCallModal').classList.remove('active');
     if (currentCallDocId) await setDoc(doc(db, "calls", currentCallDocId), { status: 'ended' }, { merge: true });
   };
 
   window.endCall = async () => {
-    saveCallHistory('call','Ended');
+    stopRingtone(); document.getElementById('incomingCallModal').classList.remove('active'); saveCallHistory('call','Ended');
     document.getElementById('activeCallModal').classList.remove('active');
     if (pc) { pc.close(); pc = null; }
     if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
