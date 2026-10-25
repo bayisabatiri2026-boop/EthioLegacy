@@ -4,13 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>EthioLegacy</title>
-<link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#6f172c">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="icon" href="icons/icon-192.png">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Roboto', sans-serif; }
@@ -68,7 +61,14 @@
   .message { background: white; padding: 10px 14px; margin-bottom: 10px; border-radius: 12px; max-width: 85%; align-self: flex-start; word-wrap: break-word; box-shadow: 0 1px 1px rgba(0,0,0,0.1);}
   .message.mine { background: #D9FDD3; align-self: flex-end; }
   .msg-name { font-size: 12px; color: #008069; font-weight: bold; margin-bottom: 4px; }
-  .input-area { display: flex; padding: 10px; background: #f0f2f5; align-items: center; }
+  .input-area { display: flex; padding: 8px; background: #f0f2f5; align-items: center; gap:5px; flex-wrap:wrap; }
+  .attach-btn{flex:0 0 40px;width:40px;height:42px;border:0;border-radius:12px;background:#e0f2ed;color:#006b58;font-size:20px;cursor:pointer;display:grid;place-items:center}
+  .input-area input[type=text], .input-area input:not([type]) { flex:1; min-width:80px; padding:12px; border-radius:24px; border:none; outline:none; font-size:16px; margin:0; }
+  .input-area .send-btn{flex:0 0 44px;width:44px;height:44px}
+  .attachment-preview{display:block;max-width:min(260px,70vw);max-height:300px;object-fit:contain;border-radius:8px;margin:6px 0}
+  .message-file{display:flex;align-items:center;gap:8px;max-width:260px;padding:10px;background:#ffffffb8;border-radius:8px;overflow-wrap:anywhere}
+  .message-file a{color:#006b58;font-weight:600;text-decoration:none}
+  .pending-attachment{display:none;padding:6px 12px;background:#fff;color:#006b58;font-size:13px;}
   .input-area input { flex: 1; padding: 14px; border-radius: 24px; border: none; outline: none; font-size: 15px; margin-right: 10px; }
   .input-area button { background: #00A884; color: white; border: none; border-radius: 50%; width: 45px; height: 45px; font-size: 20px; cursor: pointer; }
   
@@ -179,9 +179,16 @@
     </div>
   </div>
   <div id="chatBox"></div>
+  <div id="attachmentPreview" class="pending-attachment" aria-live="polite"></div>
   <div class="input-area">
-    <input id="msgInput" placeholder="Type a message..." onkeypress="if(event.key==='Enter') sendMessage()">
-    <button onclick="sendMessage()">➤</button>
+    <button type="button" class="attach-btn" title="Take a photo" aria-label="Take a photo" onclick="document.getElementById('cameraInput').click()">📷</button>
+    <button type="button" class="attach-btn" title="Choose photo" aria-label="Choose photo" onclick="document.getElementById('photoInput').click()">🖼️</button>
+    <button type="button" class="attach-btn" title="Attach file" aria-label="Attach file" onclick="document.getElementById('fileInput').click()">📎</button>
+    <input id="cameraInput" type="file" accept="image/*" capture="environment" hidden onchange="selectChatAttachment(event,'camera')">
+    <input id="photoInput" type="file" accept="image/*,video/*" hidden onchange="selectChatAttachment(event,'photo')">
+    <input id="fileInput" type="file" hidden onchange="selectChatAttachment(event,'file')">
+    <input id="msgInput" type="text" placeholder="Type a message..." onkeypress="if(event.key==='Enter'){event.preventDefault();sendMessage()}">
+    <button class="send-btn" onclick="sendMessage()" aria-label="Send message">➤</button>
   </div>
 </div>
 
@@ -242,16 +249,16 @@
   import { getFirestore, collection, doc, setDoc, getDoc, getDocs, query, where, orderBy, onSnapshot, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
   import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  // 🔴 IMPORTANT: PASTE YOUR NEW FIREBASE PROJECT KEYS HERE 🔴
   const firebaseConfig = {
-  apiKey: "AIzaSyA-Q_XfHXdIZafqjaxX3n6zQ2DiMQe5t0A",
-  authDomain: "ethiolegacy.firebaseapp.com",
-  projectId: "ethiolegacy",
-  storageBucket: "ethiolegacy.firebasestorage.app",
-  messagingSenderId: "660506612974",
-  appId: "1:660506612974:web:a0dafaf3a379fad4e5cfff",
-  measurementId: "G-RH6G52EX0D"
-};
+    apiKey: "PASTE_YOUR_NEW_API_KEY_HERE",
+    authDomain: "PASTE_YOUR_NEW_AUTH_DOMAIN_HERE",
+    projectId: "PASTE_YOUR_NEW_PROJECT_ID_HERE",
+    storageBucket: "PASTE_YOUR_NEW_STORAGE_BUCKET_HERE",
+    messagingSenderId: "PASTE_YOUR_NEW_MESSAGING_SENDER_ID_HERE",
+    appId: "PASTE_YOUR_NEW_APP_ID_HERE"
+  };
+
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
@@ -267,6 +274,7 @@
   let currentChatId = null;
   let currentPartner = null;
   let unsubscribeMessages = null;
+  let selectedChatAttachment = null;
   let isSignupMode = true;
   let notifications = [];
   const languageNames = {en:'English',om:'Afaan Oromoo',am:'አማርኛ',ti:'ትግርኛ',so:'Soomaali'};
@@ -535,26 +543,62 @@
         box.innerHTML += `
           <div class="message ${isMine ? 'mine' : ''}">
             ${!isMine ? `<div class="msg-name">${escapeHTML(m.senderName||'Member')}</div>` : ''}
-            <div>${escapeHTML(m.text||'')}</div>
-            <div style="font-size:10px; color:#999; text-align:right; margin-top:4px;">${time}</div>
+            ${m.text ? `<div style="white-space:pre-wrap;overflow-wrap:anywhere">${escapeHTML(m.text)}</div>` : ''}
+            ${m.attachmentUrl ? (String(m.attachmentType||'').startsWith('image/') ? `<a href="${escapeHTML(m.attachmentUrl)}" target="_blank" rel="noopener"><img class="attachment-preview" src="${escapeHTML(m.attachmentUrl)}" alt="Shared photo" loading="lazy"></a>` : (String(m.attachmentType||'').startsWith('video/') ? `<video class="attachment-preview" controls playsinline preload="metadata" src="${escapeHTML(m.attachmentUrl)}"></video>` : `<div class="message-file"><span>📄</span><a href="${escapeHTML(m.attachmentUrl)}" target="_blank" rel="noopener" download="${escapeHTML(m.attachmentName||'download')}">${escapeHTML(m.attachmentName||'Download file')}</a></div>`)) : ''}
+            <div style="font-size:10px; color:#667781; text-align:right; margin-top:4px;">${time}${m.attachmentUrl ? ' · Attachment' : ''}</div>
           </div>`;
       });
       box.scrollTop = box.scrollHeight;
     });
   };
 
+  window.selectChatAttachment = (event, source) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (file.size > 25 * 1024 * 1024) { toast('Please choose a file smaller than 25 MB.'); event.target.value=''; return; }
+    selectedChatAttachment = file;
+    const preview = document.getElementById('attachmentPreview');
+    preview.style.display = 'block';
+    preview.textContent = (source === 'camera' ? '📷 Camera photo: ' : source === 'photo' ? '🖼️ Selected media: ' : '📎 Selected file: ') + file.name + ' (' + (file.size/1024/1024).toFixed(2) + ' MB) — tap send to share. ';
+    const cancel = document.createElement('button'); cancel.type='button'; cancel.textContent='✕'; cancel.style.cssText='margin-left:8px;border:0;background:transparent;color:#b91c1c;font-weight:bold;padding:4px 8px';
+    cancel.onclick=()=>{selectedChatAttachment=null;preview.style.display='none';preview.textContent='';['cameraInput','photoInput','fileInput'].forEach(id=>document.getElementById(id).value='');};
+    preview.appendChild(cancel);
+  };
+
   window.sendMessage = async () => {
     const input = document.getElementById('msgInput');
     const text = input.value.trim();
+    const file = selectedChatAttachment;
     if (!currentUser || !currentChatId) return toast('Open a chat first.');
-    if (!text) return;
-    input.value = '';
-    await addDoc(collection(db, "chats", currentChatId, "messages"), {
-      senderId: currentUser.uid,
-      senderName: currentUser.displayName,
-      text: text,
-      timestamp: serverTimestamp()
-    });
+    if (!text && !file) return;
+    const sendButton = document.querySelector('.send-btn');
+    sendButton.disabled = true; sendButton.textContent = '…';
+    try {
+      let attachment = {};
+      if (file) {
+        toast('Uploading attachment…');
+        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const fileRef = ref(storage, `chatAttachments/${currentChatId}/${currentUser.uid}/${Date.now()}_${safeName}`);
+        await uploadBytes(fileRef, file, { contentType: file.type || 'application/octet-stream' });
+        const url = await getDownloadURL(fileRef);
+        attachment = { attachmentUrl: url, attachmentName: file.name, attachmentType: file.type || 'application/octet-stream', attachmentSize: file.size };
+      }
+      await addDoc(collection(db, 'chats', currentChatId, 'messages'), {
+        senderId: currentUser.uid,
+        senderName: currentUser.displayName || currentUser.email || 'Member',
+        text,
+        ...attachment,
+        timestamp: serverTimestamp()
+      });
+      input.value = '';
+      selectedChatAttachment = null;
+      const preview = document.getElementById('attachmentPreview'); preview.style.display='none'; preview.textContent='';
+      ['cameraInput','photoInput','fileInput'].forEach(id=>document.getElementById(id).value='');
+      toast(file ? 'Message and attachment sent.' : 'Message sent.');
+    } catch (e) {
+      console.error('Message/attachment send failed:', e);
+      toast(e.code === 'storage/unauthorized' ? 'Upload blocked by Firebase Storage rules. Check chatAttachments permissions.' : 'Could not send. Check internet and Firebase configuration.');
+    } finally { sendButton.disabled = false; sendButton.textContent = '➤'; }
   };
 
   // --- WEBRTC CALLING ---
@@ -679,13 +723,6 @@
     }
     if (unsubscribeCall) { unsubscribeCall(); unsubscribeCall = null; }
   };
-</script>
-
-<script>
-// Register the service worker only on HTTPS or localhost.
-if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(err => console.warn('Service worker registration failed:', err)));
-}
 </script>
 </body>
 </html>
