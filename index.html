@@ -204,8 +204,8 @@
       </div>
 
       <div class="input-group">
-        <label class="auth-label">Email / phone number</label>
-        <input id="emailInput" class="input-field" type="text" inputmode="email" autocomplete="username" placeholder="Email or phone number">
+        <label class="auth-label">Email</label>
+        <input id="emailInput" class="input-field" type="text" inputmode="email" autocomplete="username" placeholder="Email address">
       </div>
 
       <div class="input-group">
@@ -441,9 +441,6 @@ const firebaseConfig = {
     const badge=document.getElementById('notificationBadge');
     badge.textContent=notifications.length;badge.style.display=notifications.length?'inline-flex':'none';
     renderNotifications();toast(title+(body?': '+body:''));
-    if('Notification' in window && Notification.permission==='granted' && document.visibilityState!=='visible'){
-      try{new Notification(title,{body});}catch(e){}
-    }
   }
   window.showNotifications=()=>{document.getElementById('notificationPanel').classList.toggle('open');renderNotifications();};
   window.closeNotifications=()=>document.getElementById('notificationPanel').classList.remove('open');
@@ -550,7 +547,6 @@ const firebaseConfig = {
         const cred = await createUserWithEmailAndPassword(auth, email, pass);
         await updateProfile(cred.user, { displayName: name });
 
-        // 👇 AUTOMATICALLY GENERATE INVITE CODE
         const inviteCode = generateInviteCode();
         
         await setDoc(doc(db, "users", cred.user.uid), {
@@ -559,13 +555,12 @@ const firebaseConfig = {
           displayName: name,
           inviteCode: inviteCode,
           inviteCodeLower: inviteCode.toLowerCase(),
-          linkedUsers: [],       // Confirmed friends
-          pendingInvites: [],    // Incoming friend requests
+          linkedUsers: [],       
+          pendingInvites: [],    
           hiddenUsers: [],
           createdAt: serverTimestamp()
         });
 
-        // If user clicked an invite link, automatically send a join request
         const urlInvite = new URLSearchParams(location.search).get('invite');
         if (urlInvite) await sendInviteRequest(urlInvite, cred.user.uid, name);
         
@@ -613,24 +608,27 @@ const firebaseConfig = {
     if(paneId==='communitiesPane') loadCommunities();
   };
 
-  // ============ INVITE LOGIC (JOIN / REJECT) ============
-  
-  // Send a request
+  // ============ FIXED INVITE LOGIC ============
+  window.openNewChatModal = async () => {
+    if (!currentUser) return;
+    const snap = await getDoc(doc(db, 'users', currentUser.uid));
+    document.getElementById('myInviteCode').textContent = snap.data()?.inviteCode || '——';
+    document.getElementById('newChatModal').classList.add('active');
+  };
+
   async function sendInviteRequest(code, senderUid, senderName) {
     try {
       const q = query(collection(db, 'users'), where('inviteCodeLower', '==', code.toLowerCase()));
       const snap = await getDocs(q);
       if (snap.empty) return toast('Invite code not found.');
       
-      const inviterDoc = snap.docs[0];
-      const inviterUid = inviterDoc.id;
+      const inviterUid = snap.docs[0].id;
       if (inviterUid === senderUid) return toast('You cannot invite yourself.');
 
-      // Add to inviter's pending list
       await updateDoc(doc(db, 'users', inviterUid), { 
-        pendingInvites: arrayUnion({ uid: senderUid, name: senderName, timestamp: Date.now() })
+        pendingInvites: arrayUnion(senderUid) 
       });
-      toast('Join request sent to ' + (inviterDoc.data().displayName || 'inviter'));
+      toast('Join request sent to ' + (snap.docs[0].data().displayName || 'inviter'));
     } catch (e) { console.error(e); toast('Could not send request.'); }
   }
 
@@ -642,28 +640,24 @@ const firebaseConfig = {
     document.getElementById('newChatModal').classList.remove('active');
   };
 
-  // Accept an invite
-  window.acceptInvite = async (senderUid, senderName) => {
+  window.acceptInvite = async (senderUid) => {
     try {
-      // 1. Add to my linkedUsers
       await updateDoc(doc(db, 'users', currentUser.uid), {
         linkedUsers: arrayUnion(senderUid),
-        pendingInvites: arrayRemove({ uid: senderUid, name: senderName }) // Remove from UI
+        pendingInvites: arrayRemove(senderUid)
       });
-      // 2. Add me to their linkedUsers
       await updateDoc(doc(db, 'users', senderUid), {
         linkedUsers: arrayUnion(currentUser.uid)
       });
-      toast('Joined with ' + senderName);
+      toast('Invite accepted.');
       loadUsers();
-    } catch(e) { console.error(e); toast('Could not accept.'); }
+    } catch(e) { toast('Could not accept.'); }
   };
 
-  // Reject an invite
-  window.rejectInvite = async (senderUid, senderName) => {
+  window.rejectInvite = async (senderUid) => {
     try {
       await updateDoc(doc(db, 'users', currentUser.uid), {
-        pendingInvites: arrayRemove({ uid: senderUid, name: senderName })
+        pendingInvites: arrayRemove(senderUid)
       });
       toast('Request rejected.');
       loadUsers();
@@ -673,14 +667,14 @@ const firebaseConfig = {
   // ============ LOAD USERS ============
   async function loadUsers() {
     try {
-      const myProfileSnap = await getDoc(doc(db, 'users', currentUser.uid));
-      const myProfile = myProfileSnap.exists() ? myProfileSnap.data() : {};
+      const mySnap = await getDoc(doc(db, 'users', currentUser.uid));
+      if (!mySnap.exists()) return;
+      const myProfile = mySnap.data();
       
       const linked = myProfile.linkedUsers || [];
       const pending = myProfile.pendingInvites || [];
       const hidden = myProfile.hiddenUsers || [];
 
-      // Load Linked Contacts
       allUsers = [];
       for (const uid of linked) {
         if (hidden.includes(uid)) continue;
@@ -688,16 +682,14 @@ const firebaseConfig = {
         if (uSnap.exists()) allUsers.push({ uid: uSnap.id, ...uSnap.data() });
       }
 
-      // Load Pending Requests
       pendingUsers = [];
-      for (const p of pending) {
-        const uSnap = await getDoc(doc(db, 'users', p.uid));
-        if (uSnap.exists()) pendingUsers.push({ uid: p.uid, name: p.name, ...uSnap.data() });
+      for (const uid of pending) {
+        const uSnap = await getDoc(doc(db, 'users', uid));
+        if (uSnap.exists()) pendingUsers.push({ uid: uSnap.id, ...uSnap.data() });
       }
 
       renderUsers(allUsers);
       renderPendingInvites(pendingUsers);
-      renderDeviceContacts();
       renderCallList(allUsers);
       loadCommunities();
     } catch (e) { console.error(e); }
@@ -713,10 +705,10 @@ const firebaseConfig = {
       const div = document.createElement('div');
       div.className = 'pending-invite';
       div.innerHTML = `
-        <div><b>${escapeHTML(u.name)}</b> wants to chat</div>
+        <div><b>${escapeHTML(u.displayName)}</b> wants to chat</div>
         <div>
-          <button style="background:#22c55e;color:white;" onclick="acceptInvite('${u.uid}','${escapeHTML(u.name)}')">Accept</button>
-          <button style="background:#ef4444;color:white;" onclick="rejectInvite('${u.uid}','${escapeHTML(u.name)}')">Reject</button>
+          <button style="background:#22c55e;color:white;" onclick="acceptInvite('${u.uid}')">Accept</button>
+          <button style="background:#ef4444;color:white;" onclick="rejectInvite('${u.uid}')">Reject</button>
         </div>`;
       box.appendChild(div);
     });
@@ -732,16 +724,57 @@ const firebaseConfig = {
     users.forEach(u => {
       const div = document.createElement('div');
       div.className = 'chat-item';
-      const safeName = escapeHTML(u.displayName || 'Member');
-      const initial = safeName.charAt(0).toUpperCase();
-      const avatarHtml = u.photoURL ? `<div class="avatar" style="background-image:url('${escapeHTML(u.photoURL)}');color:transparent;">${initial}</div>` : `<div class="avatar">${initial}</div>`;
+      const initial = (u.displayName || 'M').charAt(0).toUpperCase();
+      const avatarHtml = u.photoURL ? `<div class="avatar" style="background-image:url('${u.photoURL}');color:transparent;">${initial}</div>` : `<div class="avatar">${initial}</div>`;
       
-      div.innerHTML = `${avatarHtml}<div class="chat-info"><div class="chat-name">${safeName}</div><small class="muted">Tap to message</small></div><button class="mini-action" title="Remove" style="flex-shrink:0">✕</button>`;
-      
-      div.querySelector('.chat-info').onclick = () => openChat(u.uid, u.displayName);
-      div.querySelector('button').onclick = async (e) => { e.stopPropagation(); await removeUserFromLists(u.uid, u.displayName || 'Member'); };
+      div.innerHTML = `${avatarHtml}<div class="chat-info"><div class="chat-name">${escapeHTML(u.displayName)}</div><small class="muted">Tap to message</small></div>`;
+      div.onclick = () => openChat(u.uid, u.displayName);
       list.appendChild(div);
     });
+  }
+
+  function renderCallList(users){
+    const list=document.getElementById('callList'); if(!list)return; list.innerHTML='';
+    if(!users.length){list.innerHTML='<div class="empty-state">No contacts to call yet.</div>';return;}
+    users.forEach(u=>{
+      const row=document.createElement('div');row.className='chat-item';
+      const initial = (u.displayName || 'M').charAt(0).toUpperCase();
+      row.innerHTML=`<div class="avatar">${initial}</div><div class="chat-info"><div class="chat-name">${escapeHTML(u.displayName)}</div></div><div class="row-actions"><button class="mini-action">📞</button></div>`;
+      row.querySelector('button').onclick = () => { openChat(u.uid, u.displayName); setTimeout(()=>startCall('audio'), 100); };
+      list.appendChild(row);
+    });
+  }
+
+  // ============ GROUPS / COMMUNITIES ============
+  window.startNewChat = async () => {
+    const groupName = document.getElementById('newGroupName').value.trim();
+    if (!groupName) return toast('Enter a group name.');
+    const groupId = "group_" + Date.now();
+    await setDoc(doc(db, "chats", groupId), {
+      isGroup: true, name: groupName, createdBy: currentUser.uid, members: [currentUser.uid], createdAt: serverTimestamp()
+    });
+    document.getElementById('newGroupName').value = '';
+    document.getElementById('newChatModal').classList.remove('active');
+    loadCommunities();
+    openChat(groupId, groupName);
+  };
+
+  async function loadCommunities(){
+    const list=document.getElementById('communityList'); if(!list||!currentUser)return;
+    try{
+      const snap=await getDocs(query(collection(db,'chats'),where('isGroup','==',true)));
+      list.innerHTML='';let count=0;
+      snap.forEach(d=>{
+        const g=d.data();
+        if(Array.isArray(g.members)&&!g.members.includes(currentUser.uid))return;
+        count++;
+        const row=document.createElement('div');row.className='community-card';
+        row.innerHTML=`<div class="community-icon">👥</div><div class="community-meta"><b>${escapeHTML(g.name)}</b></div>`;
+        row.onclick=()=>openChat(d.id,g.name);
+        list.appendChild(row);
+      });
+      if(!count)list.innerHTML='<div class="empty-state">No communities yet.</div>';
+    }catch(e){}
   }
 
   // ============ CHAT ============
@@ -756,17 +789,11 @@ const firebaseConfig = {
     unsubscribeMessages = onSnapshot(q, (snap) => {
       const box = document.getElementById('chatBox');
       box.innerHTML = '';
-      snap.docChanges().forEach(change=>{
-        if(change.type==='added'){
-          const m=change.doc.data();
-          if(m.senderId!==currentUser.uid) pushNotice('New message from '+(m.senderName||'member'), m.text || m.attachmentName || '');
-        }
-      });
       snap.forEach(d => {
         const m = d.data();
         const isMine = m.senderId === currentUser.uid;
         const time = m.timestamp ? new Date(m.timestamp.seconds * 1000).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '';
-
+        
         let attachmentHtml = '';
         if (m.attachmentUrl) {
           if (m.attachmentKind === 'image') attachmentHtml = `<div class="msg-attachment"><img src="${escapeHTML(m.attachmentUrl)}" alt="photo" onclick="window.open('${escapeHTML(m.attachmentUrl)}','_blank')"></div>`;
@@ -798,16 +825,6 @@ const firebaseConfig = {
       await deleteDoc(doc(db, 'chats', currentChatId, 'messages', messageId));
       toast('Message deleted.');
     } catch (e) { toast('Could not delete message.'); }
-  };
-
-  window.removeUserFromLists = async (uid, name) => {
-    if (!currentUser || !confirm(`Remove ${name} from your Chats?`)) return;
-    try {
-      await updateDoc(doc(db, 'users', currentUser.uid), { hiddenUsers: arrayUnion(uid) });
-      allUsers = allUsers.filter(u => u.uid !== uid);
-      renderUsers(allUsers); renderCallList(allUsers);
-      toast(name + ' removed.');
-    } catch (e) { toast('Could not remove user.'); }
   };
 
   window.sendMessage = async () => {
