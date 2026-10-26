@@ -319,6 +319,14 @@
         <b style="font-size:22px;letter-spacing:3px;color:#008069;" id="myInviteCode">——</b>
         <p class="muted">Your invite code</p>
       </div>
+      <div class="home-search-wrap" id="homeSearchWrap">
+  <input id="searchInput" class="home-search" type="text" placeholder="Search contacts..." oninput="filterUsers(this.value)">
+  <div class="contacts-toolbar"><button class="contacts-button" onclick="importDeviceContacts()">📱 Sync device contacts</button><span class="contacts-hint">Choose contacts to show here. Only accepted members appear in chats.</span></div>
+</div>
+<div id="chatsPane" class="home-pane active">
+  <div id="pendingInvitesContainer"></div>
+  <div id="deviceContactsList"></div>
+  <div id="userList"></div>
       <button class="btn-primary" style="width:auto;margin:0;padding:10px 16px;" onclick="copyInviteCode()">📋 Copy</button>
     </div>
     <button class="btn-primary" style="margin-top:4px;padding:12px;background:#25d366;" onclick="shareInvite()">📤 Share invite link</button>
@@ -473,7 +481,73 @@ const firebaseConfig = {
     try{const stream=await navigator.mediaDevices.getUserMedia({audio:true,video:true});stream.getTracks().forEach(t=>t.stop());results.push('Camera and microphone granted.');}catch(e){results.push('Camera/microphone denied.');}
     alert(results.join('\n'));
   };
+  window.switchHomeTab = (paneId, button) => { ... };
+  
+// ============ DEVICE CONTACTS SEARCH ============
+window.importDeviceContacts = async () => {
+  if (!currentUser) return toast('Please sign in first.');
+  if (!('contacts' in navigator) || !navigator.contacts?.select) {
+    alert('Device contact picker is not supported here. Please open EthioLegacy in Chrome on an Android phone.');
+    return;
+  }
+  try {
+    const picked = await navigator.contacts.select(['name', 'tel', 'email'], { multiple: true });
+    const seen = new Set();
+    importedDeviceContacts = picked.map(c => ({
+      name: (c.name && c.name[0]) || 'Unnamed contact',
+      tel: (c.tel && c.tel[0]) || '',
+      email: (c.email && c.email[0]) || ''
+    })).filter(c => {
+      const key = (c.email+'|'+c.tel+'|'+c.name).toLowerCase();
+      if (seen.has(key)) return false; seen.add(key); return true;
+    });
+    renderDeviceContacts();
+    toast(importedDeviceContacts.length + ' contacts selected.');
+  } catch (e) {
+    if (e.name !== 'AbortError') toast('Could not read contacts.');
+  }
+};
 
+function renderDeviceContacts() {
+  const q = (document.getElementById('searchInput')?.value || '').trim().toLowerCase();
+  const targets = [document.getElementById('deviceContactsList'), document.getElementById('callDeviceContactsList')].filter(Boolean);
+  targets.forEach(box => {
+    box.innerHTML = '';
+    const contacts = importedDeviceContacts.filter(c => !q || [c.name,c.tel,c.email].some(v => (v||'').toLowerCase().includes(q)));
+    if (!contacts.length) return;
+    const heading = document.createElement('div'); heading.className = 'pane-heading';
+    heading.textContent = 'Device contacts (' + contacts.length + ')'; box.appendChild(heading);
+    contacts.forEach(c => {
+      // Check if this contact is already linked on EthioLegacy
+      const match = allUsers.find(u => (c.email && (u.email||'').toLowerCase() === c.email.toLowerCase()) || (c.tel && (u.phone||u.phoneNumber||'').replace(/\D/g,'') === c.tel.replace(/\D/g,'')));
+      const row = document.createElement('div'); row.className = 'device-contact';
+      const avatar = document.createElement('div'); avatar.className = 'avatar'; avatar.textContent = (c.name || '?').charAt(0).toUpperCase();
+      const details = document.createElement('div'); details.className = 'contact-details';
+      const name = document.createElement('b'); name.textContent = c.name;
+      const info = document.createElement('small'); info.textContent = c.tel || c.email || 'No phone or email shared';
+      details.append(name, info); row.append(avatar, details);
+      
+      const action = document.createElement('button'); action.className = 'contact-action';
+      if (match) {
+        action.textContent = box.id === 'callDeviceContactsList' ? 'Call' : 'Chat';
+        action.onclick = () => { 
+          if (box.id === 'callDeviceContactsList') { openChat(match.uid, match.displayName || c.name); setTimeout(()=>startCall('audio'), 100); } 
+          else { openChat(match.uid, match.displayName || c.name); }
+        };
+      } else {
+        action.textContent = 'Invite';
+        action.onclick = async () => {
+          const shareText = 'Join me on EthioLegacy for chats and calls.';
+          if (navigator.share) { try { await navigator.share({title:'EthioLegacy', text:shareText}); } catch(e) {} }
+          else if (navigator.clipboard?.writeText) { try { await navigator.clipboard.writeText(shareText); toast('Copied.'); } catch(e) {} }
+        };
+      }
+      row.appendChild(action);
+      box.appendChild(row);
+    });
+  });
+}
+// ===============================================
   window.uploadProfilePhoto=async(event)=>{
     const file=event.target.files?.[0];
     if(!file||!currentUser)return;
@@ -776,6 +850,17 @@ const firebaseConfig = {
       if(!count)list.innerHTML='<div class="empty-state">No communities yet.</div>';
     }catch(e){}
   }
+  function filterUserRecords(val) { 
+  const q=(val||'').trim().toLowerCase(); 
+  return allUsers.filter(u => [u.displayName,u.email].some(v => (v||'').toLowerCase().includes(q))); 
+}
+
+window.filterUsers = (val) => { 
+  const filtered=filterUserRecords(val); 
+  renderUsers(filtered); 
+  renderCallList(filtered); 
+  renderDeviceContacts(); 
+};
 
   // ============ CHAT ============
   window.openChat = (uid, name) => {
