@@ -88,6 +88,8 @@
   .modal-btns button { padding: 10px 20px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; }
 
   .invite-box { display: flex; align-items: center; justify-content: space-between; padding: 14px; border: 1px solid #e0e5e8; border-radius: 12px; background: #f8fbfa; margin: 10px 0; text-align: left; }
+  .pending-invite { display: flex; justify-content: space-between; align-items: center; padding: 12px; border: 1px solid #ffeeba; background: #fff3cd; border-radius: 8px; margin-bottom: 8px; }
+  .pending-invite button { border: 0; padding: 6px 12px; border-radius: 6px; font-weight: 700; cursor: pointer; margin-left: 6px; }
 
   /* ---- WhatsApp-style Call UI ---- */
   .call-modal {
@@ -250,9 +252,13 @@
   </div>
   <div class="home-search-wrap" id="homeSearchWrap">
     <input id="searchInput" class="home-search" type="text" placeholder="Search contacts..." oninput="filterUsers(this.value)">
-    <div class="contacts-toolbar"><button class="contacts-button" onclick="importDeviceContacts()">📱 Sync device contacts</button><span class="contacts-hint">Choose contacts to show here. Only invited members appear in chats.</span></div>
+    <div class="contacts-toolbar"><button class="contacts-button" onclick="importDeviceContacts()">📱 Sync device contacts</button><span class="contacts-hint">Choose contacts to show here. Only accepted members appear in chats.</span></div>
   </div>
-  <div id="chatsPane" class="home-pane active"><div id="deviceContactsList"></div><div id="userList"></div></div>
+  <div id="chatsPane" class="home-pane active">
+    <div id="pendingInvitesContainer"></div>
+    <div id="deviceContactsList"></div>
+    <div id="userList"></div>
+  </div>
   <div id="callsPane" class="home-pane"><div id="callDeviceContactsList"></div><div class="pane-heading">Start a call</div><div id="callList"></div></div>
   <div id="communitiesPane" class="home-pane"><div class="pane-heading">Your communities</div><div class="community-card" onclick="openNewChatModal()"><div class="community-icon">＋</div><div class="community-meta"><b>Create a community or group</b><small>Bring people together</small></div></div><div id="communityList"></div></div>
 </div>
@@ -318,7 +324,7 @@
     <button class="btn-primary" style="margin-top:4px;padding:12px;background:#25d366;" onclick="shareInvite()">📤 Share invite link</button>
     <h4 style="margin:18px 0 8px;color:#243746;">Have an invite code?</h4>
     <input id="enterInviteCode" type="text" placeholder="Enter 6-character code" maxlength="6" style="text-transform:uppercase;">
-    <button class="btn-primary" onclick="applyEnteredInvite()">Link with inviter</button>
+    <button class="btn-primary" onclick="applyEnteredInvite()">Send Join Request</button>
     <h4 style="margin:18px 0 8px;color:#243746;">Or create a group</h4>
     <input id="newGroupName" type="text" placeholder="Group Name">
     <div class="modal-btns">
@@ -424,8 +430,8 @@ const firebaseConfig = {
   let isSignupMode = true;
   let notifications = [];
   let allUsers = [];
+  let pendingUsers = [];
   let importedDeviceContacts = [];
-  let pendingAttachment = null;
 
   // ============ TOAST / NOTIFICATIONS ============
   function toast(message){const el=document.getElementById('toast');if(!el)return;el.textContent=message;el.classList.add('show');clearTimeout(window.__toastTimer);window.__toastTimer=setTimeout(()=>el.classList.remove('show'),3200);}
@@ -466,8 +472,8 @@ const firebaseConfig = {
 
   window.requestAppPermissions=async()=>{
     let results=[];
-    try{if('Notification' in window){const p=await Notification.requestPermission();results.push('Notifications: '+p);}}catch(e){results.push('Notification permission unavailable.');}
-    try{const stream=await navigator.mediaDevices.getUserMedia({audio:true,video:true});stream.getTracks().forEach(t=>t.stop());results.push('Camera and microphone permission granted.');}catch(e){results.push('Camera/microphone: allow access in your browser settings.');}
+    try{if('Notification' in window){const p=await Notification.requestPermission();results.push('Notifications: '+p);}}catch(e){}
+    try{const stream=await navigator.mediaDevices.getUserMedia({audio:true,video:true});stream.getTracks().forEach(t=>t.stop());results.push('Camera and microphone granted.');}catch(e){results.push('Camera/microphone denied.');}
     alert(results.join('\n'));
   };
 
@@ -486,28 +492,20 @@ const firebaseConfig = {
       currentUser = auth.currentUser;
       const img=document.getElementById('profilePreview');
       const initial=document.getElementById('profileInitial');
-      if(img && url){
-        img.src = url + (url.includes('?')?'&':'?') + 'v=' + Date.now();
-        img.style.display='block';
-      }
+      if(img && url){ img.src = url + (url.includes('?')?'&':'?') + 'v=' + Date.now(); img.style.display='block'; }
       if(initial) initial.style.display='none';
       pushNotice('Profile updated','Your profile photo was saved.');
     }catch(e){console.error(e);toast('Photo upload failed. Check Firebase Storage rules.');}
   };
 
-  window.showLinkedDevices=()=>alert('Current device/session\n'+navigator.userAgent);
+  window.showLinkedDevices=()=>alert('Current device: '+navigator.userAgent);
   window.showCallHistory=()=>{const h=JSON.parse(localStorage.getItem('ethiolegacy_call_history')||'[]');alert(h.length?h.slice(0,20).map(x=>`${x.type.toUpperCase()} • ${x.name} • ${x.time} • ${x.status}`).join('\n'):'No call history yet.');};
-  window.showMessageSettings=()=>alert('Messages sync through Firestore. Background notifications need FCM.');
-  window.showAbout=()=>alert('EthioLegacy\nVersion 2.0');
+  window.showMessageSettings=()=>alert('Messages sync through Firestore.');
+  window.showAbout=()=>alert('EthioLegacy\nVersion 2.5\nEnd-to-End Invites.');
 
-  // ============ LANGUAGE (compact) ============
-  window.changeLanguage=(code)=>{
-    localStorage.setItem('ethiolegacy_language',code);
-    document.getElementById('loginLanguage').value = code;
-    document.getElementById('appLanguage').value = code;
-  };
+  window.changeLanguage=(code)=>{ localStorage.setItem('ethiolegacy_language',code); document.getElementById('loginLanguage').value = code; document.getElementById('appLanguage').value = code; };
 
-  // ============ AUTH ============
+  // ============ AUTH & AUTO GENERATE INVITE ============
   window.toggleAuthMode = () => {
     isSignupMode = !isSignupMode;
     document.getElementById('nameGroup').style.display = isSignupMode ? 'block' : 'none';
@@ -519,37 +517,14 @@ const firebaseConfig = {
     document.getElementById('errorMsg').textContent = "";
   };
 
-  window.togglePassword = (btn) => {
-    const input = document.getElementById('passwordInput');
-    input.type = input.type === 'password' ? 'text' : 'password';
-    btn.textContent = input.type === 'password' ? '👁️' : '🙈';
-  };
-  window.toggleConfirmPassword = (btn) => {
-    const input = document.getElementById('confirmPasswordInput');
-    input.type = input.type === 'password' ? 'text' : 'password';
-    btn.textContent = input.type === 'password' ? '👁️' : '🙈';
-  };
+  window.togglePassword = (btn) => { const i = document.getElementById('passwordInput'); i.type = i.type === 'password' ? 'text' : 'password'; btn.textContent = i.type === 'password' ? '👁️' : '🙈'; };
+  window.toggleConfirmPassword = (btn) => { const i = document.getElementById('confirmPasswordInput'); i.type = i.type === 'password' ? 'text' : 'password'; btn.textContent = i.type === 'password' ? '👁️' : '🙈'; };
 
   function generateInviteCode() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     let code = '';
     for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
     return code;
-  }
-
-  async function linkInvite(code, newUid) {
-    try {
-      const q = query(collection(db, 'users'), where('inviteCodeLower', '==', code.toLowerCase()));
-      const snap = await getDocs(q);
-      if (snap.empty) { toast('Invite code not found.'); return false; }
-      const inviterDoc = snap.docs[0];
-      const inviterUid = inviterDoc.id;
-      if (inviterUid === newUid) { toast('You cannot link to yourself.'); return false; }
-      await updateDoc(doc(db, 'users', inviterUid), { linkedUsers: arrayUnion(newUid) });
-      await updateDoc(doc(db, 'users', newUid), { linkedUsers: arrayUnion(inviterUid) });
-      toast('Linked with ' + (inviterDoc.data().displayName || 'inviter'));
-      return true;
-    } catch (e) { console.error(e); toast('Could not link invite.'); return false; }
   }
 
   window.handleAuth = async () => {
@@ -564,45 +539,49 @@ const firebaseConfig = {
     if(!email || !pass) return err.textContent = "Email and password are required.";
     if (!email.includes('@')) return err.textContent = "Please use your email address.";
 
-    btn.disabled = true;
-    btn.textContent = "Connecting...";
+    btn.disabled = true; btn.textContent = "Connecting...";
 
     try {
       if (isSignupMode) {
         if (!name) throw new Error("Full name is required.");
         if (pass !== confirmPass) throw new Error("Passwords do not match.");
         if (pass.length < 6) throw new Error("Password must be at least 6 characters.");
+        
         const cred = await createUserWithEmailAndPassword(auth, email, pass);
         await updateProfile(cred.user, { displayName: name });
 
-        // Generate unique invite code
+        // 👇 AUTOMATICALLY GENERATE INVITE CODE
         const inviteCode = generateInviteCode();
+        
         await setDoc(doc(db, "users", cred.user.uid), {
           uid: cred.user.uid,
           email: email,
           displayName: name,
           inviteCode: inviteCode,
           inviteCodeLower: inviteCode.toLowerCase(),
-          linkedUsers: [],
+          linkedUsers: [],       // Confirmed friends
+          pendingInvites: [],    // Incoming friend requests
           hiddenUsers: [],
           createdAt: serverTimestamp()
         });
 
-        // Auto-link if URL has ?invite=XXX
+        // If user clicked an invite link, automatically send a join request
         const urlInvite = new URLSearchParams(location.search).get('invite');
-        if (urlInvite) await linkInvite(urlInvite, cred.user.uid);
+        if (urlInvite) await sendInviteRequest(urlInvite, cred.user.uid, name);
+        
+        toast('Account created! Your invite code is ' + inviteCode);
       } else {
         await signInWithEmailAndPassword(auth, email, pass);
       }
     } catch (e) {
-      err.textContent = e.message.replace("Firebase: ", "");
+      err.textContent = e.message.replace("Firebase: ", "").replace("auth/", "").replace(/-/g, " ");
     } finally {
       btn.disabled = false;
       btn.textContent = isSignupMode ? "Sign up" : "Sign in";
     }
   };
 
-  // Pre-fill invite hint from URL
+  // Pre-fill invite hint
   (function showInviteHint() {
     const inv = new URLSearchParams(location.search).get('invite');
     if (!inv) return;
@@ -619,7 +598,6 @@ const firebaseConfig = {
       currentUser = user;
       showScreen('homeScreen');
       loadUsers();
-      if(user.displayName) toast('Welcome, '+user.displayName);
     } else {
       currentUser = null;
       showScreen('loginScreen');
@@ -631,41 +609,124 @@ const firebaseConfig = {
     document.querySelectorAll('.main-tab').forEach(b=>b.classList.toggle('active',b===button));
     document.querySelectorAll('.home-pane').forEach(p=>p.classList.toggle('active',p.id===paneId));
     document.getElementById('homeSearchWrap').style.display = (paneId==='chatsPane' || paneId==='callsPane') ? 'block' : 'none';
-    const searchBox=document.getElementById('searchInput');
-    if(searchBox) searchBox.placeholder = paneId==='callsPane' ? 'Search calls...' : 'Search chats...';
-    if(paneId==='callsPane') { renderCallList(filterUserRecords(searchBox?.value||'')); renderDeviceContacts(); }
+    if(paneId==='callsPane') renderCallList(filterUserRecords(document.getElementById('searchInput')?.value||''));
     if(paneId==='communitiesPane') loadCommunities();
   };
 
-  // ============ LOAD ONLY LINKED USERS ============
+  // ============ INVITE LOGIC (JOIN / REJECT) ============
+  
+  // Send a request
+  async function sendInviteRequest(code, senderUid, senderName) {
+    try {
+      const q = query(collection(db, 'users'), where('inviteCodeLower', '==', code.toLowerCase()));
+      const snap = await getDocs(q);
+      if (snap.empty) return toast('Invite code not found.');
+      
+      const inviterDoc = snap.docs[0];
+      const inviterUid = inviterDoc.id;
+      if (inviterUid === senderUid) return toast('You cannot invite yourself.');
+
+      // Add to inviter's pending list
+      await updateDoc(doc(db, 'users', inviterUid), { 
+        pendingInvites: arrayUnion({ uid: senderUid, name: senderName, timestamp: Date.now() })
+      });
+      toast('Join request sent to ' + (inviterDoc.data().displayName || 'inviter'));
+    } catch (e) { console.error(e); toast('Could not send request.'); }
+  }
+
+  window.applyEnteredInvite = async () => {
+    const code = document.getElementById('enterInviteCode').value.trim().toUpperCase();
+    if (!code || code.length !== 6) return toast('Enter a valid 6-character code.');
+    await sendInviteRequest(code, currentUser.uid, currentUser.displayName || 'User');
+    document.getElementById('enterInviteCode').value = '';
+    document.getElementById('newChatModal').classList.remove('active');
+  };
+
+  // Accept an invite
+  window.acceptInvite = async (senderUid, senderName) => {
+    try {
+      // 1. Add to my linkedUsers
+      await updateDoc(doc(db, 'users', currentUser.uid), {
+        linkedUsers: arrayUnion(senderUid),
+        pendingInvites: arrayRemove({ uid: senderUid, name: senderName }) // Remove from UI
+      });
+      // 2. Add me to their linkedUsers
+      await updateDoc(doc(db, 'users', senderUid), {
+        linkedUsers: arrayUnion(currentUser.uid)
+      });
+      toast('Joined with ' + senderName);
+      loadUsers();
+    } catch(e) { console.error(e); toast('Could not accept.'); }
+  };
+
+  // Reject an invite
+  window.rejectInvite = async (senderUid, senderName) => {
+    try {
+      await updateDoc(doc(db, 'users', currentUser.uid), {
+        pendingInvites: arrayRemove({ uid: senderUid, name: senderName })
+      });
+      toast('Request rejected.');
+      loadUsers();
+    } catch(e) { toast('Could not reject.'); }
+  };
+
+  // ============ LOAD USERS ============
   async function loadUsers() {
     try {
       const myProfileSnap = await getDoc(doc(db, 'users', currentUser.uid));
       const myProfile = myProfileSnap.exists() ? myProfileSnap.data() : {};
+      
       const linked = myProfile.linkedUsers || [];
+      const pending = myProfile.pendingInvites || [];
       const hidden = myProfile.hiddenUsers || [];
 
+      // Load Linked Contacts
       allUsers = [];
       for (const uid of linked) {
         if (hidden.includes(uid)) continue;
         const uSnap = await getDoc(doc(db, 'users', uid));
         if (uSnap.exists()) allUsers.push({ uid: uSnap.id, ...uSnap.data() });
       }
+
+      // Load Pending Requests
+      pendingUsers = [];
+      for (const p of pending) {
+        const uSnap = await getDoc(doc(db, 'users', p.uid));
+        if (uSnap.exists()) pendingUsers.push({ uid: p.uid, name: p.name, ...uSnap.data() });
+      }
+
       renderUsers(allUsers);
+      renderPendingInvites(pendingUsers);
       renderDeviceContacts();
       renderCallList(allUsers);
       loadCommunities();
-    } catch (e) {
-      console.error(e);
-      toast('Could not load users.');
-    }
+    } catch (e) { console.error(e); }
+  }
+
+  function renderPendingInvites(users) {
+    const box = document.getElementById('pendingInvitesContainer');
+    box.innerHTML = '';
+    if (!users.length) return;
+    
+    box.innerHTML = '<div class="pane-heading" style="color:#eab308;">Pending Invites</div>';
+    users.forEach(u => {
+      const div = document.createElement('div');
+      div.className = 'pending-invite';
+      div.innerHTML = `
+        <div><b>${escapeHTML(u.name)}</b> wants to chat</div>
+        <div>
+          <button style="background:#22c55e;color:white;" onclick="acceptInvite('${u.uid}','${escapeHTML(u.name)}')">Accept</button>
+          <button style="background:#ef4444;color:white;" onclick="rejectInvite('${u.uid}','${escapeHTML(u.name)}')">Reject</button>
+        </div>`;
+      box.appendChild(div);
+    });
   }
 
   function renderUsers(users) {
     const list = document.getElementById('userList');
     list.innerHTML = '';
     if(users.length === 0) {
-      list.innerHTML = '<div class="empty-state">No contacts yet.<br>Tap ✚ to invite someone with your code.</div>';
+      list.innerHTML = '<div class="empty-state">No contacts yet.<br>Tap ✚ to invite someone.</div>';
       return;
     }
     users.forEach(u => {
@@ -673,187 +734,15 @@ const firebaseConfig = {
       div.className = 'chat-item';
       const safeName = escapeHTML(u.displayName || 'Member');
       const initial = safeName.charAt(0).toUpperCase();
-      const avatarHtml = u.photoURL
-        ? `<div class="avatar" style="background-image:url('${escapeHTML(u.photoURL)}');color:transparent;">${initial}</div>`
-        : `<div class="avatar">${initial}</div>`;
-      div.innerHTML = `${avatarHtml}<div class="chat-info"><div class="chat-name">${safeName}</div><small class="muted">Tap to message</small></div><button class="mini-action" title="Remove from chats" style="flex-shrink:0">✕</button>`;
+      const avatarHtml = u.photoURL ? `<div class="avatar" style="background-image:url('${escapeHTML(u.photoURL)}');color:transparent;">${initial}</div>` : `<div class="avatar">${initial}</div>`;
+      
+      div.innerHTML = `${avatarHtml}<div class="chat-info"><div class="chat-name">${safeName}</div><small class="muted">Tap to message</small></div><button class="mini-action" title="Remove" style="flex-shrink:0">✕</button>`;
+      
       div.querySelector('.chat-info').onclick = () => openChat(u.uid, u.displayName);
       div.querySelector('button').onclick = async (e) => { e.stopPropagation(); await removeUserFromLists(u.uid, u.displayName || 'Member'); };
       list.appendChild(div);
     });
   }
-
-  window.importDeviceContacts = async () => {
-    if (!currentUser) return toast('Please sign in first.');
-    if (!('contacts' in navigator) || !navigator.contacts?.select) {
-      toast('Device contact picker is not supported. Use Chrome on Android.');
-      return;
-    }
-    try {
-      const picked = await navigator.contacts.select(['name', 'tel', 'email'], { multiple: true });
-      const seen = new Set();
-      importedDeviceContacts = picked.map(c => ({
-        name: (c.name && c.name[0]) || 'Unnamed',
-        tel: (c.tel && c.tel[0]) || '',
-        email: (c.email && c.email[0]) || ''
-      })).filter(c => {
-        const key = (c.email+'|'+c.tel+'|'+c.name).toLowerCase();
-        if (seen.has(key)) return false; seen.add(key); return true;
-      });
-      renderDeviceContacts();
-      toast(importedDeviceContacts.length + ' contacts selected.');
-    } catch (e) {
-      if (e.name !== 'AbortError') toast('Could not read contacts.');
-    }
-  };
-
-  function renderDeviceContacts() {
-    const q = (document.getElementById('searchInput')?.value || '').trim().toLowerCase();
-    const targets = [document.getElementById('deviceContactsList'), document.getElementById('callDeviceContactsList')].filter(Boolean);
-    targets.forEach(box => {
-      box.innerHTML = '';
-      const contacts = importedDeviceContacts.filter(c => !q || [c.name,c.tel,c.email].some(v => (v||'').toLowerCase().includes(q)));
-      if (!contacts.length) return;
-      const heading = document.createElement('div'); heading.className = 'pane-heading';
-      heading.textContent = 'Device contacts (' + contacts.length + ')'; box.appendChild(heading);
-      contacts.forEach(c => {
-        const match = allUsers.find(u => (c.email && (u.email||'').toLowerCase() === c.email.toLowerCase()) || (c.tel && (u.phone||'').replace(/\D/g,'') === c.tel.replace(/\D/g,'')));
-        const row = document.createElement('div'); row.className = 'device-contact';
-        const avatar = document.createElement('div'); avatar.className = 'avatar'; avatar.textContent = (c.name || '?').charAt(0).toUpperCase();
-        const details = document.createElement('div'); details.className = 'contact-details';
-        const name = document.createElement('b'); name.textContent = c.name;
-        const info = document.createElement('small'); info.textContent = c.tel || c.email || 'No phone or email';
-        details.append(name, info); row.append(avatar, details);
-        const action = document.createElement('button'); action.className = 'contact-action';
-        if (match) {
-          action.textContent = box.id === 'callDeviceContactsList' ? 'Call' : 'Chat';
-          action.onclick = () => {
-            if (box.id === 'callDeviceContactsList') { openChat(match.uid, match.displayName || c.name); setTimeout(()=>startCall('audio'), 100); }
-            else openChat(match.uid, match.displayName || c.name);
-          };
-        } else {
-          action.textContent = 'Invite';
-          action.onclick = async () => {
-            const shareText = 'Join me on EthioLegacy for chats and calls.';
-            if (navigator.share) { try { await navigator.share({title:'EthioLegacy', text:shareText}); } catch(e) {} }
-            else if (navigator.clipboard?.writeText) { try { await navigator.clipboard.writeText(shareText); toast('Copied.'); } catch(e) {} }
-          };
-        }
-        row.appendChild(action);
-        box.appendChild(row);
-      });
-    });
-  }
-
-  function filterUserRecords(val) {
-    const q=(val||'').trim().toLowerCase();
-    return allUsers.filter(u => [u.displayName,u.email].some(v => (v||'').toLowerCase().includes(q)));
-  }
-
-  window.filterUsers = (val) => {
-    const filtered=filterUserRecords(val);
-    renderUsers(filtered);
-    renderCallList(filtered);
-    renderDeviceContacts();
-  };
-
-  function renderCallList(users){
-    const list=document.getElementById('callList'); if(!list)return; list.innerHTML='';
-    if(!users.length){list.innerHTML='<div class="empty-state">No contacts to call yet. Invite someone first.</div>';return;}
-    users.forEach(u=>{
-      const row=document.createElement('div');row.className='chat-item';
-      const name=escapeHTML(u.displayName||'Member');
-      const initial=name.charAt(0).toUpperCase();
-      const avatarHtml = u.photoURL
-        ? `<div class="avatar" style="background-image:url('${escapeHTML(u.photoURL)}');color:transparent;">${initial}</div>`
-        : `<div class="avatar">${initial}</div>`;
-      row.innerHTML=`${avatarHtml}<div class="chat-info"><div class="chat-name">${name}</div><small class="muted">Voice or video call</small></div><div class="row-actions"><button class="mini-action" title="Voice call">📞</button><button class="mini-action" title="Video call">🎥</button><button class="mini-action" title="Remove">✕</button></div>`;
-      const buttons=row.querySelectorAll('button');
-      buttons[0].onclick=e=>{e.stopPropagation();openChat(u.uid,u.displayName);setTimeout(()=>startCall('audio'),100)};
-      buttons[1].onclick=e=>{e.stopPropagation();openChat(u.uid,u.displayName);setTimeout(()=>startCall('video'),100)};
-      buttons[2].onclick=e=>{e.stopPropagation();removeUserFromLists(u.uid,u.displayName||'Member')};
-      list.appendChild(row);
-    });
-  }
-
-  async function loadCommunities(){
-    const list=document.getElementById('communityList'); if(!list||!currentUser)return;
-    try{
-      const snap=await getDocs(query(collection(db,'chats'),where('isGroup','==',true)));
-      list.innerHTML='';let count=0;
-      snap.forEach(d=>{
-        const g=d.data();
-        if(Array.isArray(g.members)&&!g.members.includes(currentUser.uid))return;
-        count++;
-        const row=document.createElement('div');row.className='community-card';
-        const name=escapeHTML(g.name||'Community');
-        row.innerHTML=`<div class="community-icon">👥</div><div class="community-meta"><b>${name}</b><small>Group conversation</small></div><button class="mini-action">✕</button>`;
-        row.querySelector('.community-meta').onclick=()=>openChat(d.id,g.name||'Community');
-        row.querySelector('button').onclick=async(e)=>{
-          e.stopPropagation();
-          if(!confirm('Leave '+(g.name||'community')+'?'))return;
-          try{await updateDoc(doc(db,'chats',d.id),{members:arrayRemove(currentUser.uid)});toast('Left.');await loadCommunities();}
-          catch(err){toast('Could not leave.');}
-        };
-        list.appendChild(row);
-      });
-      if(!count)list.innerHTML='<div class="empty-state">No communities yet.</div>';
-    }catch(e){list.innerHTML='<div class="empty-state">Could not load communities.</div>';}
-  }
-
-  // ============ INVITE MODAL ============
-  window.openNewChatModal = async () => {
-    if (!currentUser) return;
-    const snap = await getDoc(doc(db, 'users', currentUser.uid));
-    const data = snap.exists() ? snap.data() : {};
-    document.getElementById('myInviteCode').textContent = data.inviteCode || '——';
-    document.getElementById('newChatModal').classList.add('active');
-  };
-
-  window.copyInviteCode = async () => {
-    const code = document.getElementById('myInviteCode').textContent;
-    if (!code || code === '——') return;
-    try { await navigator.clipboard.writeText(code); toast('Invite code copied.'); }
-    catch (e) { toast('Copy failed.'); }
-  };
-
-  window.shareInvite = async () => {
-    const code = document.getElementById('myInviteCode').textContent;
-    const url = `${location.origin}${location.pathname}?invite=${code}`;
-    const text = `Join me on EthioLegacy! Use invite code: ${code}\n${url}`;
-    if (navigator.share) {
-      try { await navigator.share({ title: 'EthioLegacy', text, url }); return; } catch(e) {}
-    }
-    try { await navigator.clipboard.writeText(text); toast('Invite link copied.'); }
-    catch(e) { toast('Invite: ' + text); }
-  };
-
-  window.applyEnteredInvite = async () => {
-    const code = document.getElementById('enterInviteCode').value.trim().toUpperCase();
-    if (!code || code.length !== 6) return toast('Enter a valid 6-character code.');
-    const ok = await linkInvite(code, currentUser.uid);
-    if (ok) {
-      document.getElementById('enterInviteCode').value = '';
-      document.getElementById('newChatModal').classList.remove('active');
-      await loadUsers();
-    }
-  };
-
-  window.startNewChat = async () => {
-    const groupName = document.getElementById('newGroupName').value.trim();
-    if (!groupName) return toast('Enter a group name.');
-    const groupId = "group_" + Date.now();
-    await setDoc(doc(db, "chats", groupId), {
-      isGroup: true, name: groupName,
-      createdBy: currentUser.uid,
-      members: [currentUser.uid],
-      createdAt: serverTimestamp()
-    });
-    document.getElementById('newChatModal').classList.remove('active');
-    document.getElementById('newGroupName').value = '';
-    await loadCommunities();
-    openChat(groupId, groupName);
-  };
 
   // ============ CHAT ============
   window.openChat = (uid, name) => {
@@ -880,15 +769,10 @@ const firebaseConfig = {
 
         let attachmentHtml = '';
         if (m.attachmentUrl) {
-          if (m.attachmentKind === 'image') {
-            attachmentHtml = `<div class="msg-attachment"><img src="${escapeHTML(m.attachmentUrl)}" alt="photo" loading="lazy" onclick="window.open('${escapeHTML(m.attachmentUrl)}','_blank')"></div>`;
-          } else if (m.attachmentKind === 'video') {
-            attachmentHtml = `<div class="msg-attachment"><video src="${escapeHTML(m.attachmentUrl)}" controls playsinline></video></div>`;
-          } else if (m.attachmentKind === 'audio') {
-            attachmentHtml = `<div class="msg-attachment"><audio src="${escapeHTML(m.attachmentUrl)}" controls></audio></div>`;
-          } else {
-            attachmentHtml = `<div class="msg-attachment"><a href="${escapeHTML(m.attachmentUrl)}" target="_blank" rel="noopener">📎 ${escapeHTML(m.attachmentName||'File')}</a></div>`;
-          }
+          if (m.attachmentKind === 'image') attachmentHtml = `<div class="msg-attachment"><img src="${escapeHTML(m.attachmentUrl)}" alt="photo" onclick="window.open('${escapeHTML(m.attachmentUrl)}','_blank')"></div>`;
+          else if (m.attachmentKind === 'video') attachmentHtml = `<div class="msg-attachment"><video src="${escapeHTML(m.attachmentUrl)}" controls playsinline></video></div>`;
+          else if (m.attachmentKind === 'audio') attachmentHtml = `<div class="msg-attachment"><audio src="${escapeHTML(m.attachmentUrl)}" controls></audio></div>`;
+          else attachmentHtml = `<div class="msg-attachment"><a href="${escapeHTML(m.attachmentUrl)}" target="_blank">📎 ${escapeHTML(m.attachmentName||'File')}</a></div>`;
         }
 
         box.innerHTML += `
@@ -906,21 +790,18 @@ const firebaseConfig = {
     });
   };
 
-  // ============ DELETE (both sides allowed) ============
+  // ============ DELETE (BOTH SIDES) ============
   window.deleteMessage = async (messageId) => {
     if (!currentUser || !currentChatId) return;
     if (!confirm('Delete this message for everyone?')) return;
     try {
       await deleteDoc(doc(db, 'chats', currentChatId, 'messages', messageId));
       toast('Message deleted.');
-    } catch (e) {
-      console.error(e);
-      toast('Could not delete message. Check Firestore rules.');
-    }
+    } catch (e) { toast('Could not delete message.'); }
   };
 
   window.removeUserFromLists = async (uid, name) => {
-    if (!currentUser || !confirm(`Remove ${name} from your Chats and Calls?`)) return;
+    if (!currentUser || !confirm(`Remove ${name} from your Chats?`)) return;
     try {
       await updateDoc(doc(db, 'users', currentUser.uid), { hiddenUsers: arrayUnion(uid) });
       allUsers = allUsers.filter(u => u.uid !== uid);
@@ -951,7 +832,7 @@ const firebaseConfig = {
   window.handleFileAttach = async (event) => {
     const file = event.target.files?.[0];
     if (!file || !currentUser || !currentChatId) return;
-    if (file.size > 25 * 1024 * 1024) return toast('File must be smaller than 25 MB.');
+    if (file.size > 25 * 1024 * 1024) return toast('File too large (max 25MB).');
     try {
       toast('Uploading...');
       const path = `chatFiles/${currentChatId}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
@@ -965,25 +846,14 @@ const firebaseConfig = {
       else if (file.type.startsWith('audio/')) kind = 'audio';
 
       await addDoc(collection(db, "chats", currentChatId, "messages"), {
-        senderId: currentUser.uid,
-        senderName: currentUser.displayName,
-        text: '',
-        attachmentUrl: url,
-        attachmentKind: kind,
-        attachmentName: file.name,
-        timestamp: serverTimestamp()
+        senderId: currentUser.uid, senderName: currentUser.displayName, text: '',
+        attachmentUrl: url, attachmentKind: kind, attachmentName: file.name, timestamp: serverTimestamp()
       });
       event.target.value = '';
-      toast('Sent.');
-    } catch (e) {
-      console.error(e);
-      toast('Upload failed. Check Storage rules.');
-    }
+    } catch (e) { toast('Upload failed.'); }
   };
 
-  // ---- Voice recording ----
   let voiceRecorder = null, voiceChunks = [], voiceRecording = false;
-
   async function startVoiceRecording() {
     if (voiceRecording) { voiceRecorder.stop(); return; }
     if (!currentChatId) return toast('Open a chat first.');
@@ -997,161 +867,82 @@ const firebaseConfig = {
       voiceRecorder.onstop = async () => {
         stream.getTracks().forEach(t => t.stop());
         voiceRecording = false;
-        const vb = document.getElementById('voiceBtn');
-        vb.classList.remove('recording');
+        document.getElementById('voiceBtn').classList.remove('recording');
         const blob = new Blob(voiceChunks, { type: mimeType });
-        if (blob.size < 200) return toast('Recording too short.');
-        try {
-          const ext = mimeType.includes('mp4') ? 'm4a' : 'webm';
-          const path = `chatFiles/${currentChatId}/${Date.now()}_voice.${ext}`;
-          const storageRef = ref(storage, path);
-          await uploadBytes(storageRef, blob);
-          const url = await getDownloadURL(storageRef);
-          await addDoc(collection(db, "chats", currentChatId, "messages"), {
-            senderId: currentUser.uid,
-            senderName: currentUser.displayName,
-            text: '',
-            attachmentUrl: url,
-            attachmentKind: 'audio',
-            attachmentName: 'Voice message',
-            timestamp: serverTimestamp()
-          });
-          toast('Voice message sent.');
-        } catch (e) { toast('Voice upload failed.'); }
+        if (blob.size < 200) return toast('Too short.');
+        const ext = mimeType.includes('mp4') ? 'm4a' : 'webm';
+        const path = `chatFiles/${currentChatId}/${Date.now()}_voice.${ext}`;
+        const storageRef = ref(storage, path);
+        await uploadBytes(storageRef, blob);
+        const url = await getDownloadURL(storageRef);
+        await addDoc(collection(db, "chats", currentChatId, "messages"), {
+          senderId: currentUser.uid, senderName: currentUser.displayName, text: '',
+          attachmentUrl: url, attachmentKind: 'audio', attachmentName: 'Voice message', timestamp: serverTimestamp()
+        });
+        toast('Voice message sent.');
       };
       voiceRecorder.start();
       voiceRecording = true;
       document.getElementById('voiceBtn').classList.add('recording');
-      toast('Recording… tap 🎤 again to stop.');
-    } catch (e) {
-      toast('Microphone access denied.');
-    }
+      toast('Recording… tap 🎤 to stop.');
+    } catch (e) { toast('Mic access denied.'); }
   }
 
-  // ============ WEBRTC ============
-  // ⚠️ ADD YOUR METERED.CA TURN CREDENTIALS
-  // Sign up free at https://www.metered.ca/stun-turn
+  // ============ WEBRTC & CALLING ============
   const servers = {
     iceServers: [
       { urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] },
       { urls: 'stun:stun.l.google.com:19302' },
-      {
-        urls: 'turn:global.relay.metered.ca:80',
-        username: 'YOUR_METERED_USERNAME',
-        credential: 'YOUR_METERED_PASSWORD'
-      },
-      {
-        urls: 'turn:global.relay.metered.ca:443',
-        username: 'YOUR_METERED_USERNAME',
-        credential: 'YOUR_METERED_PASSWORD'
-      },
-      {
-        urls: 'turn:global.relay.metered.ca:443?transport=tcp',
-        username: 'YOUR_METERED_USERNAME',
-        credential: 'YOUR_METERED_PASSWORD'
-      }
+      { urls: 'turn:global.relay.metered.ca:80', username: 'YOUR_METERED_USERNAME', credential: 'YOUR_METERED_PASSWORD' },
+      { urls: 'turn:global.relay.metered.ca:443', username: 'YOUR_METERED_USERNAME', credential: 'YOUR_METERED_PASSWORD' },
+      { urls: 'turn:global.relay.metered.ca:443?transport=tcp', username: 'YOUR_METERED_USERNAME', credential: 'YOUR_METERED_PASSWORD' }
     ],
-    iceCandidatePoolSize: 10,
-    bundlePolicy: 'max-bundle'
+    iceCandidatePoolSize: 10, bundlePolicy: 'max-bundle'
   };
   let pc = null, localStream = null, currentCallDocId = null, unsubscribeCall = null;
   let incomingCallUnsub = null;
 
   // ---- Ringtones ----
   let ringAudioContext = null, ringTimer = null, ringMode = null;
-
-  function stopRingtone() {
-    if (ringTimer) { clearInterval(ringTimer); ringTimer = null; }
-    if (ringAudioContext) {
-      try { ringAudioContext.close(); } catch(e){}
-      ringAudioContext = null;
-    }
-    ringMode = null;
-  }
-
+  function stopRingtone() { if (ringTimer) { clearInterval(ringTimer); ringTimer = null; } if (ringAudioContext) { try { ringAudioContext.close(); } catch(e){} ringAudioContext = null; } ringMode = null; }
   function playRingtone(mode = 'incoming') {
     if (document.getElementById('activeCallStatus')?.textContent === 'Connected') return;
-    stopRingtone();
-    ringMode = mode;
+    stopRingtone(); ringMode = mode;
     try {
-      const Ctx = window.AudioContext || window.webkitAudioContext;
-      if (!Ctx) return;
+      const Ctx = window.AudioContext || window.webkitAudioContext; if (!Ctx) return;
       ringAudioContext = new Ctx();
       if (ringAudioContext.state === 'suspended') ringAudioContext.resume().catch(()=>{});
-
       if (mode === 'incoming') {
         const playPair = () => {
-          if (!ringAudioContext) return;
-          const ctx = ringAudioContext;
+          if (!ringAudioContext) return; const ctx = ringAudioContext;
           [0, 0.45].forEach(offset => {
-            const t = ctx.currentTime + offset;
-            const osc = ctx.createOscillator();
-            const g = ctx.createGain();
-            osc.type = 'sine';
-            osc.frequency.value = 950;
-            g.gain.setValueAtTime(0.0001, t);
-            g.gain.exponentialRampToValueAtTime(0.20, t + 0.03);
-            g.gain.setValueAtTime(0.20, t + 0.22);
-            g.gain.exponentialRampToValueAtTime(0.0001, t + 0.30);
-            osc.connect(g).connect(ctx.destination);
-            osc.start(t);
-            osc.stop(t + 0.32);
+            const t = ctx.currentTime + offset; const osc = ctx.createOscillator(); const g = ctx.createGain();
+            osc.type = 'sine'; osc.frequency.value = 950;
+            g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.20, t + 0.03); g.gain.setValueAtTime(0.20, t + 0.22); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.30);
+            osc.connect(g).connect(ctx.destination); osc.start(t); osc.stop(t + 0.32);
           });
         };
-        playPair();
-        ringTimer = setInterval(playPair, 1600);
+        playPair(); ringTimer = setInterval(playPair, 1600);
       } else {
         const playBeep = () => {
-          if (!ringAudioContext) return;
-          const ctx = ringAudioContext;
-          const t = ctx.currentTime;
-          const osc = ctx.createOscillator();
-          const g = ctx.createGain();
-          osc.type = 'sine';
-          osc.frequency.value = 450;
-          g.gain.setValueAtTime(0.0001, t);
-          g.gain.exponentialRampToValueAtTime(0.12, t + 0.05);
-          g.gain.setValueAtTime(0.12, t + 0.55);
-          g.gain.exponentialRampToValueAtTime(0.0001, t + 0.65);
-          osc.connect(g).connect(ctx.destination);
-          osc.start(t);
-          osc.stop(t + 0.7);
+          if (!ringAudioContext) return; const ctx = ringAudioContext; const t = ctx.currentTime; const osc = ctx.createOscillator(); const g = ctx.createGain();
+          osc.type = 'sine'; osc.frequency.value = 450;
+          g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.12, t + 0.05); g.gain.setValueAtTime(0.12, t + 0.55); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.65);
+          osc.connect(g).connect(ctx.destination); osc.start(t); osc.stop(t + 0.7);
         };
-        playBeep();
-        ringTimer = setInterval(playBeep, 2500);
+        playBeep(); ringTimer = setInterval(playBeep, 2500);
       }
-    } catch (e) { console.warn('Ringtone unavailable', e); }
+    } catch (e) {}
   }
+  ['click','touchstart','keydown'].forEach(evt => { document.addEventListener(evt, () => { if (ringAudioContext && ringAudioContext.state === 'suspended') ringAudioContext.resume().catch(()=>{}); }, { passive: true }); });
 
-  ['click','touchstart','keydown'].forEach(evt => {
-    document.addEventListener(evt, () => {
-      if (ringAudioContext && ringAudioContext.state === 'suspended') {
-        ringAudioContext.resume().catch(()=>{});
-      }
-    }, { passive: true });
-  });
-
-  // ---- Clean audio for calls ----
   async function setupMedia(video) {
     try {
       return await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          sampleRate: 48000,
-          channelCount: 1
-        },
-        video: video ? {
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          frameRate: { ideal: 30 }
-        } : false
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, sampleRate: 48000, channelCount: 1 },
+        video: video ? { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } } : false
       });
-    } catch (e) {
-      alert("Camera/Mic access denied. Please allow permissions.");
-      throw e;
-    }
+    } catch (e) { alert("Camera/Mic access denied."); throw e; }
   }
 
   function addTracksWithBitrate(pc, stream) {
@@ -1160,38 +951,25 @@ const firebaseConfig = {
       try {
         const params = sender.getParameters();
         if (!params.encodings || !params.encodings.length) params.encodings = [{}];
-        if (track.kind === 'audio') {
-          params.encodings[0].maxBitrate = 64000;   // 64 kbps Opus
-        } else if (track.kind === 'video') {
-          params.encodings[0].maxBitrate = 1500000; // 1.5 Mbps
-        }
+        if (track.kind === 'audio') params.encodings[0].maxBitrate = 64000;
+        else if (track.kind === 'video') params.encodings[0].maxBitrate = 1500000;
         sender.setParameters(params).catch(()=>{});
       } catch(e) {}
     });
   }
 
   function setAvatarFromPhoto(el, name, photoURL){
-    if (!el) return;
-    el.innerHTML = '';
-    if (photoURL) {
-      const img = document.createElement('img');
-      img.src = photoURL;
-      img.alt = name || '';
-      el.appendChild(img);
-    } else {
-      el.textContent = (name || '?').charAt(0).toUpperCase();
-    }
+    if (!el) return; el.innerHTML = '';
+    if (photoURL) { const img = document.createElement('img'); img.src = photoURL; el.appendChild(img); } 
+    else { el.textContent = (name || '?').charAt(0).toUpperCase(); }
   }
 
   async function getPartnerProfile(uid){
-    try {
-      const s = await getDoc(doc(db,'users',uid));
-      return s.exists() ? s.data() : {};
-    } catch(e) { return {}; }
+    try { const s = await getDoc(doc(db,'users',uid)); return s.exists() ? s.data() : {}; } catch(e) { return {}; }
   }
 
   window.startCall = async (type) => {
-    if (!currentPartner || currentPartner.startsWith("group_")) return alert("Group calling is not supported yet.");
+    if (!currentPartner || currentPartner.startsWith("group_")) return alert("Group calling not supported.");
     const isVideo = type === 'video';
     saveCallHistory(type, 'Outgoing call');
 
@@ -1210,7 +988,6 @@ const firebaseConfig = {
     document.querySelector('#activeCallModal .call-avatar-wrap').style.display = isVideo ? 'none' : 'grid';
 
     document.getElementById('activeCallModal').classList.add('active');
-
     playRingtone('outgoing');
 
     try {
@@ -1221,10 +998,7 @@ const firebaseConfig = {
 
       pc.ontrack = (event) => {
         const rv = document.getElementById('remoteVideo');
-        rv.srcObject = event.streams[0];
-        rv.muted = false;
-        rv.volume = 1.0;
-        rv.play().catch(()=>{});
+        rv.srcObject = event.streams[0]; rv.muted = false; rv.volume = 1.0; rv.play().catch(()=>{});
       };
 
       const callDoc = doc(collection(db, "calls"));
@@ -1238,18 +1012,12 @@ const firebaseConfig = {
 
       await setDoc(callDoc, {
         offer: { type: offerDescription.type, sdp: offerDescription.sdp },
-        callerId: currentUser.uid,
-        callerName: currentUser.displayName || 'Member',
-        callerPhotoURL: currentUser.photoURL || '',
-        receiverId: currentPartner,
-        type: type,
-        status: 'ringing',
-        createdAt: serverTimestamp()
+        callerId: currentUser.uid, callerName: currentUser.displayName || 'Member', callerPhotoURL: currentUser.photoURL || '',
+        receiverId: currentPartner, type: type, status: 'ringing', createdAt: serverTimestamp()
       });
 
       unsubscribeCall = onSnapshot(callDoc, async (snapshot) => {
-        const data = snapshot.data();
-        if (!data) return;
+        const data = snapshot.data(); if (!data) return;
         if (data.answer && pc.signalingState !== 'stable') {
           stopRingtone();
           document.getElementById('activeCallStatus').textContent = 'Connected';
@@ -1260,9 +1028,7 @@ const firebaseConfig = {
       });
 
       onSnapshot(answerCandidates, (snapshot) => {
-        snapshot.docChanges().forEach(change => {
-          if (change.type === 'added') pc.addIceCandidate(new RTCIceCandidate(change.doc.data())).catch(()=>{});
-        });
+        snapshot.docChanges().forEach(change => { if (change.type === 'added') pc.addIceCandidate(new RTCIceCandidate(change.doc.data())).catch(()=>{}); });
       });
     } catch (e) { endCall(); }
   };
@@ -1318,7 +1084,6 @@ const firebaseConfig = {
     vc.classList.toggle('active', isVideo);
     vc.style.display = isVideo ? 'block' : 'none';
     document.querySelector('#activeCallModal .call-avatar-wrap').style.display = isVideo ? 'none' : 'grid';
-
     document.getElementById('activeCallModal').classList.add('active');
 
     try {
@@ -1329,10 +1094,7 @@ const firebaseConfig = {
 
       pc.ontrack = (event) => {
         const rv = document.getElementById('remoteVideo');
-        rv.srcObject = event.streams[0];
-        rv.muted = false;
-        rv.volume = 1.0;
-        rv.play().catch(()=>{});
+        rv.srcObject = event.streams[0]; rv.muted = false; rv.volume = 1.0; rv.play().catch(()=>{});
       };
 
       const offerCandidates = collection(callDoc, "offerCandidates");
@@ -1342,92 +1104,54 @@ const firebaseConfig = {
       await pc.setRemoteDescription(new RTCSessionDescription(callData.offer));
       const answerDescription = await pc.createAnswer();
       await pc.setLocalDescription(answerDescription);
-      await setDoc(callDoc, {
-        answer: { type: answerDescription.type, sdp: answerDescription.sdp },
-        status: 'active'
-      }, { merge: true });
-
+      await setDoc(callDoc, { answer: { type: answerDescription.type, sdp: answerDescription.sdp }, status: 'active' }, { merge: true });
       document.getElementById('activeCallStatus').textContent = 'Connected';
 
       onSnapshot(offerCandidates, (snapshot) => {
-        snapshot.docChanges().forEach(change => {
-          if (change.type === 'added') pc.addIceCandidate(new RTCIceCandidate(change.doc.data())).catch(()=>{});
-        });
+        snapshot.docChanges().forEach(change => { if (change.type === 'added') pc.addIceCandidate(new RTCIceCandidate(change.doc.data())).catch(()=>{}); });
       });
 
       unsubscribeCall = onSnapshot(callDoc, (snapshot) => {
-        const data = snapshot.data();
-        if (data && data.status === 'ended') endCall();
+        const data = snapshot.data(); if (data && data.status === 'ended') endCall();
       });
     } catch (e) { endCall(); }
   };
 
   window.acceptCallVideo = () => acceptCall(true);
-
   window.rejectCall = async () => {
-    stopRingtone();
-    saveCallHistory('incoming', 'Rejected');
+    stopRingtone(); saveCallHistory('incoming', 'Rejected');
     document.getElementById('incomingCallModal').classList.remove('active');
-    if (currentCallDocId) {
-      await setDoc(doc(db, "calls", currentCallDocId), { status: 'ended' }, { merge: true }).catch(()=>{});
-      currentCallDocId = null;
-    }
+    if (currentCallDocId) { await setDoc(doc(db, "calls", currentCallDocId), { status: 'ended' }, { merge: true }).catch(()=>{}); currentCallDocId = null; }
   };
 
   window.endCall = async () => {
-    stopRingtone();
-    document.getElementById('incomingCallModal').classList.remove('active');
-    saveCallHistory('call', 'Ended');
-    const statusEl = document.getElementById('activeCallStatus');
-    if (statusEl) statusEl.textContent = 'Call ended';
+    stopRingtone(); document.getElementById('incomingCallModal').classList.remove('active'); saveCallHistory('call', 'Ended');
+    const statusEl = document.getElementById('activeCallStatus'); if (statusEl) statusEl.textContent = 'Call ended';
     setTimeout(() => document.getElementById('activeCallModal').classList.remove('active'), 600);
     if (pc) { pc.close(); pc = null; }
     if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
-    if (currentCallDocId) {
-      await setDoc(doc(db, "calls", currentCallDocId), { status: 'ended' }, { merge: true }).catch(()=>{});
-      currentCallDocId = null;
-    }
+    if (currentCallDocId) { await setDoc(doc(db, "calls", currentCallDocId), { status: 'ended' }, { merge: true }).catch(()=>{}); currentCallDocId = null; }
     if (unsubscribeCall) { unsubscribeCall(); unsubscribeCall = null; }
   };
 
-  window.toggleSpeaker = () => {
-    document.querySelectorAll('#activeSpeakerBtn, #incomingSpeakerBtn').forEach(b => b.classList.toggle('active'));
-  };
-
+  window.toggleSpeaker = () => { document.querySelectorAll('#activeSpeakerBtn, #incomingSpeakerBtn').forEach(b => b.classList.toggle('active')); };
   window.toggleMute = () => {
-    if (!localStream) return;
-    const audio = localStream.getAudioTracks()[0];
-    if (!audio) return;
-    audio.enabled = !audio.enabled;
-    const active = !audio.enabled;
-    ['activeMuteBtn','incomingMuteBtn'].forEach(id => {
-      const b = document.getElementById(id);
-      if (b) { b.classList.toggle('active', active); b.textContent = audio.enabled ? '🔇' : '🎤'; }
-    });
+    if (!localStream) return; const audio = localStream.getAudioTracks()[0]; if (!audio) return;
+    audio.enabled = !audio.enabled; const active = !audio.enabled;
+    ['activeMuteBtn','incomingMuteBtn'].forEach(id => { const b = document.getElementById(id); if (b) { b.classList.toggle('active', active); b.textContent = audio.enabled ? '🔇' : '🎤'; } });
   };
-
   window.toggleVideo = async () => {
-    if (!localStream) return;
-    const video = localStream.getVideoTracks()[0];
-    const vc = document.getElementById('videoContainer');
-
+    if (!localStream) return; const video = localStream.getVideoTracks()[0]; const vc = document.getElementById('videoContainer');
     if (!video) {
       try {
         const vs = await navigator.mediaDevices.getUserMedia({ video: { width:{ideal:1280}, height:{ideal:720} } });
-        const newTrack = vs.getVideoTracks()[0];
-        localStream.addTrack(newTrack);
-        if (pc) pc.addTrack(newTrack, localStream);
-        document.getElementById('localVideo').srcObject = localStream;
-        vc.classList.add('active');
-        vc.style.display = 'block';
-        document.querySelector('#activeCallModal .call-avatar-wrap').style.display = 'none';
-        document.getElementById('activeVideoBtn')?.classList.add('active');
-      } catch(e) { toast('Camera permission denied.'); }
+        const newTrack = vs.getVideoTracks()[0]; localStream.addTrack(newTrack); if (pc) pc.addTrack(newTrack, localStream);
+        document.getElementById('localVideo').srcObject = localStream; vc.classList.add('active'); vc.style.display = 'block';
+        document.querySelector('#activeCallModal .call-avatar-wrap').style.display = 'none'; document.getElementById('activeVideoBtn')?.classList.add('active');
+      } catch(e) { toast('Camera denied.'); }
       return;
     }
-
-    video.enabled = !video.enabled;
-    document.getElementById('activeVideoBtn')?.classList.toggle('active', video.enabled);
+    video.enabled = !video.enabled; document.getElementById('activeVideoBtn')?.classList.toggle('active', video.enabled);
   };
 
   function saveCallHistory(type,status){try{const h=JSON.parse(localStorage.getItem('ethiolegacy_call_history')||'[]');h.unshift({type,name:document.getElementById('chatPartnerName').textContent||'Unknown',time:new Date().toLocaleString(),status});localStorage.setItem('ethiolegacy_call_history',JSON.stringify(h.slice(0,50)));}catch(e){}}
