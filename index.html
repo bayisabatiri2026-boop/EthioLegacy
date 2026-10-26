@@ -395,15 +395,16 @@
   import { getFirestore, collection, doc, setDoc, getDoc, getDocs, query, where, orderBy, onSnapshot, addDoc, deleteDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
   import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 
-  // 🔴 PASTE YOUR FIREBASE PROJECT KEYS HERE 🔴
-  const firebaseConfig = {
-    apiKey: "PASTE_YOUR_API_KEY_HERE",
-    authDomain: "PASTE_YOUR_AUTH_DOMAIN_HERE",
-    projectId: "PASTE_YOUR_PROJECT_ID_HERE",
-    storageBucket: "PASTE_YOUR_STORAGE_BUCKET_HERE",
-    messagingSenderId: "PASTE_YOUR_MESSAGING_SENDER_ID_HERE",
-    appId: "PASTE_YOUR_APP_ID_HERE"
-  };
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyA-Q_XfHXdIZafqjaxX3n6zQ2DiMQe5t0A",
+  authDomain: "ethiolegacy.firebaseapp.com",
+  projectId: "ethiolegacy",
+  storageBucket: "ethiolegacy.firebasestorage.app",
+  messagingSenderId: "660506612974",
+  appId: "1:660506612974:web:a0dafaf3a379fad4e5cfff",
+  measurementId: "G-RH6G52EX0D"
+};
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
