@@ -840,8 +840,29 @@ const firebaseConfig = {
   } catch (e) { toast('Upload failed. Check Firebase Storage rules.'); }
 };
 
-  // ================= WEBRTC =================
-  const servers = { iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }] };
+  // ================= WEBRTC (Global Calls Enabled) =================
+const servers = {
+  iceServers: [
+    { urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] },
+    {
+      urls: 'turn:global.relay.metered.ca:80',
+      username: 'e7e7f552ac050f80d555475f', // <-- Paste the Metered Username here
+      credential: '+DLmJku2aJhMg/v+' // <-- Paste the Metered Credential here
+    },
+    {
+      urls: 'turn:global.relay.metered.ca:443',
+      username: 'e7e7f552ac050f80d555475f', // <-- Paste the Metered Username here
+      credential: '+DLmJku2aJhMg/v+' // <-- Paste the Metered Credential here
+    },
+    {
+      urls: 'turn:global.relay.metered.ca:443?transport=tcp',
+      username: 'e7e7f552ac050f80d555475f', // <-- Paste the Metered Username here
+      credential: '+DLmJku2aJhMg/v+' // <-- Paste the Metered Credential here
+    }
+  ],
+  iceCandidatePoolSize: 10,
+  bundlePolicy: 'max-bundle'
+};
   let pc = null, localStream = null, currentCallDocId = null, unsubscribeCall = null;
   let incomingCallUnsub = null;
 
