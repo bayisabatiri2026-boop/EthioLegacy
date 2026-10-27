@@ -349,7 +349,8 @@
     <button class="call-top-btn" title="Collapse" onclick="endCall()">⤡</button>
     <div class="call-top-info">
       <div id="activeCallName" class="call-top-name">EthioLegacy</div>
-      <div id="activeCallStatus" class="call-top-status">Ringing…</div>
+<div id="activeCallStatus" class="call-top-status">Ringing…</div>
+<div id="callTimer" class="call-top-status" style="display:none; font-weight:bold; color:#22c55e; font-size:16px; margin-top:5px;">00:00</div>
     </div>
     <button class="call-top-btn" title="Add participant">👤+</button>
   </div>
@@ -865,6 +866,33 @@ const servers = {
 };
   let pc = null, localStream = null, currentCallDocId = null, unsubscribeCall = null;
   let incomingCallUnsub = null;
+  // ---- Call Timer Logic ----
+let callTimerInterval = null;
+let callSeconds = 0;
+
+function startCallTimer() {
+  stopCallTimer();
+  callSeconds = 0;
+  const timerEl = document.getElementById('callTimer');
+  timerEl.style.display = 'block';
+  timerEl.textContent = '00:00';
+  
+  callTimerInterval = setInterval(() => {
+    callSeconds++;
+    const mins = String(Math.floor(callSeconds / 60)).padStart(2, '0');
+    const secs = String(callSeconds % 60).padStart(2, '0');
+    timerEl.textContent = `${mins}:${secs}`;
+  }, 1000);
+}
+
+function stopCallTimer() {
+  if (callTimerInterval) {
+    clearInterval(callTimerInterval);
+    callTimerInterval = null;
+  }
+  const timerEl = document.getElementById('callTimer');
+  if (timerEl) timerEl.style.display = 'none';
+}
 
   // ---- RINGTONES (caller + receiver) ----
   let ringAudioContext = null, ringTimer = null, ringMode = null;
@@ -1022,11 +1050,12 @@ const servers = {
         const data = snapshot.data();
         if (!data) return;
         if (data.answer && pc.signalingState !== 'stable') {
-          stopRingtone();
-          document.getElementById('activeCallStatus').textContent = 'Connected';
-          av.classList.remove('ringing');
-          pc.setRemoteDescription(new RTCSessionDescription(data.answer));
-        }
+  stopRingtone();
+  document.getElementById('activeCallStatus').textContent = 'Connected';
+  startCallTimer(); // <--- ADD THIS LINE
+  av.classList.remove('ringing');
+  pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+}
         if (data.status === 'ended') endCall();
       });
 
@@ -1111,12 +1140,12 @@ const servers = {
       const answerDescription = await pc.createAnswer();
       await pc.setLocalDescription(answerDescription);
       await setDoc(callDoc, {
-        answer: { type: answerDescription.type, sdp: answerDescription.sdp },
-        status: 'active'
-      }, { merge: true });
+  answer: { type: answerDescription.type, sdp: answerDescription.sdp },
+  status: 'active'
+}, { merge: true });
 
-      document.getElementById('activeCallStatus').textContent = 'Connected';
-
+document.getElementById('activeCallStatus').textContent = 'Connected';
+startCallTimer(); // <--- ADD THIS LINE
       onSnapshot(offerCandidates, (snapshot) => {
         snapshot.docChanges().forEach(change => {
           if (change.type === 'added') pc.addIceCandidate(new RTCIceCandidate(change.doc.data()));
@@ -1143,8 +1172,10 @@ const servers = {
   };
 
   window.endCall = async () => {
-    stopRingtone();
-    document.getElementById('incomingCallModal').classList.remove('active');
+  stopRingtone();
+  stopCallTimer(); // <--- ADD THIS LINE
+  document.getElementById('incomingCallModal').classList.remove('active');
+  // ... rest of the code
     saveCallHistory('call', 'Ended');
     const statusEl = document.getElementById('activeCallStatus');
     if (statusEl) statusEl.textContent = 'Call ended';
