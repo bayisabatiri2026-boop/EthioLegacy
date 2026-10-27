@@ -261,12 +261,17 @@
       <button class="header-icon" onclick="startCall('video')">🎥</button>
     </div>
   </div>
-  <div id="chatBox"></div>
+    <div id="chatBox"></div>
   <div class="input-area">
+    <button class="header-icon" onclick="document.getElementById('fileInput').click()" style="color:#54656f; font-size:20px;">📎</button>
+    <button class="header-icon" onclick="document.getElementById('cameraInput').click()" style="color:#54656f; font-size:20px;">📷</button>
     <input id="msgInput" placeholder="Type a message..." onkeypress="if(event.key==='Enter') sendMessage()">
     <button onclick="sendMessage()">➤</button>
   </div>
 </div>
+<!-- ADD THESE 2 LINES RIGHT BELOW THE CHAT SCREEN DIV -->
+<input type="file" id="fileInput" hidden onchange="handleFileAttach(event)">
+<input type="file" id="cameraInput" hidden accept="image/*,video/*" capture="environment" onchange="handleFileAttach(event)">
 
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 <div id="notificationPanel" class="notification-panel" aria-live="polite"><div class="panel-heading"><b id="notificationHeading">Notifications</b><button onclick="closeNotifications()">✕</button></div><div id="notificationList"><p class="muted">You’re all caught up.</p></div></div>
@@ -754,16 +759,25 @@ const firebaseConfig = {
       box.innerHTML = '';
       snap.docChanges().forEach(change=>{if(change.type==='added'){const m=change.doc.data();if(m.senderId!==currentUser.uid)pushNotice('New message from '+(m.senderName||'member'),m.text||'You received a message.');}});
       snap.forEach(d => {
-        const m = d.data();
-        const isMine = m.senderId === currentUser.uid;
-        const time = m.timestamp ? new Date(m.timestamp.seconds * 1000).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '';
-        box.innerHTML += `
-          <div class="message ${isMine ? 'mine' : ''}">
-            ${!isMine ? `<div class="msg-name">${escapeHTML(m.senderName||'Member')}</div>` : ''}
-            <div>${escapeHTML(m.text||'')}</div>
-            <div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;font-size:10px;color:#999;margin-top:4px;"><span>${time}</span>${isMine?`<button onclick="deleteMessage('${d.id}')" title="Delete my message" style="border:0;background:transparent;color:#b91c1c;font-size:12px;cursor:pointer;padding:2px 4px">🗑 Delete</button>`:''}</div>
-          </div>`;
-      });
+  const m = d.data();
+  const isMine = m.senderId === currentUser.uid;
+  const time = m.timestamp ? new Date(m.timestamp.seconds * 1000).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '';
+  
+  let attachmentHtml = '';
+  if (m.attachmentUrl) {
+    if (m.attachmentKind === 'image') attachmentHtml = `<div style="margin-top:6px;"><img src="${escapeHTML(m.attachmentUrl)}" style="max-width:200px;border-radius:8px;" onclick="window.open('${escapeHTML(m.attachmentUrl)}','_blank')"></div>`;
+    else if (m.attachmentKind === 'video') attachmentHtml = `<div style="margin-top:6px;"><video src="${escapeHTML(m.attachmentUrl)}" controls style="max-width:200px;border-radius:8px;"></video></div>`;
+    else attachmentHtml = `<div style="margin-top:6px;"><a href="${escapeHTML(m.attachmentUrl)}" target="_blank" style="color:#008069;">📎 ${escapeHTML(m.attachmentName||'File')}</a></div>`;
+  }
+
+  box.innerHTML += `
+    <div class="message ${isMine ? 'mine' : ''}">
+      ${!isMine ? `<div class="msg-name">${escapeHTML(m.senderName||'Member')}</div>` : ''}
+      ${m.text ? `<div>${escapeHTML(m.text)}</div>` : ''}
+      ${attachmentHtml}
+      <div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;font-size:10px;color:#999;margin-top:4px;"><span>${time}</span>${isMine?`<button onclick="deleteMessage('${d.id}')" title="Delete my message" style="border:0;background:transparent;color:#b91c1c;font-size:12px;cursor:pointer;padding:2px 4px">🗑 Delete</button>`:''}</div>
+    </div>`;
+});
       box.scrollTop = box.scrollHeight;
     });
   };
@@ -802,6 +816,29 @@ const firebaseConfig = {
       timestamp: serverTimestamp()
     });
   };
+  window.handleFileAttach = async (event) => {
+  const file = event.target.files?.[0];
+  if (!file || !currentUser || !currentChatId) return;
+  if (file.size > 25 * 1024 * 1024) return toast('File too large (max 25MB).');
+  try {
+    toast('Uploading...');
+    const path = `chatFiles/${currentChatId}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
+    const storageRef = ref(storage, path);
+    await uploadBytes(storageRef, file);
+    const url = await getDownloadURL(storageRef);
+
+    let kind = 'file';
+    if (file.type.startsWith('image/')) kind = 'image';
+    else if (file.type.startsWith('video/')) kind = 'video';
+    else if (file.type.startsWith('audio/')) kind = 'audio';
+
+    await addDoc(collection(db, "chats", currentChatId, "messages"), {
+      senderId: currentUser.uid, senderName: currentUser.displayName, text: '',
+      attachmentUrl: url, attachmentKind: kind, attachmentName: file.name, timestamp: serverTimestamp()
+    });
+    event.target.value = '';
+  } catch (e) { toast('Upload failed. Check Firebase Storage rules.'); }
+};
 
   // ================= WEBRTC =================
   const servers = { iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }] };
