@@ -258,7 +258,9 @@
     </div>
     <div class="header-actions">
       <button class="header-icon" onclick="startCall('audio')">📞</button>
-      <button class="header-icon" onclick="startCall('video')">🎥</button>
+<button class="header-icon" onclick="startCall('video')">🎥</button>
+<button class="header-icon" onclick="joinGroupCall('audio')" style="display:none;" id="groupAudioBtn">📞👥</button>
+<button class="header-icon" onclick="joinGroupCall('video')" style="display:none;" id="groupVideoBtn">🎥👥</button>
     </div>
   </div>
     <div id="chatBox"></div>
@@ -748,10 +750,20 @@ const firebaseConfig = {
   };
 
   window.openChat = (uid, name) => {
-    currentPartner = uid;
-    currentChatId = uid.startsWith("group_") ? uid : (currentUser.uid < uid ? currentUser.uid + "_" + uid : uid + "_" + currentUser.uid);
-    document.getElementById('chatPartnerName').textContent = name;
-    showScreen('chatScreen');
+  currentPartner = uid;
+  currentChatId = uid.startsWith("group_") ? uid : (currentUser.uid < uid ? currentUser.uid + "_" + uid : uid + "_" + currentUser.uid);
+  document.getElementById('chatPartnerName').textContent = name;
+  
+  // Show group call buttons if it's a group
+  if(uid.startsWith("group_")) {
+    document.getElementById('groupAudioBtn').style.display = 'block';
+    document.getElementById('groupVideoBtn').style.display = 'block';
+  } else {
+    document.getElementById('groupAudioBtn').style.display = 'none';
+    document.getElementById('groupVideoBtn').style.display = 'none';
+  }
+  
+  showScreen('chatScreen');
 
     if (unsubscribeMessages) unsubscribeMessages();
     const q = query(collection(db, "chats", currentChatId, "messages"), orderBy("timestamp", "asc"));
@@ -1001,6 +1013,113 @@ function stopCallTimer() {
 
     const partnerName = document.getElementById('chatPartnerName').textContent || 'EthioLegacy';
     const partnerProfile = await getPartnerProfile(currentPartner);
+    // ================= GROUP / CONFERENCE CALLING =================
+let groupPeers = {}; // Stores connections to multiple people
+let groupLocalStream = null;
+
+window.joinGroupCall = async (type) => {
+  if(!currentChatId.startsWith("group_")) return toast("Not a group chat.");
+  
+  const isVideo = type === 'video';
+  const groupDoc = doc(db, "chats", currentChatId);
+  const callId = "call_" + Date.now(); // Unique ID for this conference
+  
+  // Add ourselves to the active call
+  await updateDoc(groupDoc, { activeCallId: callId, callType: type });
+  
+  document.getElementById('activeCallModal').classList.add('active');
+  document.getElementById('activeCallName').textContent = "Group Call";
+  document.getElementById('activeCallStatus').textContent = "Connecting...";
+  
+  const vc = document.getElementById('videoContainer');
+  vc.classList.toggle('active', isVideo);
+  vc.style.display = isVideo ? 'block' : 'none';
+
+  try {
+    groupLocalStream = await setupMedia(isVideo);
+    document.getElementById('localVideo').srcObject = groupLocalStream;
+    
+    // Setup Signaling for the Group
+    const callDoc = doc(collection(groupDoc, "groupCalls"));
+    await setDoc(callDoc, {
+      callId: callId,
+      callerId: currentUser.uid,
+      callerName: currentUser.displayName,
+      type: type,
+      createdAt: serverTimestamp()
+    });
+
+    // Listen for other people joining
+    onSnapshot(collection(groupDoc, "groupCalls"), (snap) => {
+      snap.docChanges().forEach(change => {
+        if (change.type === 'added') {
+          const data = change.doc.data();
+          if (data.callerId !== currentUser.uid && data.callId === callId) {
+             // Someone else joined, connect to them
+             connectToGroupPeer(change.doc.id, data.callerId, isVideo, false);
+          }
+        }
+        if (change.type === 'modified') {
+           const data = change.doc.data();
+           if (data.answer) {
+             // We got an answer from someone
+             const pc = groupPeers[data.callerId]?.pc;
+             if(pc && pc.signalingState !== 'stable') {
+               pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+             }
+           }
+        }
+      });
+    });
+
+    // Broadcast our presence (Offer) to the room
+    await connectToGroupPeer(null, currentUser.uid, isVideo, true); // Broadcaster
+
+  } catch(e) { console.error(e); alert("Could not join group call."); }
+};
+
+async function connectToGroupPeer(peerDocId, peerUid, isVideo, isBroadcaster) {
+  const pc = new RTCPeerConnection(servers);
+  groupPeers[peerUid] = { pc: pc };
+  
+  groupLocalStream.getTracks().forEach(track => pc.addTrack(track, groupLocalStream));
+  
+  // Create a new video element for every person in the call
+  const remoteVid = document.createElement('video');
+  remoteVid.autoplay = true;
+  remoteVid.playsInline = true;
+  remoteVid.style.width = '50%';
+  remoteVid.style.height = '50%';
+  remoteVid.style.objectFit = 'cover';
+  document.getElementById('videoContainer').appendChild(remoteVid);
+
+  pc.ontrack = (e) => { remoteVid.srcObject = e.streams[0]; };
+  
+  const groupDoc = doc(db, "chats", currentChatId);
+  const callDoc = peerDocId ? doc(db, "chats", currentChatId, "groupCalls", peerDocId) : doc(collection(groupDoc, "groupCalls"));
+  
+  if(isBroadcaster) {
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    await setDoc(callDoc, { callerId: currentUser.uid, offer: { type: offer.type, sdp: offer.sdp }, type: isVideo ? 'video':'audio' });
+  }
+}
+
+window.endCall = async () => {
+  // ... existing endCall code ...
+  // Add this at the top of endCall:
+  if(currentChatId && currentChatId.startsWith("group_")) {
+    try {
+      const q = query(collection(db, "chats", currentChatId, "groupCalls"), where("callerId", "==", currentUser.uid));
+      const snap = await getDocs(q);
+      snap.forEach(async (d) => await deleteDoc(d.ref));
+      document.getElementById('videoContainer').innerHTML = '<video id="remoteVideo" autoplay playsinline></video><video id="localVideo" autoplay playsinline muted></video>';
+      Object.values(groupPeers).forEach(peer => peer.pc.close());
+      groupPeers = {};
+      if(groupLocalStream) groupLocalStream.getTracks().forEach(t => t.stop());
+    } catch(e) {}
+  }
+  // ... rest of your existing endCall code ...
 
     // Set up caller UI
     document.getElementById('activeCallName').textContent = partnerName;
