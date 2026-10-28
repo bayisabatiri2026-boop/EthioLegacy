@@ -404,6 +404,20 @@
   <!-- Save Button -->
   <div style="padding: 20px;">
     <button onclick="saveNewContact()" style="width: 100%; padding: 15px; border-radius: 24px; border: none; background: #e0e0e0; color: #888; font-size: 16px; font-weight: bold; cursor: pointer;" id="saveContactBtn">Save</button>
+<script>
+  document.getElementById('ncFirstName').addEventListener('input', function() {
+    const btn = document.getElementById('saveContactBtn');
+    if (this.value.trim().length > 0) {
+      btn.style.background = '#00a884';
+      btn.style.color = '#fff';
+      btn.disabled = false;
+    } else {
+      btn.style.background = '#e0e0e0';
+      btn.style.color = '#888';
+      btn.disabled = true;
+    }
+  });
+</script>
   </div>
 </div>
     </div>
@@ -979,7 +993,61 @@ window.handleWaContactClick = (name, tel, email, matchUid, matchName) => {
     }
   }
 };
+// ===== NEW CONTACT SCREEN LOGIC =====
+window.openNewContactScreen = () => {
+  document.getElementById('newContactScreen').style.display = 'flex';
+  document.getElementById('waContactList').style.display = 'none';
+  // Hide the menu items
+  document.querySelectorAll('.wa-menu-item').forEach(el => el.style.display = 'none');
+  
+  // Auto-fill the email
+  if (currentUser && currentUser.email) {
+    document.getElementById('syncEmailDisplay').textContent = currentUser.email;
+  }
+  
+  // Reset fields
+  document.getElementById('ncFirstName').value = '';
+  document.getElementById('ncLastName').value = '';
+  document.getElementById('ncUsername').value = '';
+  document.getElementById('ncPhone').value = '';
+  document.getElementById('saveContactBtn').style.background = '#e0e0e0';
+  document.getElementById('saveContactBtn').style.color = '#888';
+  document.getElementById('saveContactBtn').disabled = true;
+};
 
+window.closeNewContact = () => {
+  document.getElementById('newContactScreen').style.display = 'none';
+  document.getElementById('waContactList').style.display = 'block';
+  // Show the menu items again
+  document.querySelectorAll('.wa-menu-item').forEach(el => el.style.display = 'flex');
+};
+
+window.saveNewContact = async () => {
+  const firstName = document.getElementById('ncFirstName').value.trim();
+  const lastName = document.getElementById('ncLastName').value.trim();
+  const username = document.getElementById('ncUsername').value.trim();
+  const phone = document.getElementById('ncPhone').value.trim();
+  
+  if (!firstName) return alert("First name is required.");
+  
+  try {
+    // Save the new contact to the user's Firestore profile
+    const contactRef = collection(db, "users", currentUser.uid, "phoneContacts");
+    await addDoc(contactRef, {
+      name: firstName + (lastName ? " " + lastName : ""),
+      username: username,
+      phone: phone,
+      syncEmail: currentUser.email,
+      createdAt: serverTimestamp()
+    });
+    
+    alert('Contact saved successfully!');
+    closeNewContact();
+  } catch (e) {
+    console.error(e);
+    alert('Failed to save contact. Check Firestore rules.');
+  }
+};
   window.openChat = (uid, name) => {
   currentPartner = uid;
   currentChatId = uid.startsWith("group_") ? uid : (currentUser.uid < uid ? currentUser.uid + "_" + uid : uid + "_" + currentUser.uid);
