@@ -824,27 +824,61 @@ if (!email.includes('@')) {
   }
 
   box.innerHTML += `
-    <div class="message ${isMine ? 'mine' : ''}">
-      ${!isMine ? `<div class="msg-name">${escapeHTML(m.senderName||'Member')}</div>` : ''}
-      ${m.text ? `<div>${escapeHTML(m.text)}</div>` : ''}
-      ${attachmentHtml}
-      <div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;font-size:10px;color:#999;margin-top:4px;"><span>${time}</span>${isMine?`<button onclick="deleteMessage('${d.id}')" title="Delete my message" style="border:0;background:transparent;color:#b91c1c;font-size:12px;cursor:pointer;padding:2px 4px">🗑 Delete</button>`:''}</div>
-    </div>`;
+  <div class="message ${isMine ? 'mine' : ''}" onclick="selectMessage(this, '${d.id}')">
+    ${!isMine ? `<div class="msg-name">${escapeHTML(m.senderName||'Member')}</div>` : ''}
+    ${m.text ? `<div>${escapeHTML(m.text)}</div>` : ''}
+    ${attachmentHtml}
+    <div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;font-size:10px;color:#999;margin-top:4px;">
+      <span>${time}</span>
+    </div>
+  </div>`;
 });
       box.scrollTop = box.scrollHeight;
     });
   };
 
-  window.deleteMessage = async (messageId) => {
-    if (!currentUser || !currentChatId || !confirm('Delete this message for everyone?')) return;
-    try {
-      const messageRef = doc(db, 'chats', currentChatId, 'messages', messageId);
-      const snap = await getDoc(messageRef);
-      if (!snap.exists() || snap.data().senderId !== currentUser.uid) return toast('You can delete only your own messages.');
-      await deleteDoc(messageRef);
-      toast('Message deleted.');
-    } catch (e) { console.error(e); toast('Could not delete message. Check Firestore rules.'); }
-  };
+  let selectedMessageId = null;
+let selectedMessageElement = null;
+
+window.selectMessage = (element, messageId) => {
+  // If tapping the same message, deselect it
+  if (selectedMessageElement === element) {
+    element.style.backgroundColor = '';
+    selectedMessageElement = null;
+    selectedMessageId = null;
+    return;
+  }
+
+  // Deselect previous
+  if (selectedMessageElement) {
+    selectedMessageElement.style.backgroundColor = '';
+  }
+
+  // Select new
+  selectedMessageElement = element;
+  selectedMessageId = messageId;
+  element.style.backgroundColor = 'rgba(0, 128, 105, 0.2)'; // Highlight color
+
+  // Show a prompt to delete
+  if (confirm('Do you want to delete this message for everyone?')) {
+    window.deleteMessage(messageId);
+    element.style.backgroundColor = '';
+    selectedMessageElement = null;
+    selectedMessageId = null;
+  }
+};
+
+window.deleteMessage = async (messageId) => {
+  if (!currentUser || !currentChatId) return;
+  try {
+    // Anyone in the chat can now delete the message
+    await deleteDoc(doc(db, 'chats', currentChatId, 'messages', messageId));
+    toast('Message deleted.');
+  } catch (e) { 
+    console.error(e); 
+    toast('Could not delete message. Check Firestore rules.'); 
+  }
+};
 
   window.removeUserFromLists = async (uid, name) => {
     if (!currentUser || !confirm(`Remove ${name} from your Chats and Calls lists?`)) return;
@@ -1017,14 +1051,21 @@ function stopCallTimer() {
     }, { passive: true });
   });
 
-  async function setupMedia(video) {
-    try {
-      return await navigator.mediaDevices.getUserMedia({ video: video, audio: true });
-    } catch (e) {
-      alert("Camera/Mic access denied. Please allow permissions.");
-      throw e;
-    }
+async function setupMedia(video) {
+  try {
+    return await navigator.mediaDevices.getUserMedia({ 
+      audio: { 
+        echoCancellation: true, 
+        noiseSuppression: true, 
+        autoGainControl: true 
+      }, 
+      video: video ? { width: { ideal: 1280 }, height: { ideal: 720 } } : false 
+    });
+  } catch (e) {
+    alert("Camera/Mic access denied. Please allow permissions.");
+    throw e;
   }
+}
 
   function setAvatarFromPhoto(el, name, photoURL){
     if (!el) return;
