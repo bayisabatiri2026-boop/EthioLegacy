@@ -319,9 +319,9 @@
         <div class="wa-menu-item" onclick="showGroupInput()">
           <div class="wa-icon" style="background: #00a884;">👥</div> <span>New group</span>
         </div>
-        <div class="wa-menu-item" onclick="importDeviceContacts()">
-          <div class="wa-icon" style="background: #00a884;">👤</div> <span>New contact</span> 
-        </div>
+        <div class="wa-menu-item" onclick="openNewContactScreen()">
+  <div class="wa-icon" style="background: #00a884;">👤</div> <span>New contact</span> 
+</div>
         <div class="wa-menu-item" onclick="alert('Communities coming soon!')">
           <div class="wa-icon" style="background: #00a884;">👥</div> <span>New community</span>
         </div>
@@ -339,7 +339,73 @@
       <!-- Contacts List -->
       <div style="padding: 15px 20px; font-weight: bold; color: #667781; font-size: 14px; text-transform: uppercase;">Contacts on EthioLegacy</div>
       <div id="waContactList" style="padding-bottom: 50px;"></div>
-      
+      <!-- NEW CONTACT SCREEN (Hidden by default) -->
+<div id="newContactScreen" style="display: none; height: 100%; background: #fff; flex-direction: column;">
+  <!-- Header -->
+  <div style="display: flex; align-items: center; padding: 15px; border-bottom: 1px solid #e0e0e0; background: #fff;">
+    <button onclick="closeNewContact()" style="border: none; background: transparent; font-size: 24px; margin-right: 15px; cursor: pointer; color: #111;">←</button>
+    <h3 style="margin: 0; font-size: 18px; color: #111; flex: 1;">New contact</h3>
+    <button style="border: none; background: transparent; font-size: 20px; cursor: pointer;">⬛</button>
+  </div>
+
+  <!-- Form Content -->
+  <div style="padding: 20px; flex: 1; overflow-y: auto;">
+    
+    <div style="display: flex; align-items: center; margin-bottom: 20px;">
+      <span style="font-size: 24px; color: #54656f; margin-right: 15px;">👤</span>
+      <input type="text" id="ncFirstName" placeholder="First name" style="flex: 1; padding: 15px; border: 1px solid #8696a0; border-radius: 8px; font-size: 16px; outline: none; background: transparent;">
+    </div>
+
+    <div style="display: flex; align-items: center; margin-bottom: 20px;">
+      <span style="font-size: 24px; color: #54656f; margin-right: 15px;"></span> <!-- Spacer -->
+      <input type="text" id="ncLastName" placeholder="Last name" style="flex: 1; padding: 15px; border: 1px solid #8696a0; border-radius: 8px; font-size: 16px; outline: none; background: transparent;">
+    </div>
+
+    <div style="display: flex; align-items: center; margin-bottom: 20px;">
+      <span style="font-size: 24px; color: #54656f; margin-right: 15px;">@</span>
+      <input type="text" id="ncUsername" placeholder="Username" style="flex: 1; padding: 15px; border: 1px solid #8696a0; border-radius: 8px; font-size: 16px; outline: none; background: transparent;">
+    </div>
+
+    <div style="display: flex; align-items: flex-start; margin-bottom: 20px;">
+      <span style="font-size: 24px; color: #54656f; margin-right: 15px;">📞</span>
+      <div style="flex: 1; display: flex; gap: 10px;">
+        <select style="width: 35%; padding: 15px; border: 1px solid #8696a0; border-radius: 8px; font-size: 16px; outline: none; background: transparent; appearance: none;">
+          <option>ET +251</option>
+          <option>US +1</option>
+          <option>UK +44</option>
+        </select>
+        <input type="tel" id="ncPhone" placeholder="Phone" style="width: 65%; padding: 15px; border: 1px solid #8696a0; border-radius: 8px; font-size: 16px; outline: none; background: transparent;">
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 30px;">
+      <div style="display: flex; align-items: flex-start;">
+        <span style="font-size: 24px; color: #54656f; margin-right: 15px;">🔄</span>
+        <div>
+          <div style="font-size: 16px; color: #111;">Sync contact to phone</div>
+          <div style="font-size: 13px; color: #667781; margin-top: 4px;">Only contacts with a phone number can be synced</div>
+        </div>
+      </div>
+      <div style="width: 40px; height: 24px; background: #00a884; border-radius: 12px; position: relative; display: flex; align-items: center; padding: 2px;">
+        <div style="width: 20px; height: 20px; background: #fff; border-radius: 50%; margin-left: auto;"></div>
+      </div>
+    </div>
+
+    <div style="margin-top: 20px;">
+      <div style="font-size: 13px; color: #667781; margin-bottom: 5px;">Sync to</div>
+      <div style="font-size: 16px; color: #111; border-bottom: 1px solid #ccc; padding-bottom: 10px; display: flex; justify-content: space-between;">
+        <span id="syncEmailDisplay"></span>
+        <span>▼</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Save Button -->
+  <div style="padding: 20px;">
+    <button onclick="saveNewContact()" style="width: 100%; padding: 15px; border-radius: 24px; border: none; background: #e0e0e0; color: #888; font-size: 16px; font-weight: bold; cursor: pointer;" id="saveContactBtn">Save</button>
+  </div>
+</div>
     </div>
   </div>
 </div>
@@ -765,7 +831,53 @@ if (!email.includes('@')) {
     const q=(val||'').trim().toLowerCase();
     return allUsers.filter(u => [u.displayName,u.email,u.phone,u.phoneNumber].some(v => (v||'').toLowerCase().includes(q)));
   }
+// ===== NEW CONTACT LOGIC =====
+window.openNewContactScreen = () => {
+  document.getElementById('newContactScreen').style.display = 'flex';
+  document.getElementById('waContactList').style.display = 'none';
+  document.querySelector('#newChatModal .wa-menu-item').parentElement.style.display = 'none';
+  document.querySelector('#newChatModal > div > div:nth-child(2)').style.display = 'none'; // Hide menu
+  
+  // Auto-fill the current user's email in "Sync to"
+  document.getElementById('syncEmailDisplay').textContent = currentUser.email;
+};
 
+window.closeNewContact = () => {
+  document.getElementById('newContactScreen').style.display = 'none';
+  document.getElementById('waContactList').style.display = 'block';
+  document.querySelector('#newChatModal > div > div:nth-child(2)').style.display = 'block';
+  document.getElementById('newChatModal').classList.remove('active');
+  document.getElementById('newChatModal').classList.add('active'); // Reset
+  renderWaContacts();
+};
+
+window.saveNewContact = async () => {
+  const firstName = document.getElementById('ncFirstName').value.trim();
+  const lastName = document.getElementById('ncLastName').value.trim();
+  const username = document.getElementById('ncUsername').value.trim();
+  const phone = document.getElementById('ncPhone').value.trim();
+  
+  if (!firstName) return alert("First name is required.");
+  
+  // 1. Save to Firestore
+  try {
+    // We store the contact in a separate sub-collection so it doesn't clutter the user's main profile
+    const contactRef = collection(db, "users", currentUser.uid, "phoneContacts");
+    await addDoc(contactRef, {
+      name: firstName + (lastName ? " " + lastName : ""),
+      username: username,
+      phone: phone,
+      email: document.getElementById('syncEmailDisplay').textContent,
+      createdAt: serverTimestamp()
+    });
+    
+    alert('Contact saved successfully!');
+    closeNewContact();
+  } catch (e) {
+    console.error(e);
+    alert('Failed to save contact. Check Firestore rules.');
+  }
+};
   window.filterUsers = (val) => {
     const filtered=filterUserRecords(val);
     renderUsers(filtered);
