@@ -543,10 +543,10 @@ const firebaseConfig = {
     const btn = document.getElementById('authSubmit');
 
     err.textContent = '';
-    if (!email || !pass) {
-      err.textContent = 'Email address and password are required.';
-      return;
-    }
+    if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) {
+  err.textContent = 'Please enter a valid email address. Phone-number login needs Firebase Phone Authentication setup.';
+  return;
+}
     // Firebase Email/Password authentication requires an email address.
     if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) {
       err.textContent = 'Please enter a valid email address. Phone-number login needs Firebase Phone Authentication setup.';
