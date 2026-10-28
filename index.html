@@ -535,7 +535,7 @@ const firebaseConfig = {
   };
 
   window.handleAuth = async () => {
-    const email = document.getElementById('emailInput').value.trim();
+    const email = document.getElementById('emailInput').value.trim().toLowerCase();
     const pass = document.getElementById('passwordInput').value;
     const confirmPass = document.getElementById('confirmPasswordInput').value;
     const name = document.getElementById('nameInput').value.trim();
@@ -543,27 +543,67 @@ const firebaseConfig = {
     const btn = document.getElementById('authSubmit');
 
     err.textContent = '';
-    if(!email || !pass) return err.textContent = "Email / phone number and password are required.";
-    if (!email.includes('@')) return err.textContent = "Phone-number sign-in is not enabled yet. Please use your email address.";
+    if (!email || !pass) {
+      err.textContent = 'Email address and password are required.';
+      return;
+    }
+    // Firebase Email/Password authentication requires an email address.
+    if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) {
+      err.textContent = 'Please enter a valid email address. Phone-number login needs Firebase Phone Authentication setup.';
+      return;
+    }
+    if (isSignupMode) {
+      if (!name) { err.textContent = 'Full name is required.'; return; }
+      if (pass.length < 6) { err.textContent = 'Password must be at least 6 characters.'; return; }
+      if (pass !== confirmPass) { err.textContent = 'Passwords do not match.'; return; }
+    }
 
     btn.disabled = true;
-    btn.textContent = "Connecting...";
-
+    btn.textContent = 'Connecting...';
     try {
       if (isSignupMode) {
-        if (!name) throw new Error("Full name is required.");
-        if (pass !== confirmPass) throw new Error("Passwords do not match.");
         const cred = await createUserWithEmailAndPassword(auth, email, pass);
-        await updateProfile(cred.user, { displayName: name });
-        await setDoc(doc(db, "users", cred.user.uid), { uid: cred.user.uid, email: email, displayName: name });
+        try {
+          await updateProfile(cred.user, { displayName: name });
+        } catch (profileError) {
+          console.error('Could not save display name to Firebase Auth:', profileError);
+        }
+        // Auth account creation should not be reported as failed just because
+        // Firestore profile rules/configuration need attention.
+        try {
+          await setDoc(doc(db, 'users', cred.user.uid), {
+            uid: cred.user.uid,
+            email,
+            displayName: name,
+            createdAt: serverTimestamp()
+          }, { merge: true });
+        } catch (profileError) {
+          console.error('Account created, but Firestore profile save failed:', profileError);
+          err.textContent = 'Account created, but your profile could not be saved. Check Firestore rules. You can still continue.';
+        }
       } else {
         await signInWithEmailAndPassword(auth, email, pass);
       }
     } catch (e) {
-      err.textContent = e.message.replace("Firebase: ", "");
+      console.error('EthioLegacy authentication error:', e);
+      const code = e?.code || '';
+      const messages = {
+        'auth/email-already-in-use': 'This email already has an account. Choose Sign in instead.',
+        'auth/invalid-email': 'Please enter a valid email address.',
+        'auth/weak-password': 'Password must be at least 6 characters.',
+        'auth/user-not-found': 'No account was found for this email. Please Sign up first.',
+        'auth/wrong-password': 'Incorrect email or password.',
+        'auth/invalid-credential': 'Incorrect email or password, or the account does not exist.',
+        'auth/too-many-requests': 'Too many attempts. Wait a little and try again.',
+        'auth/network-request-failed': 'Network error. Check your Wi-Fi/mobile data and try again.',
+        'auth/operation-not-allowed': 'Email/Password sign-in is disabled in Firebase Console → Authentication → Sign-in method.',
+        'auth/unauthorized-domain': 'This website domain is not authorized. Add its domain in Firebase Console → Authentication → Settings → Authorized domains.'
+      };
+      err.textContent = messages[code] || (e?.message || 'Could not sign in. Check your Firebase settings and try again.').replace(/^Firebase:\\s*/i, '');
     } finally {
       btn.disabled = false;
-      btn.textContent = isSignupMode ? "Sign up" : "Sign in";
+      const t = translations[localStorage.getItem('ethiolegacy_language') || 'en'] || translations.en;
+      btn.textContent = isSignupMode ? t.signup : t.signin;
     }
   };
 
@@ -1013,114 +1053,6 @@ function stopCallTimer() {
 
     const partnerName = document.getElementById('chatPartnerName').textContent || 'EthioLegacy';
     const partnerProfile = await getPartnerProfile(currentPartner);
-    // ================= GROUP / CONFERENCE CALLING =================
-let groupPeers = {}; // Stores connections to multiple people
-let groupLocalStream = null;
-
-window.joinGroupCall = async (type) => {
-  if(!currentChatId.startsWith("group_")) return toast("Not a group chat.");
-  
-  const isVideo = type === 'video';
-  const groupDoc = doc(db, "chats", currentChatId);
-  const callId = "call_" + Date.now(); // Unique ID for this conference
-  
-  // Add ourselves to the active call
-  await updateDoc(groupDoc, { activeCallId: callId, callType: type });
-  
-  document.getElementById('activeCallModal').classList.add('active');
-  document.getElementById('activeCallName').textContent = "Group Call";
-  document.getElementById('activeCallStatus').textContent = "Connecting...";
-  
-  const vc = document.getElementById('videoContainer');
-  vc.classList.toggle('active', isVideo);
-  vc.style.display = isVideo ? 'block' : 'none';
-
-  try {
-    groupLocalStream = await setupMedia(isVideo);
-    document.getElementById('localVideo').srcObject = groupLocalStream;
-    
-    // Setup Signaling for the Group
-    const callDoc = doc(collection(groupDoc, "groupCalls"));
-    await setDoc(callDoc, {
-      callId: callId,
-      callerId: currentUser.uid,
-      callerName: currentUser.displayName,
-      type: type,
-      createdAt: serverTimestamp()
-    });
-
-    // Listen for other people joining
-    onSnapshot(collection(groupDoc, "groupCalls"), (snap) => {
-      snap.docChanges().forEach(change => {
-        if (change.type === 'added') {
-          const data = change.doc.data();
-          if (data.callerId !== currentUser.uid && data.callId === callId) {
-             // Someone else joined, connect to them
-             connectToGroupPeer(change.doc.id, data.callerId, isVideo, false);
-          }
-        }
-        if (change.type === 'modified') {
-           const data = change.doc.data();
-           if (data.answer) {
-             // We got an answer from someone
-             const pc = groupPeers[data.callerId]?.pc;
-             if(pc && pc.signalingState !== 'stable') {
-               pc.setRemoteDescription(new RTCSessionDescription(data.answer));
-             }
-           }
-        }
-      });
-    });
-
-    // Broadcast our presence (Offer) to the room
-    await connectToGroupPeer(null, currentUser.uid, isVideo, true); // Broadcaster
-
-  } catch(e) { console.error(e); alert("Could not join group call."); }
-};
-
-async function connectToGroupPeer(peerDocId, peerUid, isVideo, isBroadcaster) {
-  const pc = new RTCPeerConnection(servers);
-  groupPeers[peerUid] = { pc: pc };
-  
-  groupLocalStream.getTracks().forEach(track => pc.addTrack(track, groupLocalStream));
-  
-  // Create a new video element for every person in the call
-  const remoteVid = document.createElement('video');
-  remoteVid.autoplay = true;
-  remoteVid.playsInline = true;
-  remoteVid.style.width = '50%';
-  remoteVid.style.height = '50%';
-  remoteVid.style.objectFit = 'cover';
-  document.getElementById('videoContainer').appendChild(remoteVid);
-
-  pc.ontrack = (e) => { remoteVid.srcObject = e.streams[0]; };
-  
-  const groupDoc = doc(db, "chats", currentChatId);
-  const callDoc = peerDocId ? doc(db, "chats", currentChatId, "groupCalls", peerDocId) : doc(collection(groupDoc, "groupCalls"));
-  
-  if(isBroadcaster) {
-    const offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
-    await setDoc(callDoc, { callerId: currentUser.uid, offer: { type: offer.type, sdp: offer.sdp }, type: isVideo ? 'video':'audio' });
-  }
-}
-
-window.endCall = async () => {
-  // ... existing endCall code ...
-  // Add this at the top of endCall:
-  if(currentChatId && currentChatId.startsWith("group_")) {
-    try {
-      const q = query(collection(db, "chats", currentChatId, "groupCalls"), where("callerId", "==", currentUser.uid));
-      const snap = await getDocs(q);
-      snap.forEach(async (d) => await deleteDoc(d.ref));
-      document.getElementById('videoContainer').innerHTML = '<video id="remoteVideo" autoplay playsinline></video><video id="localVideo" autoplay playsinline muted></video>';
-      Object.values(groupPeers).forEach(peer => peer.pc.close());
-      groupPeers = {};
-      if(groupLocalStream) groupLocalStream.getTracks().forEach(t => t.stop());
-    } catch(e) {}
-  }
-  // ... rest of your existing endCall code ...
-
     // Set up caller UI
     document.getElementById('activeCallName').textContent = partnerName;
     document.getElementById('activeCallStatus').textContent = 'Ringing…';
