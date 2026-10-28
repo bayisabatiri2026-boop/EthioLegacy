@@ -297,15 +297,49 @@
   </div>
 </div>
 
-<!-- NEW CHAT MODAL -->
-<div id="newChatModal" class="modal">
-  <div class="modal-content">
-    <h3>New Chat or Group</h3>
-    <input id="newChatEmail" type="email" placeholder="User Email (1-on-1)">
-    <input id="newGroupName" type="text" placeholder="Group Name (for Group Chat)">
-    <div class="modal-btns">
-      <button style="background:#eee; color:#333;" onclick="document.getElementById('newChatModal').classList.remove('active')">Cancel</button>
-      <button class="btn-primary" style="width:auto; margin:0; padding:10px 20px;" onclick="startNewChat()">Start</button>
+<!-- NEW CHAT / SELECT CONTACT MODAL -->
+<div id="newChatModal" class="modal" style="align-items: flex-start; padding: 0;">
+  <div class="modal-content" style="height: 100vh; max-height: 100vh; border-radius: 0; text-align: left; padding: 0; background: #fff; display: flex; flex-direction: column;">
+    
+    <!-- Header -->
+    <div style="display: flex; align-items: center; padding: 15px; border-bottom: 1px solid #e0e0e0; background: #fff; position: sticky; top: 0; z-index: 10;">
+      <button onclick="document.getElementById('newChatModal').classList.remove('active')" style="border: none; background: transparent; font-size: 24px; margin-right: 15px; cursor: pointer; color: #111;">←</button>
+      <div>
+        <h3 style="margin: 0; font-size: 18px; color: #111;">Select contact</h3>
+        <p style="margin: 0; font-size: 13px; color: #666;" id="contactCount">0 contacts</p>
+      </div>
+      <button style="border: none; background: transparent; font-size: 20px; margin-left: auto; cursor: pointer; color: #111;">🔍</button>
+    </div>
+
+    <!-- Scrollable Content -->
+    <div style="overflow-y: auto; flex: 1;">
+      
+      <!-- Action Menu -->
+      <div style="padding: 10px 0;">
+        <div class="wa-menu-item" onclick="showGroupInput()">
+          <div class="wa-icon" style="background: #00a884;">👥</div> <span>New group</span>
+        </div>
+        <div class="wa-menu-item" onclick="importDeviceContacts()">
+          <div class="wa-icon" style="background: #00a884;">👤</div> <span>New contact</span> 
+        </div>
+        <div class="wa-menu-item" onclick="alert('Communities coming soon!')">
+          <div class="wa-icon" style="background: #00a884;">👥</div> <span>New community</span>
+        </div>
+        <div class="wa-menu-item" onclick="alert('Events coming soon!')">
+          <div class="wa-icon" style="background: #00a884;">📅</div> <span>New event</span>
+        </div>
+      </div>
+
+      <!-- Create Group Input (Hidden by default) -->
+      <div id="groupInputArea" style="padding: 20px; background: #f0f2f5; display: none;">
+        <input id="newGroupName" type="text" placeholder="Group Name" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ccc; margin-bottom: 10px;">
+        <button class="btn-primary" onclick="startNewChat()" style="background:#00a884; width: 100%;">Create Group</button>
+      </div>
+
+      <!-- Contacts List -->
+      <div style="padding: 15px 20px; font-weight: bold; color: #667781; font-size: 14px; text-transform: uppercase;">Contacts on EthioLegacy</div>
+      <div id="waContactList" style="padding-bottom: 50px;"></div>
+      
     </div>
   </div>
 </div>
@@ -718,6 +752,7 @@ if (!email.includes('@')) {
             if (navigator.share) { try { await navigator.share({title:'EthioLegacy', text:shareText}); } catch(e) {} }
             else if (navigator.clipboard?.writeText) { try { await navigator.clipboard.writeText(shareText); toast('Invite message copied. Send it to your contact.'); } catch(e) { toast('Please share the EthioLegacy link manually.'); } }
             else toast('Please share the EthioLegacy link manually.');
+            renderWaContacts(); // Refresh the list immediately
           }; }
           row.appendChild(action);
         }
@@ -767,27 +802,71 @@ if (!email.includes('@')) {
     }catch(e){list.innerHTML='<div class="empty-state">Communities could not load. Check your Firebase Firestore rules and connection.</div>';}
   }
 
-  window.openNewChatModal = () => document.getElementById('newChatModal').classList.add('active');
+  window.openNewChatModal = () => {
+  document.getElementById('newChatModal').classList.add('active');
+  document.getElementById('groupInputArea').style.display = 'none';
+  renderWaContacts();
+};
 
-  window.startNewChat = async () => {
-    const email = document.getElementById('newChatEmail').value.trim();
-    const groupName = document.getElementById('newGroupName').value.trim();
+window.showGroupInput = () => {
+  document.getElementById('groupInputArea').style.display = 'block';
+  document.getElementById('newGroupName').focus();
+};
 
-    if (groupName) {
-      const groupId = "group_" + Date.now();
-      await setDoc(doc(db, "chats", groupId), { isGroup: true, name: groupName, createdBy: currentUser.uid, members: [currentUser.uid], createdAt: serverTimestamp() });
-      document.getElementById('newChatModal').classList.remove('active');
-      document.getElementById('newGroupName').value='';
-      await loadCommunities();
-      openChat(groupId, groupName);
-    } else if (email) {
-      const snap = await getDocs(query(collection(db, "users"), where("email", "==", email)));
-      if (snap.empty) return alert("User not found");
-      const u = snap.docs[0].data();
-      document.getElementById('newChatModal').classList.remove('active');
-      openChat(u.uid, u.displayName);
+function renderWaContacts() {
+  const list = document.getElementById('waContactList');
+  list.innerHTML = '';
+  
+  let totalCount = allUsers.length + importedDeviceContacts.length;
+  document.getElementById('contactCount').textContent = totalCount + ' contacts';
+
+  // 1. Show users already on EthioLegacy
+  allUsers.forEach(u => {
+    list.innerHTML += `
+    <div class="wa-contact-item" onclick="openChat('${u.uid}','${u.displayName}'); document.getElementById('newChatModal').classList.remove('active');">
+      <div class="avatar" style="width: 45px; height: 45px; font-size: 18px; margin-right: 15px;">${u.displayName[0]}</div>
+      <div style="flex:1;">
+        <div style="font-weight: 500; font-size: 16px; color: #111;">${u.displayName}</div>
+        <div style="font-size: 13px; color: #667781;">Hey there! I am using EthioLegacy.</div>
+      </div>
+    </div>`;
+  });
+
+  // 2. Show synced phone contacts
+  importedDeviceContacts.forEach(c => {
+    const match = allUsers.find(u => (c.email && u.email === c.email) || (c.tel && u.phone === c.tel));
+    list.innerHTML += `
+    <div class="wa-contact-item" onclick="handleWaContactClick('${c.name}', '${c.tel}', '${c.email}', '${match ? match.uid : ''}', '${match ? match.displayName : ''}')">
+      <div class="avatar" style="width: 45px; height: 45px; font-size: 18px; background: #dfe5e7; color: #555; margin-right: 15px;">${c.name[0]}</div>
+      <div style="flex:1;">
+        <div style="font-weight: 500; font-size: 16px; color: #111;">${c.name}</div>
+        <div style="font-size: 13px; color: #667781;">${match ? 'On EthioLegacy' : 'Invite to EthioLegacy'}</div>
+      </div>
+    </div>`;
+  });
+
+  // 3. If no contacts, show sync button
+  if (importedDeviceContacts.length === 0) {
+    list.innerHTML += `
+    <div style="padding: 20px; text-align: center;">
+      <button class="btn-primary" style="width: auto; background: #00a884; padding: 10px 20px;" onclick="importDeviceContacts()">📱 Sync Phone Contacts</button>
+      <p style="font-size: 12px; color: #667781; margin-top: 10px;">Tap to allow EthioLegacy to see your phone contacts.</p>
+    </div>`;
+  }
+}
+
+window.handleWaContactClick = (name, tel, email, matchUid, matchName) => {
+  if (matchUid) {
+    openChat(matchUid, matchName);
+    document.getElementById('newChatModal').classList.remove('active');
+  } else {
+    if (navigator.share) {
+      navigator.share({ title: 'EthioLegacy', text: `Join me on EthioLegacy!` });
+    } else {
+      alert('Invite ' + name + ' to EthioLegacy!');
     }
-  };
+  }
+};
 
   window.openChat = (uid, name) => {
   currentPartner = uid;
