@@ -768,23 +768,42 @@ const firebaseConfig = {
   };
 
   // --- CHAT LOGIC ---
+  // allUsers is only the member directory used when the signed-in user chooses a new contact.
+  // myFriends is the private list saved under users/{currentUser.uid}/friends and is used
+  // for the Chats and Calls tabs. A user's friend list is never written to another profile.
   let allUsers = [];
+  let myFriends = [];
   async function loadUsers() {
+    if (!currentUser) return;
     const snap = await getDocs(collection(db, "users"));
     allUsers = [];
     const myProfile = await getDoc(doc(db, 'users', currentUser.uid));
     const hidden = myProfile.exists() && Array.isArray(myProfile.data().hiddenUsers) ? myProfile.data().hiddenUsers : [];
     snap.forEach(d => { if (d.id !== currentUser.uid && !hidden.includes(d.id)) allUsers.push({uid:d.id, ...d.data()}); });
-    renderUsers(allUsers);
+
+    // Read only this account's private friend list, then resolve each saved UID to its profile.
+    const friendsSnap = await getDocs(collection(db, 'users', currentUser.uid, 'friends'));
+    myFriends = [];
+    for (const friendDoc of friendsSnap.docs) {
+      const friendUid = friendDoc.id;
+      if (friendUid === currentUser.uid || hidden.includes(friendUid)) continue;
+      let profile = allUsers.find(u => u.uid === friendUid);
+      if (!profile) {
+        const profileSnap = await getDoc(doc(db, 'users', friendUid));
+        if (profileSnap.exists()) profile = {uid: friendUid, ...profileSnap.data()};
+      }
+      if (profile) myFriends.push(profile);
+    }
+    renderUsers(myFriends);
     renderDeviceContacts();
-    renderCallList(allUsers);
+    renderCallList(myFriends);
     loadCommunities();
   }
 
   function renderUsers(users) {
     const list = document.getElementById('userList');
     list.innerHTML = '';
-    if(users.length === 0) list.innerHTML = '<p style="padding:20px;text-align:center;color:#666;">No other users yet.</p>';
+    if(users.length === 0) list.innerHTML = '<p style="padding:20px;text-align:center;color:#666;">Your private chat list is empty. Tap + to start a 1-to-1 chat.</p>';
     users.forEach(u => {
       const div = document.createElement('div');
       div.className = 'chat-item';
@@ -868,7 +887,8 @@ window.importDeviceContacts = async () => {
 
   function filterUserRecords(val) {
     const q=(val||'').trim().toLowerCase();
-    return allUsers.filter(u => [u.displayName,u.email,u.phone,u.phoneNumber].some(v => (v||'').toLowerCase().includes(q)));
+    // Chats and Calls search only the current user's own private friend list.
+    return myFriends.filter(u => [u.displayName,u.email,u.phone,u.phoneNumber].some(v => (v||'').toLowerCase().includes(q)));
   }
 // ===== NEW CONTACT LOGIC =====
 window.openNewContactScreen = () => {
@@ -959,7 +979,7 @@ window.saveNewContact = async () => {
 
   function renderCallList(users){
     const list=document.getElementById('callList'); if(!list)return; list.innerHTML='';
-    if(!users.length){list.innerHTML='<div class="empty-state">No other members yet. Invite someone to EthioLegacy to start calling.</div>';return;}
+    if(!users.length){list.innerHTML='<div class="empty-state">Your private call list is empty. Start a 1-to-1 chat to add a contact here.</div>';return;}
     users.forEach(u=>{
       const row=document.createElement('div');row.className='chat-item';
       const name=escapeHTML(u.displayName||'Member');
@@ -979,7 +999,7 @@ window.saveNewContact = async () => {
   async function loadCommunities(){
     const list=document.getElementById('communityList'); if(!list||!currentUser)return;
     try{
-      const snap=await getDocs(query(collection(db,'chats'),where('isGroup','==',true)));
+      const snap=await getDocs(query(collection(db,'chats'),where('isGroup','==',true),where('members','array-contains',currentUser.uid)));
       list.innerHTML='';let count=0;
       snap.forEach(d=>{const g=d.data();if(Array.isArray(g.members)&&!g.members.includes(currentUser.uid))return;count++;const row=document.createElement('div');row.className='community-card';const name=escapeHTML(g.name||'Community');row.innerHTML=`<div class="community-icon">👥</div><div class="community-meta"><b>${name}</b><small>Group conversation</small></div><button class="mini-action" title="Leave community" aria-label="Leave community">✕</button>`;row.querySelector('.community-meta').onclick=()=>openChat(d.id,g.name||'Community');row.querySelector('button').onclick=async(e)=>{e.stopPropagation();if(!confirm('Leave '+(g.name||'this community')+'?'))return;try{await updateDoc(doc(db,'chats',d.id),{members:arrayRemove(currentUser.uid)});toast('You left the community.');await loadCommunities();}catch(err){console.error(err);toast('Could not leave community. Check Firestore rules.');}};list.appendChild(row);});
       if(!count)list.innerHTML='<div class="empty-state">No communities yet. Tap “Create a community or group” to start one.</div>';
@@ -1114,10 +1134,38 @@ window.saveNewContact = async () => {
     alert('Failed to save contact. Check Firestore rules.');
   }
 };
-  window.openChat = (uid, name) => {
+  window.openChat = async (uid, name) => {
+  if (!currentUser || !uid) return toast('Please sign in and select a contact.');
   currentPartner = uid;
-  currentChatId = uid.startsWith("group_") ? uid : (currentUser.uid < uid ? currentUser.uid + "_" + uid : uid + "_" + currentUser.uid);
+  const isGroupChat = uid.startsWith("group_");
+  currentChatId = isGroupChat ? uid : (currentUser.uid < uid ? currentUser.uid + "_" + uid : uid + "_" + currentUser.uid);
   document.getElementById('chatPartnerName').textContent = name;
+
+  // A direct chat is a private 1-to-1 conversation. Record exactly the two participants
+  // on the chat document so Firestore rules can prevent other users from reading messages.
+  if (!isGroupChat) {
+    try {
+      await setDoc(doc(db, 'chats', currentChatId), {
+        isGroup: false,
+        members: [currentUser.uid, uid],
+        createdBy: currentUser.uid,
+        updatedAt: serverTimestamp()
+      }, {merge: true});
+      await setDoc(doc(db, 'users', currentUser.uid, 'friends', uid), {
+        uid,
+        displayName: name || (allUsers.find(u => u.uid === uid)?.displayName) || 'Member',
+        addedAt: serverTimestamp()
+      }, {merge: true});
+      const profile = allUsers.find(u => u.uid === uid);
+      if (profile && !myFriends.some(u => u.uid === uid)) myFriends.push(profile);
+      renderUsers(myFriends);
+      renderCallList(myFriends);
+    } catch (e) {
+      console.error('Could not create private chat/contact:', e);
+      toast('Could not open private chat. Check Firestore rules and connection.');
+      return;
+    }
+  }
   
   // Show group call buttons if it's a group
   if(uid.startsWith("group_")) {
@@ -1206,13 +1254,14 @@ window.deleteMessage = async (messageId) => {
 };
 
   window.removeUserFromLists = async (uid, name) => {
-    if (!currentUser || !confirm(`Remove ${name} from your Chats and Calls lists?`)) return;
+    if (!currentUser || !confirm(`Remove ${name} from your private Chats and Calls lists? This will not remove them from another user's list.`)) return;
     try {
-      await updateDoc(doc(db, 'users', currentUser.uid), { hiddenUsers: arrayUnion(uid) });
-      allUsers = allUsers.filter(u => u.uid !== uid);
-      renderUsers(allUsers); renderCallList(allUsers);
-      toast(name + ' removed from your lists.');
-    } catch (e) { console.error(e); toast('Could not remove user. Check Firestore rules and your user profile document.'); }
+      // Delete only the signed-in user's private friend entry. Never edit the other user's list.
+      await deleteDoc(doc(db, 'users', currentUser.uid, 'friends', uid));
+      myFriends = myFriends.filter(u => u.uid !== uid);
+      renderUsers(myFriends); renderCallList(myFriends);
+      toast(name + ' removed from your private lists.');
+    } catch (e) { console.error(e); toast('Could not remove contact. Check private-friends Firestore rules.'); }
   };
 
   window.sendMessage = async () => {
