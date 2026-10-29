@@ -195,22 +195,22 @@
 
       <div class="input-group">
         <label class="auth-label">Email / phone number</label>
-        <input id="emailInput" class="input-field" type="text" inputmode="email" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="Email or phone number">
+        <input id="emailInput" class="input-field" type="text" inputmode="email" autocomplete="username" placeholder="Email or phone number">
       </div>
 
       <div class="input-group">
         <label class="auth-label">Password</label>
         <div class="password-wrap">
-          <input id="passwordInput" class="input-field" type="password" autocomplete="current-password" placeholder="Enter password">
-          <button class="show-password" type="button">👁️</button>
+          <input id="passwordInput" class="input-field" type="password" placeholder="Enter password">
+          <button class="show-password" onclick="togglePassword(this)" type="button">👁️</button>
         </div>
       </div>
 
       <div class="input-group" id="confirmGroup">
         <label class="auth-label">Confirm password</label>
         <div class="password-wrap">
-          <input id="confirmPasswordInput" class="input-field" type="password" autocomplete="new-password" placeholder="Confirm password">
-          <button class="show-password" type="button">👁️</button>
+          <input id="confirmPasswordInput" class="input-field" type="password" placeholder="Confirm password">
+          <button class="show-password" onclick="toggleConfirmPassword(this)" type="button">👁️</button>
         </div>
       </div>
 
@@ -636,29 +636,17 @@ const firebaseConfig = {
     changeLanguage(localStorage.getItem('ethiolegacy_language')||'en');
   };
 
-  function setPasswordVisibility(inputId, btn) {
-    const input = document.getElementById(inputId);
-    if (!input) return;
-    const show = input.type === 'password';
-    input.type = show ? 'text' : 'password';
-    if (btn) {
-      btn.textContent = show ? '🙈' : '👁️';
-      btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
-      btn.setAttribute('aria-pressed', show ? 'true' : 'false');
-    }
-    input.focus({ preventScroll: true });
-  }
-  window.togglePassword = (btn) => setPasswordVisibility('passwordInput', btn);
-  window.toggleConfirmPassword = (btn) => setPasswordVisibility('confirmPasswordInput', btn);
+  window.togglePassword = (btn) => {
+    const input = document.getElementById('passwordInput');
+    if (input.type === 'password') { input.type = 'text'; btn.textContent = '🙈'; }
+    else { input.type = 'password'; btn.textContent = '👁️'; }
+  };
 
-  // Bind directly as a fallback for mobile browsers/webviews where inline
-  // handlers may be affected by cached HTML or browser event quirks.
-  document.getElementById('passwordInput')?.closest('.password-wrap')?.querySelector('.show-password')?.addEventListener('click', function (event) {
-    event.preventDefault(); setPasswordVisibility('passwordInput', this);
-  });
-  document.getElementById('confirmPasswordInput')?.closest('.password-wrap')?.querySelector('.show-password')?.addEventListener('click', function (event) {
-    event.preventDefault(); setPasswordVisibility('confirmPasswordInput', this);
-  });
+  window.toggleConfirmPassword = (btn) => {
+    const input = document.getElementById('confirmPasswordInput');
+    if (input.type === 'password') { input.type = 'text'; btn.textContent = '🙈'; }
+    else { input.type = 'password'; btn.textContent = '👁️'; }
+  };
 
   // Every registered user gets an automatic invite code. The Firebase UID is
   // the secure referral identifier; the short code is convenient to share.
@@ -681,13 +669,6 @@ const firebaseConfig = {
   }
   window.shareEthioLegacyInvite = shareEthioLegacyInvite;
 
-  ['nameInput','emailInput','passwordInput','confirmPasswordInput'].forEach((id) => {
-    const el = document.getElementById(id);
-    el?.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter') { event.preventDefault(); window.handleAuth(); }
-    });
-  });
-
   window.handleAuth = async () => {
     const loginValue = document.getElementById('emailInput').value.trim();
     const email = loginValue.toLowerCase();
@@ -706,7 +687,7 @@ const firebaseConfig = {
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      err.textContent = 'For now, sign up/sign in with an email address. Phone-number login requires Firebase SMS verification, which is not yet connected in this version.';
+      err.textContent = 'Use a valid email address. Phone sign-in needs SMS verification and is not enabled in this form.';
       return;
     }
     if (isSignupMode) {
@@ -759,12 +740,6 @@ const firebaseConfig = {
         }
       } else {
         await signInWithEmailAndPassword(auth, email, pass);
-      }
-      // Every newly registered account receives a code derived from its Firebase UID.
-      // The same code is saved in Firestore and can be shared with other users.
-      if (isSignupMode && auth.currentUser) {
-        const newCode = getInviteCode(auth.currentUser.uid);
-        setTimeout(() => toast('Welcome to EthioLegacy! Your invite code is: ' + newCode), 700);
       }
       // onAuthStateChanged handles switching to the home screen.
     } catch (e) {
