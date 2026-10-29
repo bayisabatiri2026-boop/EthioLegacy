@@ -1,16 +1,9 @@
-EthioLegacy — Auth UI Fix
+EthioLegacy – calling network fixes
 
-Included: index.html with robust show/hide password buttons, improved sign-up/sign-in handling, and an automatically generated invite code saved to the user profile on email registration. Existing app sections are retained.
+This update improves WebRTC ICE candidate handling, remote media playback, connection-state diagnostics, and candidate-listener cleanup. It does not change the rest of the app intentionally.
 
-Important authentication limitation:
-- This version uses Firebase Email/Password for actual sign-up and sign-in.
-- Although the field label says Email / phone number, phone-number sign-in is NOT active yet; Firebase Phone Authentication requires an SMS OTP and reCAPTCHA flow. The page now explains this instead of falsely accepting a phone number as an email.
-- Invite codes are generated from the new user's Firebase UID (EL + UID characters) and saved in Firestore when profile rules allow it.
+IMPORTANT: Voice/video calls between different Wi-Fi/mobile-data networks require a working TURN relay, Firebase Firestore signaling access, and HTTPS. This HTML currently contains Metered TURN server credentials in the client code. I cannot verify those credentials or your Firebase rules from here, and no live two-phone call test has been performed. If calls still fail across networks, create/verify a TURN credential in your TURN provider account and replace the username/credential for all three Metered entries in index.html. Do not publish long-lived secret credentials in a public GitHub repository; use a secure credential service for production.
 
-Deploy/testing:
-1. Upload index.html to your existing GitHub Pages repository, replacing the old index.html after keeping a backup.
-2. In Firebase Console > Authentication > Sign-in method, enable Email/Password.
-3. In Firebase Console > Authentication > Settings > Authorized domains, add your GitHub Pages domain.
-4. Test using HTTPS and Wi-Fi/mobile data.
+Firebase Firestore must allow authenticated call documents and their subcollections: calls/{callId}, calls/{callId}/offerCandidates/{candidateId}, and calls/{callId}/answerCandidates/{candidateId}. The caller and receiver must both be signed in and the receiver must be an EthioLegacy user.
 
-Note: A successful live Firebase sign-up/sign-in cannot be fully verified without access to your Firebase project runtime and its current security rules.
+Deploy the folder to an HTTPS host (GitHub Pages is HTTPS). Test with two phones at different places, one on Wi-Fi and one on mobile data. Keep the app open during testing; this web app does not guarantee incoming calls while closed/backgrounded.

@@ -649,8 +649,7 @@ const firebaseConfig = {
   };
 
   window.handleAuth = async () => {
-    const loginValue = document.getElementById('emailInput').value.trim();
-    const email = loginValue.toLowerCase();
+    const email = document.getElementById('emailInput').value.trim().toLowerCase();
     const pass = document.getElementById('passwordInput').value;
     const confirmPass = document.getElementById('confirmPasswordInput').value;
     const name = document.getElementById('nameInput').value.trim();
@@ -658,68 +657,70 @@ const firebaseConfig = {
     const btn = document.getElementById('authSubmit');
 
     err.textContent = '';
-
-    // Firebase Email/Password authentication needs an email address.
-    // Phone-number authentication requires a separate SMS verification flow.
     if (!email || !pass) {
-      err.textContent = 'Enter your email address and password.';
-      return;
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      err.textContent = 'Use a valid email address. Phone sign-in needs SMS verification and is not enabled in this form.';
-      return;
-    }
+  err.textContent = 'Email address and password are required.';
+  return;
+}
+// Firebase Email/Password authentication requires an email address.
+if (!email.includes('@')) {
+  err.textContent = 'Please enter a valid email address.';
+  return;
+}
     if (isSignupMode) {
       if (!name) { err.textContent = 'Full name is required.'; return; }
       if (pass.length < 6) { err.textContent = 'Password must be at least 6 characters.'; return; }
       if (pass !== confirmPass) { err.textContent = 'Passwords do not match.'; return; }
     }
 
-    const originalText = btn.textContent;
     btn.disabled = true;
     btn.textContent = 'Connecting...';
     try {
       if (isSignupMode) {
         const cred = await createUserWithEmailAndPassword(auth, email, pass);
+        // Check if they used an invite link
+const urlParams = new URLSearchParams(window.location.search);
+const inviterUid = urlParams.get('invite');
 
-        // Save the display name in Firebase Authentication. A profile-write
-        // problem must not make a successfully created auth account look failed.
+let linkedUsers = [];
+
+// If they used an invite link, link them automatically
+if (inviterUid && inviterUid !== cred.user.uid) {
+   linkedUsers.push(inviterUid);
+   // Add this new user to the inviter's list
+   await updateDoc(doc(db, 'users', inviterUid), { 
+     linkedUsers: arrayUnion(cred.user.uid) 
+   });
+}
+
+await setDoc(doc(db, 'users', cred.user.uid), {
+  uid: cred.user.uid,
+  email: email,
+  displayName: name,
+  phone: "+251000000000", // Placeholder, you can add a phone input to signup later
+  linkedUsers: linkedUsers, // Automatically links them to the inviter
+  createdAt: serverTimestamp()
+}, { merge: true });
         try {
           await updateProfile(cred.user, { displayName: name });
         } catch (profileError) {
-          console.warn('Could not save display name to Firebase Auth:', profileError);
+          console.error('Could not save display name to Firebase Auth:', profileError);
         }
-
-        const urlParams = new URLSearchParams(window.location.search);
-        const inviterUid = urlParams.get('invite');
-        const linkedUsers = inviterUid && inviterUid !== cred.user.uid ? [inviterUid] : [];
-
+        // Auth account creation should not be reported as failed just because
+        // Firestore profile rules/configuration need attention.
         try {
           await setDoc(doc(db, 'users', cred.user.uid), {
             uid: cred.user.uid,
             email,
             displayName: name,
-            linkedUsers,
             createdAt: serverTimestamp()
           }, { merge: true });
         } catch (profileError) {
           console.error('Account created, but Firestore profile save failed:', profileError);
-          toast('Account created. Profile sync needs a Firestore rules check.');
-        }
-
-        if (inviterUid && inviterUid !== cred.user.uid) {
-          try {
-            await updateDoc(doc(db, 'users', inviterUid), {
-              linkedUsers: arrayUnion(cred.user.uid)
-            });
-          } catch (inviteError) {
-            console.warn('Account created, but invite linking failed:', inviteError);
-          }
+          err.textContent = 'Account created, but your profile could not be saved. Check Firestore rules. You can still continue.';
         }
       } else {
         await signInWithEmailAndPassword(auth, email, pass);
       }
-      // onAuthStateChanged handles switching to the home screen.
     } catch (e) {
       console.error('EthioLegacy authentication error:', e);
       const code = e?.code || '';
@@ -732,11 +733,10 @@ const firebaseConfig = {
         'auth/invalid-credential': 'Incorrect email or password, or the account does not exist.',
         'auth/too-many-requests': 'Too many attempts. Wait a little and try again.',
         'auth/network-request-failed': 'Network error. Check your Wi-Fi/mobile data and try again.',
-        'auth/operation-not-allowed': 'Enable Email/Password in Firebase Console → Authentication → Sign-in method.',
-        'auth/unauthorized-domain': 'Add this GitHub Pages domain in Firebase Console → Authentication → Settings → Authorized domains.',
-        'auth/weak-password': 'Choose a password with at least 6 characters.'
+        'auth/operation-not-allowed': 'Email/Password sign-in is disabled in Firebase Console → Authentication → Sign-in method.',
+        'auth/unauthorized-domain': 'This website domain is not authorized. Add its domain in Firebase Console → Authentication → Settings → Authorized domains.'
       };
-      err.textContent = messages[code] || 'Authentication failed: ' + (e?.message || 'Check your Firebase settings and internet connection.');
+      err.textContent = messages[code] || (e?.message || 'Could not sign in. Check your Firebase settings and try again.').replace(/^Firebase:\\s*/i, '');
     } finally {
       btn.disabled = false;
       const t = translations[localStorage.getItem('ethiolegacy_language') || 'en'] || translations.en;
@@ -768,42 +768,23 @@ const firebaseConfig = {
   };
 
   // --- CHAT LOGIC ---
-  // allUsers is only the member directory used when the signed-in user chooses a new contact.
-  // myFriends is the private list saved under users/{currentUser.uid}/friends and is used
-  // for the Chats and Calls tabs. A user's friend list is never written to another profile.
   let allUsers = [];
-  let myFriends = [];
   async function loadUsers() {
-    if (!currentUser) return;
     const snap = await getDocs(collection(db, "users"));
     allUsers = [];
     const myProfile = await getDoc(doc(db, 'users', currentUser.uid));
     const hidden = myProfile.exists() && Array.isArray(myProfile.data().hiddenUsers) ? myProfile.data().hiddenUsers : [];
     snap.forEach(d => { if (d.id !== currentUser.uid && !hidden.includes(d.id)) allUsers.push({uid:d.id, ...d.data()}); });
-
-    // Read only this account's private friend list, then resolve each saved UID to its profile.
-    const friendsSnap = await getDocs(collection(db, 'users', currentUser.uid, 'friends'));
-    myFriends = [];
-    for (const friendDoc of friendsSnap.docs) {
-      const friendUid = friendDoc.id;
-      if (friendUid === currentUser.uid || hidden.includes(friendUid)) continue;
-      let profile = allUsers.find(u => u.uid === friendUid);
-      if (!profile) {
-        const profileSnap = await getDoc(doc(db, 'users', friendUid));
-        if (profileSnap.exists()) profile = {uid: friendUid, ...profileSnap.data()};
-      }
-      if (profile) myFriends.push(profile);
-    }
-    renderUsers(myFriends);
+    renderUsers(allUsers);
     renderDeviceContacts();
-    renderCallList(myFriends);
+    renderCallList(allUsers);
     loadCommunities();
   }
 
   function renderUsers(users) {
     const list = document.getElementById('userList');
     list.innerHTML = '';
-    if(users.length === 0) list.innerHTML = '<p style="padding:20px;text-align:center;color:#666;">Your private chat list is empty. Tap + to start a 1-to-1 chat.</p>';
+    if(users.length === 0) list.innerHTML = '<p style="padding:20px;text-align:center;color:#666;">No other users yet.</p>';
     users.forEach(u => {
       const div = document.createElement('div');
       div.className = 'chat-item';
@@ -887,8 +868,7 @@ window.importDeviceContacts = async () => {
 
   function filterUserRecords(val) {
     const q=(val||'').trim().toLowerCase();
-    // Chats and Calls search only the current user's own private friend list.
-    return myFriends.filter(u => [u.displayName,u.email,u.phone,u.phoneNumber].some(v => (v||'').toLowerCase().includes(q)));
+    return allUsers.filter(u => [u.displayName,u.email,u.phone,u.phoneNumber].some(v => (v||'').toLowerCase().includes(q)));
   }
 // ===== NEW CONTACT LOGIC =====
 window.openNewContactScreen = () => {
@@ -979,7 +959,7 @@ window.saveNewContact = async () => {
 
   function renderCallList(users){
     const list=document.getElementById('callList'); if(!list)return; list.innerHTML='';
-    if(!users.length){list.innerHTML='<div class="empty-state">Your private call list is empty. Start a 1-to-1 chat to add a contact here.</div>';return;}
+    if(!users.length){list.innerHTML='<div class="empty-state">No other members yet. Invite someone to EthioLegacy to start calling.</div>';return;}
     users.forEach(u=>{
       const row=document.createElement('div');row.className='chat-item';
       const name=escapeHTML(u.displayName||'Member');
@@ -999,7 +979,7 @@ window.saveNewContact = async () => {
   async function loadCommunities(){
     const list=document.getElementById('communityList'); if(!list||!currentUser)return;
     try{
-      const snap=await getDocs(query(collection(db,'chats'),where('isGroup','==',true),where('members','array-contains',currentUser.uid)));
+      const snap=await getDocs(query(collection(db,'chats'),where('isGroup','==',true)));
       list.innerHTML='';let count=0;
       snap.forEach(d=>{const g=d.data();if(Array.isArray(g.members)&&!g.members.includes(currentUser.uid))return;count++;const row=document.createElement('div');row.className='community-card';const name=escapeHTML(g.name||'Community');row.innerHTML=`<div class="community-icon">👥</div><div class="community-meta"><b>${name}</b><small>Group conversation</small></div><button class="mini-action" title="Leave community" aria-label="Leave community">✕</button>`;row.querySelector('.community-meta').onclick=()=>openChat(d.id,g.name||'Community');row.querySelector('button').onclick=async(e)=>{e.stopPropagation();if(!confirm('Leave '+(g.name||'this community')+'?'))return;try{await updateDoc(doc(db,'chats',d.id),{members:arrayRemove(currentUser.uid)});toast('You left the community.');await loadCommunities();}catch(err){console.error(err);toast('Could not leave community. Check Firestore rules.');}};list.appendChild(row);});
       if(!count)list.innerHTML='<div class="empty-state">No communities yet. Tap “Create a community or group” to start one.</div>';
@@ -1067,6 +1047,41 @@ function renderWaContacts() {
     </div>`;
   }
 }
+  // 1. Show users already on EthioLegacy
+  allUsers.forEach(u => {
+    list.innerHTML += `
+    <div class="wa-contact-item" onclick="openChat('${u.uid}','${u.displayName}'); document.getElementById('newChatModal').classList.remove('active');">
+      <div class="avatar" style="width: 45px; height: 45px; font-size: 18px; margin-right: 15px;">${u.displayName[0]}</div>
+      <div style="flex:1;">
+        <div style="font-weight: 500; font-size: 16px; color: #111;">${u.displayName}</div>
+        <div style="font-size: 13px; color: #667781;">Hey there! I am using EthioLegacy.</div>
+      </div>
+    </div>`;
+  });
+
+  // 2. Show synced phone contacts
+  importedDeviceContacts.forEach(c => {
+    const match = allUsers.find(u => (c.email && u.email === c.email) || (c.tel && u.phone === c.tel));
+    list.innerHTML += `
+    <div class="wa-contact-item" onclick="handleWaContactClick('${c.name}', '${c.tel}', '${c.email}', '${match ? match.uid : ''}', '${match ? match.displayName : ''}')">
+      <div class="avatar" style="width: 45px; height: 45px; font-size: 18px; background: #dfe5e7; color: #555; margin-right: 15px;">${c.name[0]}</div>
+      <div style="flex:1;">
+        <div style="font-weight: 500; font-size: 16px; color: #111;">${c.name}</div>
+        <div style="font-size: 13px; color: #667781;">${match ? 'On EthioLegacy' : 'Invite to EthioLegacy'}</div>
+      </div>
+    </div>`;
+  });
+
+  // 3. If no contacts, show sync button
+  if (importedDeviceContacts.length === 0) {
+    list.innerHTML += `
+    <div style="padding: 20px; text-align: center;">
+      <button class="btn-primary" style="width: auto; background: #00a884; padding: 10px 20px;" onclick="importDeviceContacts()">📱 Sync Phone Contacts</button>
+      <p style="font-size: 12px; color: #667781; margin-top: 10px;">Tap to allow EthioLegacy to see your phone contacts.</p>
+    </div>`;
+  }
+}
+
 window.handleWaContactClick = (name, tel, email, matchUid, matchName) => {
   if (matchUid) {
     openChat(matchUid, matchName);
@@ -1134,38 +1149,10 @@ window.saveNewContact = async () => {
     alert('Failed to save contact. Check Firestore rules.');
   }
 };
-  window.openChat = async (uid, name) => {
-  if (!currentUser || !uid) return toast('Please sign in and select a contact.');
+  window.openChat = (uid, name) => {
   currentPartner = uid;
-  const isGroupChat = uid.startsWith("group_");
-  currentChatId = isGroupChat ? uid : (currentUser.uid < uid ? currentUser.uid + "_" + uid : uid + "_" + currentUser.uid);
+  currentChatId = uid.startsWith("group_") ? uid : (currentUser.uid < uid ? currentUser.uid + "_" + uid : uid + "_" + currentUser.uid);
   document.getElementById('chatPartnerName').textContent = name;
-
-  // A direct chat is a private 1-to-1 conversation. Record exactly the two participants
-  // on the chat document so Firestore rules can prevent other users from reading messages.
-  if (!isGroupChat) {
-    try {
-      await setDoc(doc(db, 'chats', currentChatId), {
-        isGroup: false,
-        members: [currentUser.uid, uid],
-        createdBy: currentUser.uid,
-        updatedAt: serverTimestamp()
-      }, {merge: true});
-      await setDoc(doc(db, 'users', currentUser.uid, 'friends', uid), {
-        uid,
-        displayName: name || (allUsers.find(u => u.uid === uid)?.displayName) || 'Member',
-        addedAt: serverTimestamp()
-      }, {merge: true});
-      const profile = allUsers.find(u => u.uid === uid);
-      if (profile && !myFriends.some(u => u.uid === uid)) myFriends.push(profile);
-      renderUsers(myFriends);
-      renderCallList(myFriends);
-    } catch (e) {
-      console.error('Could not create private chat/contact:', e);
-      toast('Could not open private chat. Check Firestore rules and connection.');
-      return;
-    }
-  }
   
   // Show group call buttons if it's a group
   if(uid.startsWith("group_")) {
@@ -1254,14 +1241,13 @@ window.deleteMessage = async (messageId) => {
 };
 
   window.removeUserFromLists = async (uid, name) => {
-    if (!currentUser || !confirm(`Remove ${name} from your private Chats and Calls lists? This will not remove them from another user's list.`)) return;
+    if (!currentUser || !confirm(`Remove ${name} from your Chats and Calls lists?`)) return;
     try {
-      // Delete only the signed-in user's private friend entry. Never edit the other user's list.
-      await deleteDoc(doc(db, 'users', currentUser.uid, 'friends', uid));
-      myFriends = myFriends.filter(u => u.uid !== uid);
-      renderUsers(myFriends); renderCallList(myFriends);
-      toast(name + ' removed from your private lists.');
-    } catch (e) { console.error(e); toast('Could not remove contact. Check private-friends Firestore rules.'); }
+      await updateDoc(doc(db, 'users', currentUser.uid), { hiddenUsers: arrayUnion(uid) });
+      allUsers = allUsers.filter(u => u.uid !== uid);
+      renderUsers(allUsers); renderCallList(allUsers);
+      toast(name + ' removed from your lists.');
+    } catch (e) { console.error(e); toast('Could not remove user. Check Firestore rules and your user profile document.'); }
   };
 
   window.sendMessage = async () => {
@@ -1326,6 +1312,18 @@ const servers = {
 };
   let pc = null, localStream = null, currentCallDocId = null, unsubscribeCall = null;
   let incomingCallUnsub = null;
+  let offerCandidatesUnsub = null, answerCandidatesUnsub = null;
+  let pendingRemoteCandidates = [];
+  async function addRemoteIceCandidate(candidate) {
+    if (!pc || !candidate) return;
+    if (!pc.remoteDescription) { pendingRemoteCandidates.push(candidate); return; }
+    try { await pc.addIceCandidate(new RTCIceCandidate(candidate)); }
+    catch (err) { console.warn("ICE candidate could not be added:", err); }
+  }
+  async function flushRemoteIceCandidates() {
+    const queued = pendingRemoteCandidates.splice(0);
+    for (const candidate of queued) await addRemoteIceCandidate(candidate);
+  }
   // ---- Call Timer Logic ----
 let callTimerInterval = null;
 let callSeconds = 0;
@@ -1490,14 +1488,14 @@ async function setupMedia(video) {
       document.getElementById('localVideo').srcObject = localStream;
       pc = new RTCPeerConnection(servers);
       localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-      pc.ontrack = (event) => { document.getElementById('remoteVideo').srcObject = event.streams[0]; };
+      pc.ontrack = (event) => { const rv=document.getElementById('remoteVideo'); rv.srcObject = event.streams[0]; rv.play?.().catch(()=>{}); };
 
       const callDoc = doc(collection(db, "calls"));
       currentCallDocId = callDoc.id;
       const offerCandidates = collection(callDoc, "offerCandidates");
       const answerCandidates = collection(callDoc, "answerCandidates");
 
-      pc.onicecandidate = (event) => { if (event.candidate) addDoc(offerCandidates, event.candidate.toJSON()); };
+      pc.onicecandidate = (event) => { if (event.candidate) addDoc(offerCandidates, event.candidate.toJSON()).catch(err => console.error('Could not send caller ICE candidate:', err)); };
       const offerDescription = await pc.createOffer();
       await pc.setLocalDescription(offerDescription);
 
@@ -1512,24 +1510,40 @@ async function setupMedia(video) {
         createdAt: serverTimestamp()
       });
 
-      unsubscribeCall = onSnapshot(callDoc, (snapshot) => {
+      unsubscribeCall = onSnapshot(callDoc, async (snapshot) => {
         const data = snapshot.data();
-        if (!data) return;
-        if (data.answer && pc.signalingState !== 'stable') {
-  stopRingtone();
-  document.getElementById('activeCallStatus').textContent = 'Connected';
-  startCallTimer(); // <--- ADD THIS LINE
-  av.classList.remove('ringing');
-  pc.setRemoteDescription(new RTCSessionDescription(data.answer));
-}
+        if (!data || !pc) return;
+        if (data.answer && !pc.remoteDescription) {
+          try {
+            await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+            await flushRemoteIceCandidates();
+            stopRingtone();
+            document.getElementById('activeCallStatus').textContent = 'Connected';
+            startCallTimer();
+            av.classList.remove('ringing');
+          } catch (err) { console.error('Could not apply call answer:', err); }
+        }
         if (data.status === 'ended') endCall();
       });
 
-      onSnapshot(answerCandidates, (snapshot) => {
+      if (answerCandidatesUnsub) answerCandidatesUnsub();
+      answerCandidatesUnsub = onSnapshot(answerCandidates, snapshot => {
         snapshot.docChanges().forEach(change => {
-          if (change.type === 'added') pc.addIceCandidate(new RTCIceCandidate(change.doc.data()));
+          if (change.type === 'added') addRemoteIceCandidate(change.doc.data());
         });
-      });
+      }, err => { console.error('Answer ICE listener failed:', err); toast('Call connection error. Check Firestore call permissions.'); });
+
+      pc.oniceconnectionstatechange = () => {
+        if (!pc) return;
+        const state = pc.iceConnectionState;
+        console.log('Caller ICE state:', state);
+        if (state === 'failed') {
+          document.getElementById('activeCallStatus').textContent = 'Connection failed';
+          toast('Could not connect across networks. Check TURN server credentials and Firebase call rules.');
+        } else if (state === 'disconnected') {
+          document.getElementById('activeCallStatus').textContent = 'Reconnecting…';
+        }
+      };
     } catch (e) { endCall(); }
   };
 
@@ -1596,11 +1610,11 @@ async function setupMedia(video) {
       document.getElementById('localVideo').srcObject = localStream;
       pc = new RTCPeerConnection(servers);
       localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-      pc.ontrack = (event) => { document.getElementById('remoteVideo').srcObject = event.streams[0]; };
+      pc.ontrack = (event) => { const rv=document.getElementById('remoteVideo'); rv.srcObject = event.streams[0]; rv.play?.().catch(()=>{}); };
 
       const offerCandidates = collection(callDoc, "offerCandidates");
       const answerCandidates = collection(callDoc, "answerCandidates");
-      pc.onicecandidate = (event) => { if (event.candidate) addDoc(answerCandidates, event.candidate.toJSON()); };
+      pc.onicecandidate = (event) => { if (event.candidate) addDoc(answerCandidates, event.candidate.toJSON()).catch(err => console.error('Could not send answer ICE candidate:', err)); };
 
       await pc.setRemoteDescription(new RTCSessionDescription(callData.offer));
       const answerDescription = await pc.createAnswer();
@@ -1612,11 +1626,25 @@ async function setupMedia(video) {
 
 document.getElementById('activeCallStatus').textContent = 'Connected';
 startCallTimer(); // <--- ADD THIS LINE
-      onSnapshot(offerCandidates, (snapshot) => {
+      await flushRemoteIceCandidates();
+      if (offerCandidatesUnsub) offerCandidatesUnsub();
+      offerCandidatesUnsub = onSnapshot(offerCandidates, snapshot => {
         snapshot.docChanges().forEach(change => {
-          if (change.type === 'added') pc.addIceCandidate(new RTCIceCandidate(change.doc.data()));
+          if (change.type === 'added') addRemoteIceCandidate(change.doc.data());
         });
-      });
+      }, err => { console.error('Offer ICE listener failed:', err); toast('Call connection error. Check Firestore call permissions.'); });
+
+      pc.oniceconnectionstatechange = () => {
+        if (!pc) return;
+        const state = pc.iceConnectionState;
+        console.log('Receiver ICE state:', state);
+        if (state === 'failed') {
+          document.getElementById('activeCallStatus').textContent = 'Connection failed';
+          toast('Could not connect across networks. Check TURN server credentials and Firebase call rules.');
+        } else if (state === 'disconnected') {
+          document.getElementById('activeCallStatus').textContent = 'Reconnecting…';
+        }
+      };
 
       unsubscribeCall = onSnapshot(callDoc, (snapshot) => {
         const data = snapshot.data();
@@ -1646,6 +1674,9 @@ startCallTimer(); // <--- ADD THIS LINE
     const statusEl = document.getElementById('activeCallStatus');
     if (statusEl) statusEl.textContent = 'Call ended';
     setTimeout(() => document.getElementById('activeCallModal').classList.remove('active'), 600);
+    if (offerCandidatesUnsub) { offerCandidatesUnsub(); offerCandidatesUnsub = null; }
+    if (answerCandidatesUnsub) { answerCandidatesUnsub(); answerCandidatesUnsub = null; }
+    pendingRemoteCandidates = [];
     if (pc) { pc.close(); pc = null; }
     if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
     if (currentCallDocId) {
