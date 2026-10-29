@@ -648,27 +648,6 @@ const firebaseConfig = {
     else { input.type = 'password'; btn.textContent = '👁️'; }
   };
 
-  // Every registered user gets an automatic invite code. The Firebase UID is
-  // the secure referral identifier; the short code is convenient to share.
-  function getInviteCode(uid) { return uid ? ('EL' + String(uid).replace(/[^a-zA-Z0-9]/g, '').slice(0, 8).toUpperCase()) : ''; }
-  function buildInviteUrl(uid) {
-    const base = window.location.origin + window.location.pathname;
-    return `${base}?invite=${encodeURIComponent(uid)}&code=${encodeURIComponent(getInviteCode(uid))}`;
-  }
-  async function shareEthioLegacyInvite(contactName = '') {
-    if (!currentUser?.uid) { toast('Please sign in before inviting someone.'); return; }
-    const inviteCode = getInviteCode(currentUser.uid);
-    const inviteUrl = buildInviteUrl(currentUser.uid);
-    const greeting = contactName ? `Hi ${contactName}, ` : '';
-    const shareText = `${greeting}join me on EthioLegacy for private chats, voice/video calls, groups and communities.\n\nJoin/sign up here: ${inviteUrl}\nInvite code: ${inviteCode}`;
-    try {
-      if (navigator.share) await navigator.share({ title: 'Join EthioLegacy', text: shareText, url: inviteUrl });
-      else if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(shareText); toast('EthioLegacy invitation link and code copied.'); }
-      else window.prompt('Copy this EthioLegacy invitation:', shareText);
-    } catch (e) { if (e?.name !== 'AbortError') { try { window.prompt('Copy this EthioLegacy invitation:', shareText); } catch (_) {} } }
-  }
-  window.shareEthioLegacyInvite = shareEthioLegacyInvite;
-
   window.handleAuth = async () => {
     const loginValue = document.getElementById('emailInput').value.trim();
     const email = loginValue.toLowerCase();
@@ -720,7 +699,6 @@ const firebaseConfig = {
             uid: cred.user.uid,
             email,
             displayName: name,
-            inviteCode: getInviteCode(cred.user.uid),
             linkedUsers,
             createdAt: serverTimestamp()
           }, { merge: true });
@@ -894,7 +872,10 @@ window.importDeviceContacts = async () => {
           const action = document.createElement('button'); action.className = 'contact-action';
           if (match) { action.textContent = box.id === 'callDeviceContactsList' ? 'Call' : 'Chat'; action.onclick = () => { if(box.id === 'callDeviceContactsList'){openChat(match.uid,match.displayName||c.name);setTimeout(()=>startCall('audio'),100)}else openChat(match.uid, match.displayName || c.name); }; }
           else { action.textContent = 'Invite'; action.onclick = async () => {
-            await shareEthioLegacyInvite(c.name || '');
+            const shareText = 'Join me on EthioLegacy for chats, voice/video calls and communities.';
+            if (navigator.share) { try { await navigator.share({title:'EthioLegacy', text:shareText}); } catch(e) {} }
+            else if (navigator.clipboard?.writeText) { try { await navigator.clipboard.writeText(shareText); toast('Invite message copied. Send it to your contact.'); } catch(e) { toast('Please share the EthioLegacy link manually.'); } }
+            else toast('Please share the EthioLegacy link manually.');
             renderWaContacts(); // Refresh the list immediately
           }; }
           row.appendChild(action);
@@ -977,9 +958,8 @@ window.saveNewContact = async () => {
       alert(`${firstName} is on EthioLegacy! You are now connected.`);
     } else {
       // If they are not on the app, generate an invite link
-      const inviteUrl = buildInviteUrl(currentUser.uid);
-      const inviteCode = getInviteCode(currentUser.uid);
-      alert(`${firstName} is not on EthioLegacy yet.\n\nShare this link to invite them to sign up:\n${inviteUrl}\n\nYour invite code: ${inviteCode}`);
+      const inviteUrl = `${location.origin}${location.pathname}?invite=${currentUser.uid}`;
+      alert(`${firstName} is not on EthioLegacy yet.\n\nShare this link to invite them:\n${inviteUrl}`);
     }
     
     closeNewContact();
@@ -1087,12 +1067,16 @@ function renderWaContacts() {
     </div>`;
   }
 }
-window.handleWaContactClick = async (name, tel, email, matchUid, matchName) => {
+window.handleWaContactClick = (name, tel, email, matchUid, matchName) => {
   if (matchUid) {
     openChat(matchUid, matchName);
     document.getElementById('newChatModal').classList.remove('active');
   } else {
-    await shareEthioLegacyInvite(name || '');
+    if (navigator.share) {
+      navigator.share({ title: 'EthioLegacy', text: `Join me on EthioLegacy!` });
+    } else {
+      alert('Invite ' + name + ' to EthioLegacy!');
+    }
   }
 };
 // ===== NEW CONTACT SCREEN LOGIC =====
