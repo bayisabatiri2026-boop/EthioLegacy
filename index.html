@@ -677,6 +677,29 @@ if (!email.includes('@')) {
     try {
       if (isSignupMode) {
         const cred = await createUserWithEmailAndPassword(auth, email, pass);
+        // Check if they used an invite link
+const urlParams = new URLSearchParams(window.location.search);
+const inviterUid = urlParams.get('invite');
+
+let linkedUsers = [];
+
+// If they used an invite link, link them automatically
+if (inviterUid && inviterUid !== cred.user.uid) {
+   linkedUsers.push(inviterUid);
+   // Add this new user to the inviter's list
+   await updateDoc(doc(db, 'users', inviterUid), { 
+     linkedUsers: arrayUnion(cred.user.uid) 
+   });
+}
+
+await setDoc(doc(db, 'users', cred.user.uid), {
+  uid: cred.user.uid,
+  email: email,
+  displayName: name,
+  phone: "+251000000000", // Placeholder, you can add a phone input to signup later
+  linkedUsers: linkedUsers, // Automatically links them to the inviter
+  createdAt: serverTimestamp()
+}, { merge: true });
         try {
           await updateProfile(cred.user, { displayName: name });
         } catch (profileError) {
@@ -868,25 +891,58 @@ window.closeNewContact = () => {
 window.saveNewContact = async () => {
   const firstName = document.getElementById('ncFirstName').value.trim();
   const lastName = document.getElementById('ncLastName').value.trim();
-  const username = document.getElementById('ncUsername').value.trim();
   const phone = document.getElementById('ncPhone').value.trim();
+  const countryCode = document.querySelector('#newContactScreen select').value.split(' ')[1] || '+251';
   
   if (!firstName) return alert("First name is required.");
+  if (!phone) return alert("Phone number is required to find friends.");
   
-  // 1. Save to Firestore
+  // Format the phone number (e.g., +251912345678)
+  const cleanPhone = phone.replace(/\D/g,'');
+  const fullPhone = countryCode + cleanPhone;
+  
   try {
-    // We store the contact in a separate sub-collection so it doesn't clutter the user's main profile
+    // 1. Search if this phone number is already on EthioLegacy
+    // Note: We are checking the 'phone' field in the users collection.
+    const q = query(collection(db, "users"), where("phone", "==", fullPhone));
+    const snap = await getDocs(q);
+    
+    let foundUser = null;
+    if (!snap.empty) {
+      foundUser = snap.docs[0].data();
+    }
+
+    // 2. Save the contact locally to YOUR database
     const contactRef = collection(db, "users", currentUser.uid, "phoneContacts");
     await addDoc(contactRef, {
       name: firstName + (lastName ? " " + lastName : ""),
-      username: username,
-      phone: phone,
-      email: document.getElementById('syncEmailDisplay').textContent,
+      phone: fullPhone,
+      onEthioLegacy: !!foundUser,
+      linkedUid: foundUser ? foundUser.uid : null,
       createdAt: serverTimestamp()
     });
+
+    // 3. If the user exists on the app, link them automatically (Like WhatsApp)
+    if (foundUser) {
+      // Add them to your linkedUsers
+      await updateDoc(doc(db, 'users', currentUser.uid), { 
+        linkedUsers: arrayUnion(foundUser.uid) 
+      });
+      // Add yourself to their linkedUsers
+      await updateDoc(doc(db, 'users', foundUser.uid), { 
+        linkedUsers: arrayUnion(currentUser.uid) 
+      });
+      
+      alert(`${firstName} is on EthioLegacy! You are now connected.`);
+    } else {
+      // If they are not on the app, generate an invite link
+      const inviteUrl = `${location.origin}${location.pathname}?invite=${currentUser.uid}`;
+      alert(`${firstName} is not on EthioLegacy yet.\n\nShare this link to invite them:\n${inviteUrl}`);
+    }
     
-    alert('Contact saved successfully!');
     closeNewContact();
+    loadUsers(); // Refresh your chat list
+    
   } catch (e) {
     console.error(e);
     alert('Failed to save contact. Check Firestore rules.');
@@ -943,9 +999,52 @@ function renderWaContacts() {
   const list = document.getElementById('waContactList');
   list.innerHTML = '';
   
+  // Count total contacts (Linked users + Phone contacts)
   let totalCount = allUsers.length + importedDeviceContacts.length;
   document.getElementById('contactCount').textContent = totalCount + ' contacts';
 
+  // 1. Show friends you are already linked with (Your private 1-to-1s)
+  if (allUsers.length > 0) {
+    list.innerHTML += `<div style="padding: 15px 20px; font-weight: bold; color: #667781; font-size: 13px;">CONTACTS ON ETHIOLEGACY</div>`;
+    allUsers.forEach(u => {
+      list.innerHTML += `
+      <div class="wa-contact-item" onclick="openChat('${u.uid}','${u.displayName}'); document.getElementById('newChatModal').classList.remove('active');">
+        <div class="avatar" style="width: 45px; height: 45px; font-size: 18px; margin-right: 15px;">${u.displayName[0]}</div>
+        <div style="flex:1;">
+          <div style="font-weight: 500; font-size: 16px; color: #111;">${u.displayName}</div>
+          <div style="font-size: 13px; color: #667781;">Hey there! I am using EthioLegacy.</div>
+        </div>
+      </div>`;
+    });
+  }
+
+  // 2. Show phone contacts
+  if (importedDeviceContacts.length > 0) {
+    list.innerHTML += `<div style="padding: 15px 20px; font-weight: bold; color: #667781; font-size: 13px;">PHONE CONTACTS</div>`;
+    importedDeviceContacts.forEach(c => {
+      // Check if this phone contact is already in allUsers (meaning they are on EthioLegacy)
+      const match = allUsers.find(u => (c.tel && u.phone === c.tel));
+      
+      list.innerHTML += `
+      <div class="wa-contact-item" onclick="handleWaContactClick('${c.name}', '${c.tel}', '${c.email}', '${match ? match.uid : ''}', '${match ? match.displayName : ''}')">
+        <div class="avatar" style="width: 45px; height: 45px; font-size: 18px; background: #dfe5e7; color: #555; margin-right: 15px;">${c.name[0]}</div>
+        <div style="flex:1;">
+          <div style="font-weight: 500; font-size: 16px; color: #111;">${c.name}</div>
+          <div style="font-size: 13px; color: #667781;">${match ? 'On EthioLegacy' : 'Invite to EthioLegacy'}</div>
+        </div>
+      </div>`;
+    });
+  }
+
+  // 3. If no contacts at all, show the sync button
+  if (importedDeviceContacts.length === 0 && allUsers.length === 0) {
+    list.innerHTML += `
+    <div style="padding: 20px; text-align: center;">
+      <button class="btn-primary" style="width: auto; background: #00a884; padding: 10px 20px;" onclick="importDeviceContacts()">📱 Sync Phone Contacts</button>
+      <p style="font-size: 12px; color: #667781; margin-top: 10px;">Tap to allow EthioLegacy to see your phone contacts.</p>
+    </div>`;
+  }
+}
   // 1. Show users already on EthioLegacy
   allUsers.forEach(u => {
     list.innerHTML += `
