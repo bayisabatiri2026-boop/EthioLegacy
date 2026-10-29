@@ -1,15 +1,16 @@
-EthioLegacy installable web app (PWA)
+EthioLegacy — Auth UI Fix
 
-UPLOAD THESE FILES to the ROOT of your existing GitHub Pages repository:
-- index.html
-- manifest.webmanifest
-- sw.js
-- icons/ (folder with icon-192.png and icon-512.png)
+Included: index.html with robust show/hide password buttons, improved sign-up/sign-in handling, and an automatically generated invite code saved to the user profile on email registration. Existing app sections are retained.
 
-Keep the site served over HTTPS. Once GitHub Pages has redeployed, open your website in Chrome on Android, tap the browser menu (three dots), and choose "Install app" or "Add to Home screen".
+Important authentication limitation:
+- This version uses Firebase Email/Password for actual sign-up and sign-in.
+- Although the field label says Email / phone number, phone-number sign-in is NOT active yet; Firebase Phone Authentication requires an SMS OTP and reCAPTCHA flow. The page now explains this instead of falsely accepting a phone number as an email.
+- Invite codes are generated from the new user's Firebase UID (EL + UID characters) and saved in Firestore when profile rules allow it.
 
-Important:
-- This is an installable PWA package, NOT a compiled Android APK.
-- Installing it does not fix Firebase configuration or calling by itself.
-- The source copied into this package is the currently available EthioLegacy index.html. Replace Firebase placeholders with the real Web app config before expecting authentication/calling to work.
-- Offline caching is only for the app shell; messaging, file uploads, and calls still require internet and working Firebase services.
+Deploy/testing:
+1. Upload index.html to your existing GitHub Pages repository, replacing the old index.html after keeping a backup.
+2. In Firebase Console > Authentication > Sign-in method, enable Email/Password.
+3. In Firebase Console > Authentication > Settings > Authorized domains, add your GitHub Pages domain.
+4. Test using HTTPS and Wi-Fi/mobile data.
+
+Note: A successful live Firebase sign-up/sign-in cannot be fully verified without access to your Firebase project runtime and its current security rules.
