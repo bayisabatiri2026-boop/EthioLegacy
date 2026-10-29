@@ -194,8 +194,12 @@
       </div>
 
       <div class="input-group">
-        <label class="auth-label">Email / phone number</label>
-        <input id="emailInput" class="input-field" type="text" inputmode="email" autocomplete="username" placeholder="Email or phone number">
+        <label class="auth-label" for="authMethod">Register / sign in with</label>
+        <select id="authMethod" class="input-field" onchange="changeAuthMethod()"><option value="email">Email + password (email verification link)</option><option value="phone">Phone number (SMS verification code)</option></select>
+      </div>
+      <div class="input-group">
+        <label class="auth-label" id="identityLabel">Email address</label>
+        <input id="emailInput" class="input-field" type="email" inputmode="email" autocomplete="username" placeholder="you@example.com">
       </div>
 
       <div class="input-group">
@@ -214,8 +218,17 @@
         </div>
       </div>
 
-      <div id="errorMsg" class="auth-error"></div>
+      <div id="recaptcha-container"></div>
+      <div id="errorMsg" class="auth-error" aria-live="polite"></div>
       <button id="authSubmit" class="btn-primary" onclick="handleAuth()">Sign up</button>
+      <div id="verifyPanel" style="display:none;margin-top:16px;text-align:left;border-top:1px solid #e5e7eb;padding-top:16px">
+        <h3 id="verifyHeading" style="margin:0 0 8px">Verify your account</h3>
+        <p id="verifyInstructions" style="font-size:14px;line-height:1.5;color:#52616b">Follow the verification instructions sent to you.</p>
+        <input id="otpInput" class="input-field" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6-digit SMS code" style="display:none;margin:10px 0">
+        <button id="verifyAction" class="btn-primary" type="button" onclick="verifyAccount()">I have verified my email</button>
+        <button id="resendVerification" class="text-link" type="button" onclick="resendVerificationMessage()" style="display:block;margin:12px auto 0">Resend verification</button>
+        <button class="text-link" type="button" onclick="cancelVerification()" style="display:block;margin:8px auto 0">Back to sign in</button>
+      </div>
 
       <p class="auth-switch">
         <span id="switchPrompt">Already have an account?</span>
@@ -488,7 +501,7 @@
 <!-- Firebase & App Logic -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, sendEmailVerification, reload, RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
   import { getFirestore, collection, doc, setDoc, getDoc, getDocs, query, where, orderBy, onSnapshot, addDoc, deleteDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
   import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 
@@ -633,6 +646,9 @@ const firebaseConfig = {
     document.getElementById('switchPrompt').textContent = isSignupMode ? "Already have an account?" : "Don't have an account?";
     document.getElementById('switchAuth').textContent = isSignupMode ? "Sign in" : "Sign up";
     document.getElementById('errorMsg').textContent = "";
+    document.getElementById('verifyPanel').style.display = 'none';
+    document.getElementById('authSubmit').style.display = 'block';
+    changeAuthMethod();
     changeLanguage(localStorage.getItem('ethiolegacy_language')||'en');
   };
 
@@ -648,103 +664,114 @@ const firebaseConfig = {
     else { input.type = 'password'; btn.textContent = '👁️'; }
   };
 
-  // Every registered user gets an automatic invite code. The Firebase UID is
-  // the secure referral identifier; the short code is convenient to share.
-  function getInviteCode(uid) { return uid ? ('EL' + String(uid).replace(/[^a-zA-Z0-9]/g, '').slice(0, 8).toUpperCase()) : ''; }
-  function buildInviteUrl(uid) {
-    const base = window.location.origin + window.location.pathname;
-    return `${base}?invite=${encodeURIComponent(uid)}&code=${encodeURIComponent(getInviteCode(uid))}`;
+  let phoneConfirmationResult = null;
+  let recaptchaVerifier = null;
+  let verificationMode = null;
+  let pendingProfileName = '';
+
+  window.changeAuthMethod = () => {
+    const phone = document.getElementById('authMethod').value === 'phone';
+    const field = document.getElementById('emailInput');
+    field.type = phone ? 'tel' : 'email';
+    field.inputMode = phone ? 'tel' : 'email';
+    field.placeholder = phone ? '+2519XXXXXXXX' : 'you@example.com';
+    document.getElementById('identityLabel').textContent = phone ? 'Phone number (include country code)' : 'Email address';
+    document.getElementById('passwordInput').closest('.input-group').style.display = phone ? 'none' : 'block';
+    document.getElementById('confirmGroup').style.display = (phone || !isSignupMode) ? 'none' : 'block';
+    document.getElementById('nameGroup').style.display = isSignupMode ? 'block' : 'none';
+    document.getElementById('authSubmit').textContent = phone ? (isSignupMode ? 'Send SMS code' : 'Send SMS code') : (isSignupMode ? 'Sign up' : 'Sign in');
+    document.getElementById('errorMsg').textContent = '';
+  };
+
+  async function saveUserProfile(user, name, emailValue = '', phoneValue = '') {
+    const urlParams = new URLSearchParams(window.location.search);
+    const inviterUid = urlParams.get('invite');
+    let linkedUsers = [];
+    if (inviterUid && inviterUid !== user.uid) {
+      linkedUsers.push(inviterUid);
+      try { await updateDoc(doc(db, 'users', inviterUid), { linkedUsers: arrayUnion(user.uid) }); } catch (e) { console.warn('Invite link could not be saved:', e); }
+    }
+    try { await updateProfile(user, { displayName: name || user.displayName || '' }); } catch (e) { console.warn('Profile name update failed:', e); }
+    await setDoc(doc(db, 'users', user.uid), {
+      uid: user.uid,
+      email: emailValue || user.email || '',
+      phone: phoneValue || user.phoneNumber || '',
+      displayName: name || user.displayName || 'EthioLegacy member',
+      linkedUsers,
+      createdAt: serverTimestamp()
+    }, { merge: true });
   }
-  async function shareEthioLegacyInvite(contactName = '') {
-    if (!currentUser?.uid) { toast('Please sign in before inviting someone.'); return; }
-    const inviteCode = getInviteCode(currentUser.uid);
-    const inviteUrl = buildInviteUrl(currentUser.uid);
-    const greeting = contactName ? `Hi ${contactName}, ` : '';
-    const shareText = `${greeting}join me on EthioLegacy for private chats, voice/video calls, groups and communities.\n\nJoin/sign up here: ${inviteUrl}\nInvite code: ${inviteCode}`;
-    try {
-      if (navigator.share) await navigator.share({ title: 'Join EthioLegacy', text: shareText, url: inviteUrl });
-      else if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(shareText); toast('EthioLegacy invitation link and code copied.'); }
-      else window.prompt('Copy this EthioLegacy invitation:', shareText);
-    } catch (e) { if (e?.name !== 'AbortError') { try { window.prompt('Copy this EthioLegacy invitation:', shareText); } catch (_) {} } }
-  }
-  window.shareEthioLegacyInvite = shareEthioLegacyInvite;
 
   window.handleAuth = async () => {
-    const loginValue = document.getElementById('emailInput').value.trim();
-    const email = loginValue.toLowerCase();
+    const identifier = document.getElementById('emailInput').value.trim();
+    const method = document.getElementById('authMethod').value;
     const pass = document.getElementById('passwordInput').value;
     const confirmPass = document.getElementById('confirmPasswordInput').value;
     const name = document.getElementById('nameInput').value.trim();
     const err = document.getElementById('errorMsg');
     const btn = document.getElementById('authSubmit');
-
     err.textContent = '';
-
-    // Firebase Email/Password authentication needs an email address.
-    // Phone-number authentication requires a separate SMS verification flow.
-    if (!email || !pass) {
-      err.textContent = 'Enter your email address and password.';
+    if (!identifier) { err.textContent = method === 'phone' ? 'Enter a phone number with country code, for example +2519XXXXXXXX.' : 'Enter your email address.'; return; }
+    if (isSignupMode && !name) { err.textContent = 'Full name is required.'; return; }
+    if (method === 'phone') {
+      if (!/^\+[1-9]\d{7,14}$/.test(identifier.replace(/[\s()-]/g, ''))) { err.textContent = 'Use international phone format, for example +2519XXXXXXXX.'; return; }
+      btn.disabled = true; btn.textContent = 'Sending SMS code...';
+      try {
+        if (!recaptchaVerifier) recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', { size: 'normal', callback: () => {} });
+        else { try { await recaptchaVerifier.render(); } catch (_) {} }
+        phoneConfirmationResult = await signInWithPhoneNumber(auth, identifier.replace(/[\s()-]/g, ''), recaptchaVerifier);
+        verificationMode = 'phone'; pendingProfileName = name;
+        document.getElementById('verifyPanel').style.display = 'block';
+        document.getElementById('verifyHeading').textContent = 'Verify your phone number';
+        document.getElementById('verifyInstructions').textContent = 'Enter the SMS code sent to ' + identifier + '. Phone sign-in uses SMS verification rather than a password.';
+        document.getElementById('otpInput').style.display = 'block';
+        document.getElementById('verifyAction').textContent = 'Verify code & continue';
+        document.getElementById('resendVerification').style.display = 'none';
+        btn.style.display = 'none';
+      } catch (e) {
+        console.error(e);
+        err.textContent = e.code === 'auth/invalid-phone-number' ? 'That phone number is invalid. Include country code.' : e.code === 'auth/too-many-requests' ? 'Too many attempts. Please wait and try again.' : e.code === 'auth/unauthorized-domain' ? 'Add this website domain in Firebase Authentication → Settings → Authorized domains.' : (e.message || 'Could not send SMS code. Check Firebase Phone provider and reCAPTCHA settings.');
+        if (recaptchaVerifier) { try { await recaptchaVerifier.clear(); } catch (_) {} recaptchaVerifier = null; }
+      } finally { btn.disabled = false; if (btn.style.display !== 'none') btn.textContent = 'Send SMS code'; }
       return;
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      err.textContent = 'Use a valid email address. Phone sign-in needs SMS verification and is not enabled in this form.';
-      return;
-    }
+    const email = identifier.toLowerCase();
+    if (!email.includes('@')) { err.textContent = 'Please enter a valid email address.'; return; }
+    if (!pass) { err.textContent = 'Password is required.'; return; }
     if (isSignupMode) {
-      if (!name) { err.textContent = 'Full name is required.'; return; }
       if (pass.length < 6) { err.textContent = 'Password must be at least 6 characters.'; return; }
       if (pass !== confirmPass) { err.textContent = 'Passwords do not match.'; return; }
     }
-
-    const originalText = btn.textContent;
-    btn.disabled = true;
-    btn.textContent = 'Connecting...';
+    btn.disabled = true; btn.textContent = 'Connecting...';
     try {
       if (isSignupMode) {
         const cred = await createUserWithEmailAndPassword(auth, email, pass);
-
-        // Save the display name in Firebase Authentication. A profile-write
-        // problem must not make a successfully created auth account look failed.
-        try {
-          await updateProfile(cred.user, { displayName: name });
-        } catch (profileError) {
-          console.warn('Could not save display name to Firebase Auth:', profileError);
-        }
-
-        const urlParams = new URLSearchParams(window.location.search);
-        const inviterUid = urlParams.get('invite');
-        const linkedUsers = inviterUid && inviterUid !== cred.user.uid ? [inviterUid] : [];
-
-        try {
-          await setDoc(doc(db, 'users', cred.user.uid), {
-            uid: cred.user.uid,
-            email,
-            displayName: name,
-            inviteCode: getInviteCode(cred.user.uid),
-            linkedUsers,
-            createdAt: serverTimestamp()
-          }, { merge: true });
-        } catch (profileError) {
-          console.error('Account created, but Firestore profile save failed:', profileError);
-          toast('Account created. Profile sync needs a Firestore rules check.');
-        }
-
-        if (inviterUid && inviterUid !== cred.user.uid) {
-          try {
-            await updateDoc(doc(db, 'users', inviterUid), {
-              linkedUsers: arrayUnion(cred.user.uid)
-            });
-          } catch (inviteError) {
-            console.warn('Account created, but invite linking failed:', inviteError);
-          }
-        }
+        try { await saveUserProfile(cred.user, name, email, ''); } catch (profileError) { console.warn('Account created; profile save will need Firestore rules review:', profileError); }
+        await sendEmailVerification(cred.user);
+        verificationMode = 'email'; pendingProfileName = name;
+        document.getElementById('verifyPanel').style.display = 'block';
+        document.getElementById('verifyHeading').textContent = 'Verify your email';
+        document.getElementById('verifyInstructions').textContent = 'A verification link was sent to ' + email + '. Open the email and tap the link, then return here and tap “I have verified my email”. Check Spam/Junk if you do not see it.';
+        document.getElementById('otpInput').style.display = 'none';
+        document.getElementById('verifyAction').textContent = 'I have verified my email';
+        document.getElementById('resendVerification').style.display = 'block';
+        btn.style.display = 'none';
       } else {
-        await signInWithEmailAndPassword(auth, email, pass);
+        const cred = await signInWithEmailAndPassword(auth, email, pass);
+        if (!cred.user.emailVerified) {
+          await sendEmailVerification(cred.user);
+          verificationMode = 'email';
+          document.getElementById('verifyPanel').style.display = 'block';
+          document.getElementById('verifyHeading').textContent = 'Verify your email';
+          document.getElementById('verifyInstructions').textContent = 'Your email is not verified yet. A verification link has been sent to ' + email + '. Verify it, then return and tap the button below.';
+          document.getElementById('otpInput').style.display = 'none';
+          document.getElementById('verifyAction').textContent = 'I have verified my email';
+          document.getElementById('resendVerification').style.display = 'block';
+          btn.style.display = 'none';
+        }
       }
-      // onAuthStateChanged handles switching to the home screen.
     } catch (e) {
       console.error('EthioLegacy authentication error:', e);
-      const code = e?.code || '';
       const messages = {
         'auth/email-already-in-use': 'This email already has an account. Choose Sign in instead.',
         'auth/invalid-email': 'Please enter a valid email address.',
@@ -754,21 +781,71 @@ const firebaseConfig = {
         'auth/invalid-credential': 'Incorrect email or password, or the account does not exist.',
         'auth/too-many-requests': 'Too many attempts. Wait a little and try again.',
         'auth/network-request-failed': 'Network error. Check your Wi-Fi/mobile data and try again.',
-        'auth/operation-not-allowed': 'Enable Email/Password in Firebase Console → Authentication → Sign-in method.',
-        'auth/unauthorized-domain': 'Add this GitHub Pages domain in Firebase Console → Authentication → Settings → Authorized domains.',
-        'auth/weak-password': 'Choose a password with at least 6 characters.'
+        'auth/operation-not-allowed': 'Enable Email/Password and Phone providers in Firebase Console → Authentication → Sign-in method.',
+        'auth/unauthorized-domain': 'Add this website domain in Firebase Console → Authentication → Settings → Authorized domains.'
       };
-      err.textContent = messages[code] || 'Authentication failed: ' + (e?.message || 'Check your Firebase settings and internet connection.');
+      err.textContent = messages[e.code] || (e.message || 'Could not sign in. Check your Firebase settings.').replace(/^Firebase:\s*/i, '');
     } finally {
       btn.disabled = false;
-      const t = translations[localStorage.getItem('ethiolegacy_language') || 'en'] || translations.en;
-      btn.textContent = isSignupMode ? t.signup : t.signin;
+      if (btn.style.display !== 'none') btn.textContent = document.getElementById('authMethod').value === 'phone' ? 'Send SMS code' : (isSignupMode ? 'Sign up' : 'Sign in');
     }
   };
 
-  onAuthStateChanged(auth, (user) => {
+  window.verifyAccount = async () => {
+    const err = document.getElementById('errorMsg'); err.textContent = '';
+    try {
+      if (verificationMode === 'phone') {
+        const code = document.getElementById('otpInput').value.trim();
+        if (!code) { err.textContent = 'Enter the SMS verification code.'; return; }
+        const result = await phoneConfirmationResult.confirm(code);
+        await saveUserProfile(result.user, pendingProfileName || result.user.displayName || 'EthioLegacy member', '', result.user.phoneNumber || '');
+        document.getElementById('verifyPanel').style.display = 'none';
+        document.getElementById('authSubmit').style.display = 'block';
+        toast('Phone verified successfully. Welcome to EthioLegacy!');
+      } else if (verificationMode === 'email') {
+        if (!auth.currentUser) { err.textContent = 'Please sign in again, then verify your email.'; return; }
+        await reload(auth.currentUser);
+        if (!auth.currentUser.emailVerified) { err.textContent = 'Email is not verified yet. Open the verification link in your email first.'; return; }
+        document.getElementById('verifyPanel').style.display = 'none';
+        document.getElementById('authSubmit').style.display = 'block';
+        toast('Email verified successfully. Welcome to EthioLegacy!');
+      }
+    } catch (e) { console.error(e); err.textContent = e.code === 'auth/invalid-verification-code' ? 'Incorrect SMS code. Check it and try again.' : (e.message || 'Verification failed. Please try again.'); }
+  };
+
+  window.resendVerificationMessage = async () => {
+    const err = document.getElementById('errorMsg'); err.textContent = '';
+    try { if (!auth.currentUser) throw new Error('Please sign in again first.'); await sendEmailVerification(auth.currentUser); err.textContent = 'A new verification link has been sent. Check your inbox and Spam/Junk.'; }
+    catch (e) { err.textContent = e.code === 'auth/too-many-requests' ? 'Please wait before requesting another email.' : (e.message || 'Could not resend verification email.'); }
+  };
+
+  window.cancelVerification = async () => {
+    document.getElementById('verifyPanel').style.display = 'none';
+    document.getElementById('authSubmit').style.display = 'block';
+    document.getElementById('errorMsg').textContent = '';
+    phoneConfirmationResult = null; verificationMode = null;
+    if (auth.currentUser && !auth.currentUser.phoneNumber && !auth.currentUser.emailVerified) await signOut(auth);
+  };
+
+  onAuthStateChanged(auth, async (user) => {
     if (user) {
+      // Phone users are verified by Firebase SMS sign-in. Email users must verify the email link.
+      if (user.email && !user.emailVerified) {
+        currentUser = null;
+        showScreen('loginScreen');
+        verificationMode = 'email';
+        document.getElementById('verifyPanel').style.display = 'block';
+        document.getElementById('verifyHeading').textContent = 'Verify your email';
+        document.getElementById('verifyInstructions').textContent = 'A verification link is required for ' + user.email + '. Open the link from your email, then return here and tap “I have verified my email”.';
+        document.getElementById('otpInput').style.display = 'none';
+        document.getElementById('verifyAction').textContent = 'I have verified my email';
+        document.getElementById('resendVerification').style.display = 'block';
+        document.getElementById('authSubmit').style.display = 'none';
+        return;
+      }
       currentUser = user;
+      document.getElementById('verifyPanel').style.display = 'none';
+      document.getElementById('authSubmit').style.display = 'block';
       showScreen('homeScreen');
       loadUsers();
       if(user.displayName) toast('Welcome, '+user.displayName);
@@ -790,42 +867,23 @@ const firebaseConfig = {
   };
 
   // --- CHAT LOGIC ---
-  // allUsers is only the member directory used when the signed-in user chooses a new contact.
-  // myFriends is the private list saved under users/{currentUser.uid}/friends and is used
-  // for the Chats and Calls tabs. A user's friend list is never written to another profile.
   let allUsers = [];
-  let myFriends = [];
   async function loadUsers() {
-    if (!currentUser) return;
     const snap = await getDocs(collection(db, "users"));
     allUsers = [];
     const myProfile = await getDoc(doc(db, 'users', currentUser.uid));
     const hidden = myProfile.exists() && Array.isArray(myProfile.data().hiddenUsers) ? myProfile.data().hiddenUsers : [];
     snap.forEach(d => { if (d.id !== currentUser.uid && !hidden.includes(d.id)) allUsers.push({uid:d.id, ...d.data()}); });
-
-    // Read only this account's private friend list, then resolve each saved UID to its profile.
-    const friendsSnap = await getDocs(collection(db, 'users', currentUser.uid, 'friends'));
-    myFriends = [];
-    for (const friendDoc of friendsSnap.docs) {
-      const friendUid = friendDoc.id;
-      if (friendUid === currentUser.uid || hidden.includes(friendUid)) continue;
-      let profile = allUsers.find(u => u.uid === friendUid);
-      if (!profile) {
-        const profileSnap = await getDoc(doc(db, 'users', friendUid));
-        if (profileSnap.exists()) profile = {uid: friendUid, ...profileSnap.data()};
-      }
-      if (profile) myFriends.push(profile);
-    }
-    renderUsers(myFriends);
+    renderUsers(allUsers);
     renderDeviceContacts();
-    renderCallList(myFriends);
+    renderCallList(allUsers);
     loadCommunities();
   }
 
   function renderUsers(users) {
     const list = document.getElementById('userList');
     list.innerHTML = '';
-    if(users.length === 0) list.innerHTML = '<p style="padding:20px;text-align:center;color:#666;">Your private chat list is empty. Tap + to start a 1-to-1 chat.</p>';
+    if(users.length === 0) list.innerHTML = '<p style="padding:20px;text-align:center;color:#666;">No other users yet.</p>';
     users.forEach(u => {
       const div = document.createElement('div');
       div.className = 'chat-item';
@@ -894,7 +952,10 @@ window.importDeviceContacts = async () => {
           const action = document.createElement('button'); action.className = 'contact-action';
           if (match) { action.textContent = box.id === 'callDeviceContactsList' ? 'Call' : 'Chat'; action.onclick = () => { if(box.id === 'callDeviceContactsList'){openChat(match.uid,match.displayName||c.name);setTimeout(()=>startCall('audio'),100)}else openChat(match.uid, match.displayName || c.name); }; }
           else { action.textContent = 'Invite'; action.onclick = async () => {
-            await shareEthioLegacyInvite(c.name || '');
+            const shareText = 'Join me on EthioLegacy for chats, voice/video calls and communities.';
+            if (navigator.share) { try { await navigator.share({title:'EthioLegacy', text:shareText}); } catch(e) {} }
+            else if (navigator.clipboard?.writeText) { try { await navigator.clipboard.writeText(shareText); toast('Invite message copied. Send it to your contact.'); } catch(e) { toast('Please share the EthioLegacy link manually.'); } }
+            else toast('Please share the EthioLegacy link manually.');
             renderWaContacts(); // Refresh the list immediately
           }; }
           row.appendChild(action);
@@ -906,8 +967,7 @@ window.importDeviceContacts = async () => {
 
   function filterUserRecords(val) {
     const q=(val||'').trim().toLowerCase();
-    // Chats and Calls search only the current user's own private friend list.
-    return myFriends.filter(u => [u.displayName,u.email,u.phone,u.phoneNumber].some(v => (v||'').toLowerCase().includes(q)));
+    return allUsers.filter(u => [u.displayName,u.email,u.phone,u.phoneNumber].some(v => (v||'').toLowerCase().includes(q)));
   }
 // ===== NEW CONTACT LOGIC =====
 window.openNewContactScreen = () => {
@@ -977,9 +1037,8 @@ window.saveNewContact = async () => {
       alert(`${firstName} is on EthioLegacy! You are now connected.`);
     } else {
       // If they are not on the app, generate an invite link
-      const inviteUrl = buildInviteUrl(currentUser.uid);
-      const inviteCode = getInviteCode(currentUser.uid);
-      alert(`${firstName} is not on EthioLegacy yet.\n\nShare this link to invite them to sign up:\n${inviteUrl}\n\nYour invite code: ${inviteCode}`);
+      const inviteUrl = `${location.origin}${location.pathname}?invite=${currentUser.uid}`;
+      alert(`${firstName} is not on EthioLegacy yet.\n\nShare this link to invite them:\n${inviteUrl}`);
     }
     
     closeNewContact();
@@ -999,7 +1058,7 @@ window.saveNewContact = async () => {
 
   function renderCallList(users){
     const list=document.getElementById('callList'); if(!list)return; list.innerHTML='';
-    if(!users.length){list.innerHTML='<div class="empty-state">Your private call list is empty. Start a 1-to-1 chat to add a contact here.</div>';return;}
+    if(!users.length){list.innerHTML='<div class="empty-state">No other members yet. Invite someone to EthioLegacy to start calling.</div>';return;}
     users.forEach(u=>{
       const row=document.createElement('div');row.className='chat-item';
       const name=escapeHTML(u.displayName||'Member');
@@ -1019,7 +1078,7 @@ window.saveNewContact = async () => {
   async function loadCommunities(){
     const list=document.getElementById('communityList'); if(!list||!currentUser)return;
     try{
-      const snap=await getDocs(query(collection(db,'chats'),where('isGroup','==',true),where('members','array-contains',currentUser.uid)));
+      const snap=await getDocs(query(collection(db,'chats'),where('isGroup','==',true)));
       list.innerHTML='';let count=0;
       snap.forEach(d=>{const g=d.data();if(Array.isArray(g.members)&&!g.members.includes(currentUser.uid))return;count++;const row=document.createElement('div');row.className='community-card';const name=escapeHTML(g.name||'Community');row.innerHTML=`<div class="community-icon">👥</div><div class="community-meta"><b>${name}</b><small>Group conversation</small></div><button class="mini-action" title="Leave community" aria-label="Leave community">✕</button>`;row.querySelector('.community-meta').onclick=()=>openChat(d.id,g.name||'Community');row.querySelector('button').onclick=async(e)=>{e.stopPropagation();if(!confirm('Leave '+(g.name||'this community')+'?'))return;try{await updateDoc(doc(db,'chats',d.id),{members:arrayRemove(currentUser.uid)});toast('You left the community.');await loadCommunities();}catch(err){console.error(err);toast('Could not leave community. Check Firestore rules.');}};list.appendChild(row);});
       if(!count)list.innerHTML='<div class="empty-state">No communities yet. Tap “Create a community or group” to start one.</div>';
@@ -1087,12 +1146,51 @@ function renderWaContacts() {
     </div>`;
   }
 }
-window.handleWaContactClick = async (name, tel, email, matchUid, matchName) => {
+  // 1. Show users already on EthioLegacy
+  allUsers.forEach(u => {
+    list.innerHTML += `
+    <div class="wa-contact-item" onclick="openChat('${u.uid}','${u.displayName}'); document.getElementById('newChatModal').classList.remove('active');">
+      <div class="avatar" style="width: 45px; height: 45px; font-size: 18px; margin-right: 15px;">${u.displayName[0]}</div>
+      <div style="flex:1;">
+        <div style="font-weight: 500; font-size: 16px; color: #111;">${u.displayName}</div>
+        <div style="font-size: 13px; color: #667781;">Hey there! I am using EthioLegacy.</div>
+      </div>
+    </div>`;
+  });
+
+  // 2. Show synced phone contacts
+  importedDeviceContacts.forEach(c => {
+    const match = allUsers.find(u => (c.email && u.email === c.email) || (c.tel && u.phone === c.tel));
+    list.innerHTML += `
+    <div class="wa-contact-item" onclick="handleWaContactClick('${c.name}', '${c.tel}', '${c.email}', '${match ? match.uid : ''}', '${match ? match.displayName : ''}')">
+      <div class="avatar" style="width: 45px; height: 45px; font-size: 18px; background: #dfe5e7; color: #555; margin-right: 15px;">${c.name[0]}</div>
+      <div style="flex:1;">
+        <div style="font-weight: 500; font-size: 16px; color: #111;">${c.name}</div>
+        <div style="font-size: 13px; color: #667781;">${match ? 'On EthioLegacy' : 'Invite to EthioLegacy'}</div>
+      </div>
+    </div>`;
+  });
+
+  // 3. If no contacts, show sync button
+  if (importedDeviceContacts.length === 0) {
+    list.innerHTML += `
+    <div style="padding: 20px; text-align: center;">
+      <button class="btn-primary" style="width: auto; background: #00a884; padding: 10px 20px;" onclick="importDeviceContacts()">📱 Sync Phone Contacts</button>
+      <p style="font-size: 12px; color: #667781; margin-top: 10px;">Tap to allow EthioLegacy to see your phone contacts.</p>
+    </div>`;
+  }
+}
+
+window.handleWaContactClick = (name, tel, email, matchUid, matchName) => {
   if (matchUid) {
     openChat(matchUid, matchName);
     document.getElementById('newChatModal').classList.remove('active');
   } else {
-    await shareEthioLegacyInvite(name || '');
+    if (navigator.share) {
+      navigator.share({ title: 'EthioLegacy', text: `Join me on EthioLegacy!` });
+    } else {
+      alert('Invite ' + name + ' to EthioLegacy!');
+    }
   }
 };
 // ===== NEW CONTACT SCREEN LOGIC =====
@@ -1150,38 +1248,10 @@ window.saveNewContact = async () => {
     alert('Failed to save contact. Check Firestore rules.');
   }
 };
-  window.openChat = async (uid, name) => {
-  if (!currentUser || !uid) return toast('Please sign in and select a contact.');
+  window.openChat = (uid, name) => {
   currentPartner = uid;
-  const isGroupChat = uid.startsWith("group_");
-  currentChatId = isGroupChat ? uid : (currentUser.uid < uid ? currentUser.uid + "_" + uid : uid + "_" + currentUser.uid);
+  currentChatId = uid.startsWith("group_") ? uid : (currentUser.uid < uid ? currentUser.uid + "_" + uid : uid + "_" + currentUser.uid);
   document.getElementById('chatPartnerName').textContent = name;
-
-  // A direct chat is a private 1-to-1 conversation. Record exactly the two participants
-  // on the chat document so Firestore rules can prevent other users from reading messages.
-  if (!isGroupChat) {
-    try {
-      await setDoc(doc(db, 'chats', currentChatId), {
-        isGroup: false,
-        members: [currentUser.uid, uid],
-        createdBy: currentUser.uid,
-        updatedAt: serverTimestamp()
-      }, {merge: true});
-      await setDoc(doc(db, 'users', currentUser.uid, 'friends', uid), {
-        uid,
-        displayName: name || (allUsers.find(u => u.uid === uid)?.displayName) || 'Member',
-        addedAt: serverTimestamp()
-      }, {merge: true});
-      const profile = allUsers.find(u => u.uid === uid);
-      if (profile && !myFriends.some(u => u.uid === uid)) myFriends.push(profile);
-      renderUsers(myFriends);
-      renderCallList(myFriends);
-    } catch (e) {
-      console.error('Could not create private chat/contact:', e);
-      toast('Could not open private chat. Check Firestore rules and connection.');
-      return;
-    }
-  }
   
   // Show group call buttons if it's a group
   if(uid.startsWith("group_")) {
@@ -1270,14 +1340,13 @@ window.deleteMessage = async (messageId) => {
 };
 
   window.removeUserFromLists = async (uid, name) => {
-    if (!currentUser || !confirm(`Remove ${name} from your private Chats and Calls lists? This will not remove them from another user's list.`)) return;
+    if (!currentUser || !confirm(`Remove ${name} from your Chats and Calls lists?`)) return;
     try {
-      // Delete only the signed-in user's private friend entry. Never edit the other user's list.
-      await deleteDoc(doc(db, 'users', currentUser.uid, 'friends', uid));
-      myFriends = myFriends.filter(u => u.uid !== uid);
-      renderUsers(myFriends); renderCallList(myFriends);
-      toast(name + ' removed from your private lists.');
-    } catch (e) { console.error(e); toast('Could not remove contact. Check private-friends Firestore rules.'); }
+      await updateDoc(doc(db, 'users', currentUser.uid), { hiddenUsers: arrayUnion(uid) });
+      allUsers = allUsers.filter(u => u.uid !== uid);
+      renderUsers(allUsers); renderCallList(allUsers);
+      toast(name + ' removed from your lists.');
+    } catch (e) { console.error(e); toast('Could not remove user. Check Firestore rules and your user profile document.'); }
   };
 
   window.sendMessage = async () => {
