@@ -801,30 +801,32 @@ await setDoc(doc(db, 'users', cred.user.uid), {
   }
 
   let importedDeviceContacts = [];
-  window.importDeviceContacts = async () => {
-    if (!currentUser) return toast('Please sign in first.');
-    if (!('contacts' in navigator) || !navigator.contacts?.select) {
-      toast('Device contact picker is not supported here. Open EthioLegacy in Chrome on Android over HTTPS.');
-      return;
-    }
-    try {
-      const props = ['name', 'tel', 'email'];
-      const picked = await navigator.contacts.select(props, { multiple: true });
-      const seen = new Set();
-      importedDeviceContacts = picked.map(c => ({
-        name: (c.name && c.name[0]) || 'Unnamed contact',
-        tel: (c.tel && c.tel[0]) || '',
-        email: (c.email && c.email[0]) || ''
-      })).filter(c => {
-        const key = (c.email+'|'+c.tel+'|'+c.name).toLowerCase();
-        if (seen.has(key)) return false; seen.add(key); return true;
-      });
-      renderDeviceContacts();
-      toast(importedDeviceContacts.length + ' contacts selected on this device.');
-    } catch (e) {
-      if (e.name !== 'AbortError') toast('Could not read selected contacts. Check browser permission.');
-    }
-  };
+window.importDeviceContacts = async () => {
+  if (!currentUser) return toast('Please sign in first.');
+  if (!('contacts' in navigator) || !navigator.contacts?.select) {
+    toast('Device contact picker is not supported here. Open EthioLegacy in Chrome on Android over HTTPS.');
+    return;
+  }
+  try {
+    const props = ['name', 'tel', 'email'];
+    const picked = await navigator.contacts.select(props, { multiple: true });
+    const seen = new Set();
+    
+    importedDeviceContacts = picked.map(c => ({
+      name: (c.name && c.name[0]) || 'Unnamed contact',
+      tel: (c.tel && c.tel[0]) ? c.tel[0].replace(/\D/g,'') : '', // Clean the number (removes spaces/dashes)
+      email: (c.email && c.email[0]) || ''
+    })).filter(c => {
+      const key = (c.email+'|'+c.tel+'|'+c.name).toLowerCase();
+      if (seen.has(key)) return false; seen.add(key); return true;
+    });
+    
+    renderWaContacts(); // Update the WhatsApp-style menu immediately
+    toast(importedDeviceContacts.length + ' contacts synced.');
+  } catch (e) {
+    if (e.name !== 'AbortError') toast('Could not read selected contacts. Check browser permission.');
+  }
+};
 
   function renderDeviceContacts() {
     const q = (document.getElementById('searchInput')?.value || '').trim().toLowerCase();
