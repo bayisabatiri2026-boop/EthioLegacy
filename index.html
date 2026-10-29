@@ -649,7 +649,8 @@ const firebaseConfig = {
   };
 
   window.handleAuth = async () => {
-    const email = document.getElementById('emailInput').value.trim().toLowerCase();
+    const loginValue = document.getElementById('emailInput').value.trim();
+    const email = loginValue.toLowerCase();
     const pass = document.getElementById('passwordInput').value;
     const confirmPass = document.getElementById('confirmPasswordInput').value;
     const name = document.getElementById('nameInput').value.trim();
@@ -657,70 +658,68 @@ const firebaseConfig = {
     const btn = document.getElementById('authSubmit');
 
     err.textContent = '';
+
+    // Firebase Email/Password authentication needs an email address.
+    // Phone-number authentication requires a separate SMS verification flow.
     if (!email || !pass) {
-  err.textContent = 'Email address and password are required.';
-  return;
-}
-// Firebase Email/Password authentication requires an email address.
-if (!email.includes('@')) {
-  err.textContent = 'Please enter a valid email address.';
-  return;
-}
+      err.textContent = 'Enter your email address and password.';
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      err.textContent = 'Use a valid email address. Phone sign-in needs SMS verification and is not enabled in this form.';
+      return;
+    }
     if (isSignupMode) {
       if (!name) { err.textContent = 'Full name is required.'; return; }
       if (pass.length < 6) { err.textContent = 'Password must be at least 6 characters.'; return; }
       if (pass !== confirmPass) { err.textContent = 'Passwords do not match.'; return; }
     }
 
+    const originalText = btn.textContent;
     btn.disabled = true;
     btn.textContent = 'Connecting...';
     try {
       if (isSignupMode) {
         const cred = await createUserWithEmailAndPassword(auth, email, pass);
-        // Check if they used an invite link
-const urlParams = new URLSearchParams(window.location.search);
-const inviterUid = urlParams.get('invite');
 
-let linkedUsers = [];
-
-// If they used an invite link, link them automatically
-if (inviterUid && inviterUid !== cred.user.uid) {
-   linkedUsers.push(inviterUid);
-   // Add this new user to the inviter's list
-   await updateDoc(doc(db, 'users', inviterUid), { 
-     linkedUsers: arrayUnion(cred.user.uid) 
-   });
-}
-
-await setDoc(doc(db, 'users', cred.user.uid), {
-  uid: cred.user.uid,
-  email: email,
-  displayName: name,
-  phone: "+251000000000", // Placeholder, you can add a phone input to signup later
-  linkedUsers: linkedUsers, // Automatically links them to the inviter
-  createdAt: serverTimestamp()
-}, { merge: true });
+        // Save the display name in Firebase Authentication. A profile-write
+        // problem must not make a successfully created auth account look failed.
         try {
           await updateProfile(cred.user, { displayName: name });
         } catch (profileError) {
-          console.error('Could not save display name to Firebase Auth:', profileError);
+          console.warn('Could not save display name to Firebase Auth:', profileError);
         }
-        // Auth account creation should not be reported as failed just because
-        // Firestore profile rules/configuration need attention.
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const inviterUid = urlParams.get('invite');
+        const linkedUsers = inviterUid && inviterUid !== cred.user.uid ? [inviterUid] : [];
+
         try {
           await setDoc(doc(db, 'users', cred.user.uid), {
             uid: cred.user.uid,
             email,
             displayName: name,
+            linkedUsers,
             createdAt: serverTimestamp()
           }, { merge: true });
         } catch (profileError) {
           console.error('Account created, but Firestore profile save failed:', profileError);
-          err.textContent = 'Account created, but your profile could not be saved. Check Firestore rules. You can still continue.';
+          toast('Account created. Profile sync needs a Firestore rules check.');
+        }
+
+        if (inviterUid && inviterUid !== cred.user.uid) {
+          try {
+            await updateDoc(doc(db, 'users', inviterUid), {
+              linkedUsers: arrayUnion(cred.user.uid)
+            });
+          } catch (inviteError) {
+            console.warn('Account created, but invite linking failed:', inviteError);
+          }
         }
       } else {
         await signInWithEmailAndPassword(auth, email, pass);
       }
+      // onAuthStateChanged handles switching to the home screen.
     } catch (e) {
       console.error('EthioLegacy authentication error:', e);
       const code = e?.code || '';
@@ -733,10 +732,11 @@ await setDoc(doc(db, 'users', cred.user.uid), {
         'auth/invalid-credential': 'Incorrect email or password, or the account does not exist.',
         'auth/too-many-requests': 'Too many attempts. Wait a little and try again.',
         'auth/network-request-failed': 'Network error. Check your Wi-Fi/mobile data and try again.',
-        'auth/operation-not-allowed': 'Email/Password sign-in is disabled in Firebase Console → Authentication → Sign-in method.',
-        'auth/unauthorized-domain': 'This website domain is not authorized. Add its domain in Firebase Console → Authentication → Settings → Authorized domains.'
+        'auth/operation-not-allowed': 'Enable Email/Password in Firebase Console → Authentication → Sign-in method.',
+        'auth/unauthorized-domain': 'Add this GitHub Pages domain in Firebase Console → Authentication → Settings → Authorized domains.',
+        'auth/weak-password': 'Choose a password with at least 6 characters.'
       };
-      err.textContent = messages[code] || (e?.message || 'Could not sign in. Check your Firebase settings and try again.').replace(/^Firebase:\\s*/i, '');
+      err.textContent = messages[code] || 'Authentication failed: ' + (e?.message || 'Check your Firebase settings and internet connection.');
     } finally {
       btn.disabled = false;
       const t = translations[localStorage.getItem('ethiolegacy_language') || 'en'] || translations.en;
@@ -1047,41 +1047,6 @@ function renderWaContacts() {
     </div>`;
   }
 }
-  // 1. Show users already on EthioLegacy
-  allUsers.forEach(u => {
-    list.innerHTML += `
-    <div class="wa-contact-item" onclick="openChat('${u.uid}','${u.displayName}'); document.getElementById('newChatModal').classList.remove('active');">
-      <div class="avatar" style="width: 45px; height: 45px; font-size: 18px; margin-right: 15px;">${u.displayName[0]}</div>
-      <div style="flex:1;">
-        <div style="font-weight: 500; font-size: 16px; color: #111;">${u.displayName}</div>
-        <div style="font-size: 13px; color: #667781;">Hey there! I am using EthioLegacy.</div>
-      </div>
-    </div>`;
-  });
-
-  // 2. Show synced phone contacts
-  importedDeviceContacts.forEach(c => {
-    const match = allUsers.find(u => (c.email && u.email === c.email) || (c.tel && u.phone === c.tel));
-    list.innerHTML += `
-    <div class="wa-contact-item" onclick="handleWaContactClick('${c.name}', '${c.tel}', '${c.email}', '${match ? match.uid : ''}', '${match ? match.displayName : ''}')">
-      <div class="avatar" style="width: 45px; height: 45px; font-size: 18px; background: #dfe5e7; color: #555; margin-right: 15px;">${c.name[0]}</div>
-      <div style="flex:1;">
-        <div style="font-weight: 500; font-size: 16px; color: #111;">${c.name}</div>
-        <div style="font-size: 13px; color: #667781;">${match ? 'On EthioLegacy' : 'Invite to EthioLegacy'}</div>
-      </div>
-    </div>`;
-  });
-
-  // 3. If no contacts, show sync button
-  if (importedDeviceContacts.length === 0) {
-    list.innerHTML += `
-    <div style="padding: 20px; text-align: center;">
-      <button class="btn-primary" style="width: auto; background: #00a884; padding: 10px 20px;" onclick="importDeviceContacts()">📱 Sync Phone Contacts</button>
-      <p style="font-size: 12px; color: #667781; margin-top: 10px;">Tap to allow EthioLegacy to see your phone contacts.</p>
-    </div>`;
-  }
-}
-
 window.handleWaContactClick = (name, tel, email, matchUid, matchName) => {
   if (matchUid) {
     openChat(matchUid, matchName);
