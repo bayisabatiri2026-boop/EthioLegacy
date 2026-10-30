@@ -244,9 +244,9 @@
     <input id="searchInput" class="home-search" type="text" placeholder="Search users..." oninput="filterUsers(this.value)">
     <div class="contacts-toolbar"><button class="contacts-button" onclick="importDeviceContacts()">📱 Sync device contacts</button><span class="contacts-hint">Choose contacts to show here. Your browser will ask permission.</span></div>
   </div>
-  <div id="chatsPane" class="home-pane active"><div id="deviceContactsList"></div><div id="userList"></div></div>
+  <div id="chatsPane" class="home-pane active"><div id="deviceContactsList"></div><div id="userList"></div><div id="groupChatList"></div></div>
   <div id="callsPane" class="home-pane"><div id="callDeviceContactsList"></div><div class="pane-heading">Start a call</div><div id="callList"></div></div>
-  <div id="communitiesPane" class="home-pane"><div class="pane-heading">Your communities</div><div class="community-card" onclick="openNewChatModal()"><div class="community-icon">＋</div><div class="community-meta"><b>Create a community or group</b><small>Bring people together</small></div></div><div id="communityList"></div></div>
+  <div id="communitiesPane" class="home-pane"><div class="pane-heading">Communities</div><div class="community-card" onclick="openNewCommunity()"><div class="community-icon">＋</div><div class="community-meta"><b>Create new community</b><small>Create it, then invite members and manage it from its chat</small></div></div></div>
 </div>
 
 <!-- SCREEN 3: CHAT -->
@@ -261,6 +261,7 @@
 <button class="header-icon" onclick="startCall('video')">🎥</button>
 <button class="header-icon" onclick="joinGroupCall('audio')" style="display:none;" id="groupAudioBtn">📞👥</button>
 <button class="header-icon" onclick="joinGroupCall('video')" style="display:none;" id="groupVideoBtn">🎥👥</button>
+<button class="header-icon" onclick="manageCommunity()" style="display:none;" id="communityManageBtn" title="Edit community or invite members">⋮</button>
     </div>
   </div>
     <div id="chatBox"></div>
@@ -322,7 +323,7 @@
         <div class="wa-menu-item" onclick="openNewContactScreen()">
   <div class="wa-icon" style="background: #00a884;">👤</div> <span>New contact</span> 
 </div>
-        <div class="wa-menu-item" onclick="alert('Communities coming soon!')">
+        <div class="wa-menu-item" onclick="openNewCommunity()">
           <div class="wa-icon" style="background: #00a884;">👥</div> <span>New community</span>
         </div>
         <div class="wa-menu-item" onclick="alert('Events coming soon!')">
@@ -507,6 +508,11 @@ const firebaseConfig = {
   const auth = getAuth(app);
   const db = getFirestore(app);
   const storage = getStorage(app);
+  // Preserve the inviter UID while a new user completes registration.
+  try {
+    const inviteOnLanding = new URLSearchParams(window.location.search).get('invite');
+    if (inviteOnLanding) localStorage.setItem('ethiolegacy_pending_inviter', inviteOnLanding);
+  } catch (_) {}
 
   window.showScreen = (id) => {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -691,8 +697,10 @@ const firebaseConfig = {
         }
 
         const urlParams = new URLSearchParams(window.location.search);
-        const inviterUid = urlParams.get('invite');
-        const linkedUsers = inviterUid && inviterUid !== cred.user.uid ? [inviterUid] : [];
+        const inviterUid = urlParams.get('invite') || localStorage.getItem('ethiolegacy_pending_inviter') || '';
+        if (inviterUid) localStorage.setItem('ethiolegacy_pending_inviter', inviterUid);
+        const validInviterUid = inviterUid && inviterUid !== cred.user.uid ? inviterUid : '';
+        const linkedUsers = validInviterUid ? [validInviterUid] : [];
 
         try {
           await setDoc(doc(db, 'users', cred.user.uid), {
@@ -707,20 +715,25 @@ const firebaseConfig = {
           toast('Account created. Profile sync needs a Firestore rules check.');
         }
 
-        if (inviterUid && inviterUid !== cred.user.uid) {
+        if (validInviterUid) {
           try {
-            const inviterProfileSnap = await getDoc(doc(db, 'users', inviterUid));
-            const inviterName = inviterProfileSnap.exists() ? (inviterProfileSnap.data().displayName || 'EthioLegacy member') : 'EthioLegacy member';
-            await updateDoc(doc(db, 'users', inviterUid), { linkedUsers: arrayUnion(cred.user.uid) });
-            await setDoc(doc(db, 'users', cred.user.uid, 'friends', inviterUid), {
-              uid: inviterUid, displayName: inviterName, addedAt: serverTimestamp()
+            const inviterProfileRef = doc(db, 'users', validInviterUid);
+            const inviterProfileSnap = await getDoc(inviterProfileRef);
+            const inviterProfile = inviterProfileSnap.exists() ? inviterProfileSnap.data() : {};
+            const inviterName = inviterProfile.displayName || 'EthioLegacy member';
+            // Use merge writes on both sides so the inviter and receiver each get
+            // their own private Chats and Calls contact entry.
+            await setDoc(inviterProfileRef, { linkedUsers: arrayUnion(cred.user.uid) }, { merge: true });
+            await setDoc(doc(db, 'users', cred.user.uid, 'friends', validInviterUid), {
+              uid: validInviterUid, displayName: inviterName, addedAt: serverTimestamp()
             }, { merge: true });
-            await setDoc(doc(db, 'users', inviterUid, 'friends', cred.user.uid), {
-              uid: cred.user.uid, displayName: name, addedAt: serverTimestamp()
+            await setDoc(doc(db, 'users', validInviterUid, 'friends', cred.user.uid), {
+              uid: cred.user.uid, displayName: name, email: cred.user.email || email, addedAt: serverTimestamp()
             }, { merge: true });
+            localStorage.removeItem('ethiolegacy_pending_inviter');
           } catch (inviteError) {
             console.warn('Account created, but invite linking failed:', inviteError);
-            toast('Account created. Contact linking needs a Firestore rules check.');
+            toast('Account created, but contact linking failed. Check Firestore rules for users/{uid}/friends.');
           }
         }
       } else {
@@ -756,11 +769,13 @@ const firebaseConfig = {
       currentUser = user;
       restoreDeviceContacts();
       showScreen('homeScreen');
-      loadUsers();
+      loadUsers().catch(e => { console.error('Could not load private contacts:', e); toast('Could not load contacts. Check your connection and Firestore rules.'); });
       if(user.displayName) toast('Welcome, '+user.displayName);
       const savedLang=localStorage.getItem('ethiolegacy_language')||'en';const langSelect=document.getElementById('appLanguage');if(langSelect)langSelect.value=savedLang;const loginLang=document.querySelector('.language-row select');if(loginLang)loginLang.value=savedLang;changeLanguage(savedLang);
     } else {
+      if (friendsLiveUnsub) { friendsLiveUnsub(); friendsLiveUnsub = null; }
       currentUser = null;
+      myFriends = []; allUsers = [];
       showScreen('loginScreen');
     }
   });
@@ -772,7 +787,7 @@ const firebaseConfig = {
     document.getElementById('homeSearchWrap').style.display = (paneId==='chatsPane' || paneId==='callsPane') ? 'block' : 'none';
     const searchBox=document.getElementById('searchInput'); if(searchBox) searchBox.placeholder = paneId==='callsPane' ? 'Search calls by name, email or phone...' : 'Search chats by name, email or phone...';
     if(paneId==='callsPane') { renderCallList(filterUserRecords(searchBox?.value||'')); renderDeviceContacts(); }
-    if(paneId==='communitiesPane') loadCommunities();
+    // Community management is opened from the community chat itself.
   };
 
   // --- CHAT LOGIC ---
@@ -781,6 +796,7 @@ const firebaseConfig = {
   // for the Chats and Calls tabs. A user's friend list is never written to another profile.
   let allUsers = [];
   let myFriends = [];
+  let friendsLiveUnsub = null;
   async function loadUsers() {
     if (!currentUser) return;
     // Do not download or display the whole member directory. Load only this
@@ -802,6 +818,31 @@ const firebaseConfig = {
     renderDeviceContacts();
     renderCallList(myFriends);
     loadCommunities();
+    loadGroupChats();
+
+    // Keep each account's own Chats and Calls list live. When an invited person
+    // finishes registration, the inviter sees them without needing to reload.
+    if (friendsLiveUnsub) friendsLiveUnsub();
+    friendsLiveUnsub = onSnapshot(collection(db, 'users', currentUser.uid, 'friends'), async (friendSnapshot) => {
+      try {
+        const latest = [];
+        for (const friendDoc of friendSnapshot.docs) {
+          const friendUid = friendDoc.id;
+          if (friendUid === currentUser.uid || hidden.includes(friendUid)) continue;
+          const profileSnap = await getDoc(doc(db, 'users', friendUid));
+          if (profileSnap.exists()) latest.push({ uid: friendUid, ...profileSnap.data() });
+        }
+        myFriends = latest;
+        allUsers = [...latest];
+        await resolveSelectedDeviceContacts();
+        renderUsers(myFriends);
+        renderDeviceContacts();
+        renderCallList(myFriends);
+        loadGroupChats();
+      } catch (liveError) {
+        console.error('Live private contact refresh failed:', liveError);
+      }
+    }, error => console.error('Private contact listener failed:', error));
   }
 
   function renderUsers(users) {
@@ -1039,15 +1080,45 @@ window.saveNewContact = async () => {
     });
   }
 
-  async function loadCommunities(){
-    const list=document.getElementById('communityList'); if(!list||!currentUser)return;
-    try{
-      const snap=await getDocs(query(collection(db,'chats'),where('isGroup','==',true),where('members','array-contains',currentUser.uid)));
-      list.innerHTML='';let count=0;
-      snap.forEach(d=>{const g=d.data();if(Array.isArray(g.members)&&!g.members.includes(currentUser.uid))return;count++;const row=document.createElement('div');row.className='community-card';const name=escapeHTML(g.name||'Community');row.innerHTML=`<div class="community-icon">👥</div><div class="community-meta"><b>${name}</b><small>Group conversation</small></div><button class="mini-action" title="Leave community" aria-label="Leave community">✕</button>`;row.querySelector('.community-meta').onclick=()=>openChat(d.id,g.name||'Community');row.querySelector('button').onclick=async(e)=>{e.stopPropagation();if(!confirm('Leave '+(g.name||'this community')+'?'))return;try{await updateDoc(doc(db,'chats',d.id),{members:arrayRemove(currentUser.uid)});toast('You left the community.');await loadCommunities();}catch(err){console.error(err);toast('Could not leave community. Check Firestore rules.');}};list.appendChild(row);});
-      if(!count)list.innerHTML='<div class="empty-state">No communities yet. Tap “Create a community or group” to start one.</div>';
-    }catch(e){list.innerHTML='<div class="empty-state">Communities could not load. Check your Firebase Firestore rules and connection.</div>';}
+  async function loadGroupChats(){
+    const list = document.getElementById('groupChatList');
+    if (!list || !currentUser) return;
+    try {
+      const snap = await getDocs(query(collection(db, 'chats'), where('isGroup', '==', true), where('members', 'array-contains', currentUser.uid)));
+      list.innerHTML = '';
+      snap.forEach(d => {
+        const data = d.data();
+        const row = document.createElement('div');
+        row.className = 'chat-item';
+        const name = escapeHTML(data.name || 'Community');
+        row.innerHTML = `<div class="avatar">👥</div><div class="chat-info"><div class="chat-name">${name}</div><small class="muted">Community chat</small></div>`;
+        row.querySelector('.chat-info').onclick = () => openChat(d.id, data.name || 'Community');
+        list.appendChild(row);
+      });
+    } catch (e) {
+      console.error('Could not load group chats:', e);
+      list.innerHTML = '<p class="muted" style="padding:12px">Community chats could not load. Check Firestore rules.</p>';
+    }
   }
+
+  async function loadCommunities(){
+    // The Communities tab intentionally shows only "Create new community".
+    // Existing communities are opened and managed from Chats.
+    const list=document.getElementById('communityList');
+    if(list) list.innerHTML='';
+  }
+
+  window.openNewCommunity = () => {
+    if (!currentUser) return toast('Please sign in first.');
+    document.getElementById('newChatModal').classList.add('active');
+    document.getElementById('groupInputArea').style.display = 'block';
+    const input = document.getElementById('newGroupName');
+    input.placeholder = 'Community name';
+    input.value = '';
+    const button = document.querySelector('#groupInputArea button');
+    if (button) button.textContent = 'Create community';
+    renderWaContacts();
+  };
 
   window.openNewChatModal = () => {
   document.getElementById('newChatModal').classList.add('active');
@@ -1059,6 +1130,61 @@ window.showGroupInput = () => {
   document.getElementById('groupInputArea').style.display = 'block';
   document.getElementById('newGroupName').focus();
 };
+
+window.startNewChat = async () => {
+  if (!currentUser) return toast('Please sign in first.');
+  const name = document.getElementById('newGroupName').value.trim();
+  if (!name) return toast('Enter a community name first.');
+  try {
+    const communityId = 'group_' + currentUser.uid.slice(0, 8) + '_' + Date.now();
+    await setDoc(doc(db, 'chats', communityId), {
+      name, isGroup: true, isCommunity: true,
+      members: [currentUser.uid], admins: [currentUser.uid],
+      createdBy: currentUser.uid, createdAt: serverTimestamp(), updatedAt: serverTimestamp()
+    });
+    document.getElementById('newChatModal').classList.remove('active');
+    document.getElementById('groupInputArea').style.display = 'none';
+    await openChat(communityId, name);
+    toast('Community created. Use ⋮ in the chat to edit or invite members.');
+  } catch (e) {
+    console.error('Community creation failed:', e);
+    toast('Could not create community. Check Firestore rules for chats.');
+  }
+};
+
+window.manageCommunity = async () => {
+  if (!currentUser || !currentChatId || !currentChatId.startsWith('group_')) return;
+  const ref = doc(db, 'chats', currentChatId);
+  try {
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return toast('Community not found.');
+    const data = snap.data();
+    if (!Array.isArray(data.admins) || !data.admins.includes(currentUser.uid)) {
+      return toast('Only community admins can edit or invite members.');
+    }
+    const choice = prompt('Community options:\n1 = Edit community name\n2 = Invite member by email');
+    if (choice === '1') {
+      const newName = prompt('Enter the new community name:', data.name || 'Community');
+      if (!newName || !newName.trim()) return;
+      await updateDoc(ref, { name: newName.trim(), updatedAt: serverTimestamp() });
+      document.getElementById('chatPartnerName').textContent = newName.trim();
+      toast('Community name updated.');
+    } else if (choice === '2') {
+      const email = (prompt('Enter the registered member email address:') || '').trim().toLowerCase();
+      if (!email) return;
+      const matches = await getDocs(query(collection(db, 'users'), where('email', '==', email)));
+      if (matches.empty) return toast('No registered EthioLegacy account found with that email.');
+      const invited = matches.docs[0];
+      if (invited.id === currentUser.uid) return toast('You are already a community member.');
+      await updateDoc(ref, { members: arrayUnion(invited.id), updatedAt: serverTimestamp() });
+      toast('Member added to the community. They can now open it from their Chats.');
+    }
+  } catch (e) {
+    console.error('Community management failed:', e);
+    toast('Could not update community. Check Firestore rules and permissions.');
+  }
+};
+
 
 function normalizeContactPhone(value) {
   return String(value || '').replace(/\D/g, '');
@@ -1287,9 +1413,11 @@ window.saveNewContact = async () => {
   if(uid.startsWith("group_")) {
     document.getElementById('groupAudioBtn').style.display = 'block';
     document.getElementById('groupVideoBtn').style.display = 'block';
+    document.getElementById('communityManageBtn').style.display = 'block';
   } else {
     document.getElementById('groupAudioBtn').style.display = 'none';
     document.getElementById('groupVideoBtn').style.display = 'none';
+    document.getElementById('communityManageBtn').style.display = 'none';
   }
   
   showScreen('chatScreen');
