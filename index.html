@@ -1001,8 +1001,8 @@ window.saveNewContact = async () => {
       alert(`${firstName} is on EthioLegacy! You are now connected.`);
     } else {
       // If they are not on the app, generate an invite link
-      const inviteUrl = `${location.origin}${location.pathname}?invite=${currentUser.uid}`;
-      alert(`${firstName} is not on EthioLegacy yet.\n\nShare this link to invite them:\n${inviteUrl}`);
+      const inviteUrl = getEthioLegacyInviteUrl();
+      alert(`${firstName} is not on EthioLegacy yet.\n\nShare this invitation link:\n${inviteUrl}`);
     }
     
     closeNewContact();
@@ -1075,24 +1075,34 @@ function findEthioLegacyContact(contact) {
   }) || null;
 }
 
+function getEthioLegacyInviteUrl() {
+  if (!currentUser) return '';
+  // Build exactly one invite parameter; never append an existing query string.
+  const url = new URL(location.pathname, location.origin);
+  url.searchParams.set('invite', currentUser.uid);
+  return url.toString();
+}
+
 async function inviteDeviceContact(contact) {
   if (!currentUser) return toast('Please sign in first.');
-  const inviteUrl = `${location.origin}${location.pathname}?invite=${encodeURIComponent(currentUser.uid)}`;
+  const inviteUrl = getEthioLegacyInviteUrl();
   const displayName = contact.name || 'Friend';
-  const message = `Hello ${displayName}! Join me on EthioLegacy for private chats, voice/video calls and communities. Register using my invitation: ${inviteUrl}`;
+  // Keep the URL OUT of share text: the Share API's `url` field adds it once.
+  const messageText = `Hello ${displayName}! Join me on EthioLegacy for private chats, voice/video calls and communities. Register using my invitation:`;
+  const copyText = `${messageText}\n${inviteUrl}`;
   try {
     if (navigator.share) {
-      await navigator.share({ title: 'Join me on EthioLegacy', text: message, url: inviteUrl });
+      await navigator.share({ title: 'Join me on EthioLegacy', text: messageText, url: inviteUrl });
     } else if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(message);
-      toast('Personal invitation link copied. Send it to your contact.');
+      await navigator.clipboard.writeText(copyText);
+      toast('One personal invitation link copied. Send it to your contact.');
     } else {
-      window.prompt('Copy this invitation and send it to your contact:', message);
+      window.prompt('Copy this invitation and send it to your contact:', copyText);
     }
   } catch (e) {
     if (e.name !== 'AbortError') {
-      try { window.prompt('Copy this invitation and send it to your contact:', message); }
-      catch (_) { toast('Could not open sharing. Please copy the invitation link manually.'); }
+      try { window.prompt('Copy this invitation and send it to your contact:', copyText); }
+      catch (_) { toast('Could not open sharing. Please copy the invitation manually.'); }
     }
   }
 }
@@ -1489,10 +1499,23 @@ window.deleteMessage = async (messageId) => {
       throw new Error('Camera/microphone is unavailable. Open EthioLegacy using its HTTPS address.');
     }
     try {
-      return await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-        video: video ? { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } } : false
+      // Apply speech-focused processing independently on BOTH callers' devices.
+      // `ideal` keeps older Android browsers from rejecting unsupported constraints.
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: { ideal: true },
+          noiseSuppression: { ideal: true },
+          autoGainControl: { ideal: true },
+          channelCount: { ideal: 1 },
+          sampleRate: { ideal: 48000 }
+        },
+        video: video ? { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 24, max: 30 } } : false
       });
+      stream.getAudioTracks().forEach(track => {
+        try { track.contentHint = 'speech'; } catch (_) {}
+        console.info('EthioLegacy microphone processing:', track.getSettings?.() || {});
+      });
+      return stream;
     } catch (e) {
       if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') throw new Error('Allow camera and microphone permissions for EthioLegacy, then try again.');
       if (e.name === 'NotFoundError' || e.name === 'DevicesNotFoundError') throw new Error('No camera or microphone was found on this device.');
