@@ -709,11 +709,18 @@ const firebaseConfig = {
 
         if (inviterUid && inviterUid !== cred.user.uid) {
           try {
-            await updateDoc(doc(db, 'users', inviterUid), {
-              linkedUsers: arrayUnion(cred.user.uid)
-            });
+            const inviterProfileSnap = await getDoc(doc(db, 'users', inviterUid));
+            const inviterName = inviterProfileSnap.exists() ? (inviterProfileSnap.data().displayName || 'EthioLegacy member') : 'EthioLegacy member';
+            await updateDoc(doc(db, 'users', inviterUid), { linkedUsers: arrayUnion(cred.user.uid) });
+            await setDoc(doc(db, 'users', cred.user.uid, 'friends', inviterUid), {
+              uid: inviterUid, displayName: inviterName, addedAt: serverTimestamp()
+            }, { merge: true });
+            await setDoc(doc(db, 'users', inviterUid, 'friends', cred.user.uid), {
+              uid: cred.user.uid, displayName: name, addedAt: serverTimestamp()
+            }, { merge: true });
           } catch (inviteError) {
             console.warn('Account created, but invite linking failed:', inviteError);
+            toast('Account created. Contact linking needs a Firestore rules check.');
           }
         }
       } else {
@@ -747,6 +754,7 @@ const firebaseConfig = {
   onAuthStateChanged(auth, (user) => {
     if (user) {
       currentUser = user;
+      restoreDeviceContacts();
       showScreen('homeScreen');
       loadUsers();
       if(user.displayName) toast('Welcome, '+user.displayName);
@@ -775,25 +783,21 @@ const firebaseConfig = {
   let myFriends = [];
   async function loadUsers() {
     if (!currentUser) return;
-    const snap = await getDocs(collection(db, "users"));
+    // Do not download or display the whole member directory. Load only this
+    // account's own private friends, then look up only contacts the user selected.
     allUsers = [];
     const myProfile = await getDoc(doc(db, 'users', currentUser.uid));
     const hidden = myProfile.exists() && Array.isArray(myProfile.data().hiddenUsers) ? myProfile.data().hiddenUsers : [];
-    snap.forEach(d => { if (d.id !== currentUser.uid && !hidden.includes(d.id)) allUsers.push({uid:d.id, ...d.data()}); });
-
-    // Read only this account's private friend list, then resolve each saved UID to its profile.
     const friendsSnap = await getDocs(collection(db, 'users', currentUser.uid, 'friends'));
     myFriends = [];
     for (const friendDoc of friendsSnap.docs) {
       const friendUid = friendDoc.id;
       if (friendUid === currentUser.uid || hidden.includes(friendUid)) continue;
-      let profile = allUsers.find(u => u.uid === friendUid);
-      if (!profile) {
-        const profileSnap = await getDoc(doc(db, 'users', friendUid));
-        if (profileSnap.exists()) profile = {uid: friendUid, ...profileSnap.data()};
-      }
-      if (profile) myFriends.push(profile);
+      const profileSnap = await getDoc(doc(db, 'users', friendUid));
+      if (profileSnap.exists()) myFriends.push({uid: friendUid, ...profileSnap.data()});
     }
+    allUsers = [...myFriends];
+    await resolveSelectedDeviceContacts();
     renderUsers(myFriends);
     renderDeviceContacts();
     renderCallList(myFriends);
@@ -820,6 +824,39 @@ const firebaseConfig = {
   }
 
   let importedDeviceContacts = [];
+  function restoreDeviceContacts() {
+    try { importedDeviceContacts = JSON.parse(localStorage.getItem('ethiolegacy_device_contacts_' + currentUser.uid) || '[]'); } catch (_) { importedDeviceContacts = []; }
+  }
+  function persistDeviceContacts() {
+    try { localStorage.setItem('ethiolegacy_device_contacts_' + currentUser.uid, JSON.stringify(importedDeviceContacts)); } catch (_) {}
+  }
+  async function resolveSelectedDeviceContacts() {
+    if (!currentUser || !importedDeviceContacts.length) return;
+    const known = new Set(allUsers.map(u => u.uid));
+    for (const contact of importedDeviceContacts) {
+      const email = String(contact.email || '').trim().toLowerCase();
+      const rawPhone = String(contact.tel || contact.phone || '').trim();
+      const normalizedPhone = normalizeContactPhone(rawPhone);
+      const lookups = [];
+      try {
+        if (email) lookups.push(getDocs(query(collection(db, 'users'), where('email', '==', email))));
+        if (rawPhone) lookups.push(getDocs(query(collection(db, 'users'), where('phone', '==', rawPhone))));
+        if (normalizedPhone && normalizedPhone !== rawPhone) lookups.push(getDocs(query(collection(db, 'users'), where('phone', '==', normalizedPhone))));
+        if (rawPhone) lookups.push(getDocs(query(collection(db, 'users'), where('phoneNumber', '==', rawPhone))));
+        if (normalizedPhone && normalizedPhone !== rawPhone) lookups.push(getDocs(query(collection(db, 'users'), where('phoneNumber', '==', normalizedPhone))));
+        const results = await Promise.all(lookups);
+        results.forEach(result => result.forEach(d => {
+          if (d.id !== currentUser.uid && !known.has(d.id)) {
+            known.add(d.id);
+            allUsers.push({uid: d.id, ...d.data()});
+          }
+        }));
+      } catch (e) {
+        // A contact not found or a denied exact lookup should not block inviting others.
+        console.warn('Could not match one selected phone contact:', e);
+      }
+    }
+  }
 window.importDeviceContacts = async () => {
   if (!currentUser) return toast('Please sign in first.');
   if (!('contacts' in navigator) || !navigator.contacts?.select) {
@@ -840,8 +877,11 @@ window.importDeviceContacts = async () => {
       if (seen.has(key)) return false; seen.add(key); return true;
     });
     
+    persistDeviceContacts();
+    await resolveSelectedDeviceContacts();
+    renderDeviceContacts();
     renderWaContacts(); // Update the WhatsApp-style menu immediately
-    toast(importedDeviceContacts.length + ' contacts synced.');
+    toast(importedDeviceContacts.length + ' contacts synced on this device.');
   } catch (e) {
     if (e.name !== 'AbortError') toast('Could not read selected contacts. Check browser permission.');
   }
@@ -857,7 +897,7 @@ window.importDeviceContacts = async () => {
       const heading = document.createElement('div'); heading.className = 'pane-heading';
       heading.textContent = 'Device contacts (' + contacts.length + ')'; box.appendChild(heading);
       contacts.forEach(c => {
-        const match = allUsers.find(u => (c.email && (u.email||'').toLowerCase() === c.email.toLowerCase()) || (c.tel && (u.phone||u.phoneNumber||'').replace(/\D/g,'') === c.tel.replace(/\D/g,'')));
+        const match = findEthioLegacyContact(c);
         const row = document.createElement('div'); row.className = 'device-contact';
         const avatar = document.createElement('div'); avatar.className = 'avatar'; avatar.textContent = (c.name || '?').charAt(0).toUpperCase();
         const details = document.createElement('div'); details.className = 'contact-details';
@@ -872,10 +912,7 @@ window.importDeviceContacts = async () => {
           const action = document.createElement('button'); action.className = 'contact-action';
           if (match) { action.textContent = box.id === 'callDeviceContactsList' ? 'Call' : 'Chat'; action.onclick = () => { if(box.id === 'callDeviceContactsList'){openChat(match.uid,match.displayName||c.name);setTimeout(()=>startCall('audio'),100)}else openChat(match.uid, match.displayName || c.name); }; }
           else { action.textContent = 'Invite'; action.onclick = async () => {
-            const shareText = 'Join me on EthioLegacy for chats, voice/video calls and communities.';
-            if (navigator.share) { try { await navigator.share({title:'EthioLegacy', text:shareText}); } catch(e) {} }
-            else if (navigator.clipboard?.writeText) { try { await navigator.clipboard.writeText(shareText); toast('Invite message copied. Send it to your contact.'); } catch(e) { toast('Please share the EthioLegacy link manually.'); } }
-            else toast('Please share the EthioLegacy link manually.');
+            await inviteDeviceContact(c);
             renderWaContacts(); // Refresh the list immediately
           }; }
           row.appendChild(action);
@@ -954,6 +991,12 @@ window.saveNewContact = async () => {
       await updateDoc(doc(db, 'users', foundUser.uid), { 
         linkedUsers: arrayUnion(currentUser.uid) 
       });
+      await setDoc(doc(db, 'users', currentUser.uid, 'friends', foundUser.uid), {
+        uid: foundUser.uid, displayName: foundUser.displayName || firstName, addedAt: serverTimestamp()
+      }, { merge: true });
+      await setDoc(doc(db, 'users', foundUser.uid, 'friends', currentUser.uid), {
+        uid: currentUser.uid, displayName: currentUser.displayName || 'EthioLegacy member', addedAt: serverTimestamp()
+      }, { merge: true });
       
       alert(`${firstName} is on EthioLegacy! You are now connected.`);
     } else {
@@ -1017,66 +1060,129 @@ window.showGroupInput = () => {
   document.getElementById('newGroupName').focus();
 };
 
-function renderWaContacts() {
-  const list = document.getElementById('waContactList');
-  list.innerHTML = '';
-  
-  // Count total contacts (Linked users + Phone contacts)
-  let totalCount = allUsers.length + importedDeviceContacts.length;
-  document.getElementById('contactCount').textContent = totalCount + ' contacts';
+function normalizeContactPhone(value) {
+  return String(value || '').replace(/\D/g, '');
+}
 
-  // 1. Show friends you are already linked with (Your private 1-to-1s)
-  if (allUsers.length > 0) {
-    list.innerHTML += `<div style="padding: 15px 20px; font-weight: bold; color: #667781; font-size: 13px;">CONTACTS ON ETHIOLEGACY</div>`;
-    allUsers.forEach(u => {
-      list.innerHTML += `
-      <div class="wa-contact-item" onclick="openChat('${u.uid}','${u.displayName}'); document.getElementById('newChatModal').classList.remove('active');">
-        <div class="avatar" style="width: 45px; height: 45px; font-size: 18px; margin-right: 15px;">${u.displayName[0]}</div>
-        <div style="flex:1;">
-          <div style="font-weight: 500; font-size: 16px; color: #111;">${u.displayName}</div>
-          <div style="font-size: 13px; color: #667781;">Hey there! I am using EthioLegacy.</div>
-        </div>
-      </div>`;
-    });
-  }
+function findEthioLegacyContact(contact) {
+  const email = String(contact.email || '').trim().toLowerCase();
+  const phone = normalizeContactPhone(contact.tel || contact.phone);
+  return allUsers.find(u => {
+    const userEmail = String(u.email || '').trim().toLowerCase();
+    const userPhone = normalizeContactPhone(u.phone || u.phoneNumber || u.mobile || '');
+    return (email && userEmail && email === userEmail) ||
+      (phone && userPhone && (phone === userPhone || phone.endsWith(userPhone) || userPhone.endsWith(phone)));
+  }) || null;
+}
 
-  // 2. Show phone contacts
-  if (importedDeviceContacts.length > 0) {
-    list.innerHTML += `<div style="padding: 15px 20px; font-weight: bold; color: #667781; font-size: 13px;">PHONE CONTACTS</div>`;
-    importedDeviceContacts.forEach(c => {
-      // Check if this phone contact is already in allUsers (meaning they are on EthioLegacy)
-      const match = allUsers.find(u => (c.tel && u.phone === c.tel));
-      
-      list.innerHTML += `
-      <div class="wa-contact-item" onclick="handleWaContactClick('${c.name}', '${c.tel}', '${c.email}', '${match ? match.uid : ''}', '${match ? match.displayName : ''}')">
-        <div class="avatar" style="width: 45px; height: 45px; font-size: 18px; background: #dfe5e7; color: #555; margin-right: 15px;">${c.name[0]}</div>
-        <div style="flex:1;">
-          <div style="font-weight: 500; font-size: 16px; color: #111;">${c.name}</div>
-          <div style="font-size: 13px; color: #667781;">${match ? 'On EthioLegacy' : 'Invite to EthioLegacy'}</div>
-        </div>
-      </div>`;
-    });
-  }
-
-  // 3. If no contacts at all, show the sync button
-  if (importedDeviceContacts.length === 0 && allUsers.length === 0) {
-    list.innerHTML += `
-    <div style="padding: 20px; text-align: center;">
-      <button class="btn-primary" style="width: auto; background: #00a884; padding: 10px 20px;" onclick="importDeviceContacts()">📱 Sync Phone Contacts</button>
-      <p style="font-size: 12px; color: #667781; margin-top: 10px;">Tap to allow EthioLegacy to see your phone contacts.</p>
-    </div>`;
+async function inviteDeviceContact(contact) {
+  if (!currentUser) return toast('Please sign in first.');
+  const inviteUrl = `${location.origin}${location.pathname}?invite=${encodeURIComponent(currentUser.uid)}`;
+  const displayName = contact.name || 'Friend';
+  const message = `Hello ${displayName}! Join me on EthioLegacy for private chats, voice/video calls and communities. Register using my invitation: ${inviteUrl}`;
+  try {
+    if (navigator.share) {
+      await navigator.share({ title: 'Join me on EthioLegacy', text: message, url: inviteUrl });
+    } else if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(message);
+      toast('Personal invitation link copied. Send it to your contact.');
+    } else {
+      window.prompt('Copy this invitation and send it to your contact:', message);
+    }
+  } catch (e) {
+    if (e.name !== 'AbortError') {
+      try { window.prompt('Copy this invitation and send it to your contact:', message); }
+      catch (_) { toast('Could not open sharing. Please copy the invitation link manually.'); }
+    }
   }
 }
-window.handleWaContactClick = (name, tel, email, matchUid, matchName) => {
+
+function renderWaContacts() {
+  const list = document.getElementById('waContactList');
+  if (!list) return;
+  list.innerHTML = '';
+
+  // Only show contacts this signed-in user has added, plus contacts they selected
+  // from their own phone. Never expose the full EthioLegacy member directory here.
+  const savedFriends = myFriends || [];
+  const totalCount = savedFriends.length + importedDeviceContacts.length;
+  const count = document.getElementById('contactCount');
+  if (count) count.textContent = totalCount + ' contacts';
+
+  if (savedFriends.length) {
+    const heading = document.createElement('div');
+    heading.style.cssText = 'padding:15px 20px;font-weight:bold;color:#667781;font-size:13px;';
+    heading.textContent = 'YOUR ETHIOLEGACY CONTACTS';
+    list.appendChild(heading);
+    savedFriends.forEach(u => {
+      const row = document.createElement('div');
+      row.className = 'wa-contact-item';
+      row.style.cssText = 'display:flex;align-items:center;padding:10px 20px;cursor:pointer;';
+      const avatar = document.createElement('div');
+      avatar.className = 'avatar'; avatar.style.cssText = 'width:45px;height:45px;font-size:18px;margin-right:15px;';
+      avatar.textContent = (u.displayName || 'M').charAt(0).toUpperCase();
+      const details = document.createElement('div'); details.style.flex = '1';
+      const name = document.createElement('div'); name.style.cssText = 'font-weight:500;font-size:16px;color:#111;'; name.textContent = u.displayName || 'Member';
+      const sub = document.createElement('div'); sub.style.cssText = 'font-size:13px;color:#667781;'; sub.textContent = 'On EthioLegacy';
+      details.append(name, sub); row.append(avatar, details);
+      row.onclick = () => { openChat(u.uid, u.displayName || 'Member'); document.getElementById('newChatModal').classList.remove('active'); };
+      list.appendChild(row);
+    });
+  }
+
+  if (importedDeviceContacts.length) {
+    const heading = document.createElement('div');
+    heading.style.cssText = 'padding:15px 20px;font-weight:bold;color:#667781;font-size:13px;';
+    heading.textContent = 'FROM YOUR PHONE CONTACTS';
+    list.appendChild(heading);
+    importedDeviceContacts.forEach(c => {
+      const match = findEthioLegacyContact(c);
+      const row = document.createElement('div');
+      row.className = 'wa-contact-item';
+      row.style.cssText = 'display:flex;align-items:center;padding:10px 20px;cursor:pointer;';
+      const avatar = document.createElement('div');
+      avatar.className = 'avatar'; avatar.style.cssText = 'width:45px;height:45px;font-size:18px;background:#dfe5e7;color:#555;margin-right:15px;';
+      avatar.textContent = (c.name || '?').charAt(0).toUpperCase();
+      const details = document.createElement('div'); details.style.flex = '1';
+      const name = document.createElement('div'); name.style.cssText = 'font-weight:500;font-size:16px;color:#111;'; name.textContent = c.name || 'Phone contact';
+      const sub = document.createElement('div'); sub.style.cssText = 'font-size:13px;color:#667781;';
+      sub.textContent = match ? 'Already using EthioLegacy' : 'Not on EthioLegacy yet';
+      details.append(name, sub);
+      const action = document.createElement('button'); action.className = 'contact-action';
+      action.textContent = match ? 'Chat' : 'Invite';
+      action.onclick = async (event) => {
+        event.stopPropagation();
+        if (match) {
+          await openChat(match.uid, match.displayName || c.name || 'Member');
+          document.getElementById('newChatModal').classList.remove('active');
+        } else await inviteDeviceContact(c);
+      };
+      row.append(avatar, details, action);
+      row.onclick = () => {
+        if (match) { openChat(match.uid, match.displayName || c.name || 'Member'); document.getElementById('newChatModal').classList.remove('active'); }
+        else inviteDeviceContact(c);
+      };
+      list.appendChild(row);
+    });
+  }
+
+  if (!totalCount) {
+    const empty = document.createElement('div');
+    empty.style.cssText = 'padding:24px 20px;text-align:center;color:#667781;';
+    empty.innerHTML = '<div style="font-size:34px;margin-bottom:10px;">👥</div><b style="color:#222;">Your contact list is empty</b><p style="font-size:13px;line-height:1.5;">Sync contacts from your own phone to find friends already on EthioLegacy or invite them to join.</p>';
+    const sync = document.createElement('button');
+    sync.className = 'btn-primary'; sync.style.cssText = 'width:auto;background:#00a884;padding:10px 20px;';
+    sync.textContent = '📱 Sync my phone contacts'; sync.onclick = () => importDeviceContacts();
+    empty.appendChild(sync); list.appendChild(empty);
+  }
+}
+
+window.handleWaContactClick = async (name, tel, email, matchUid, matchName) => {
   if (matchUid) {
-    openChat(matchUid, matchName);
+    await openChat(matchUid, matchName || name || 'Member');
     document.getElementById('newChatModal').classList.remove('active');
   } else {
-    if (navigator.share) {
-      navigator.share({ title: 'EthioLegacy', text: `Join me on EthioLegacy!` });
-    } else {
-      alert('Invite ' + name + ' to EthioLegacy!');
-    }
+    await inviteDeviceContact({ name, tel, email });
   }
 };
 // ===== NEW CONTACT SCREEN LOGIC =====
