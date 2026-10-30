@@ -47,6 +47,7 @@
   .header { background-color: #008069; color: white; padding: 15px 20px; font-size: 18px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
   .header-actions { display: flex; gap: 15px; }
   .header-icon { border:0; background:transparent; color:#fff; font-size:24px; cursor:pointer; }
+  .header-tree-button{width:44px;height:44px;min-width:44px;border:2px solid rgba(255,255,255,.9);border-radius:50%;background:#fff;color:#008069;display:grid;place-items:center;font-size:23px;line-height:1;cursor:pointer;box-shadow:0 2px 6px #003b3028;padding:0}.header-tree-button:active{transform:scale(.96)}
   .home-search-wrap { padding: 10px 14px; background: #fff; border-bottom: 1px solid #e6e9eb; }
   .contacts-toolbar{display:flex;gap:8px;margin-top:9px;align-items:center}.contacts-button{border:0;border-radius:20px;padding:10px 13px;background:#e7f6f1;color:#006b58;font-weight:700;cursor:pointer}.contacts-hint{font-size:11px;color:#667781;line-height:1.35}.device-contact{display:flex;align-items:center;gap:12px;padding:12px 15px;border-bottom:1px solid #f0f2f5}.device-contact .contact-details{flex:1;min-width:0}.device-contact b{display:block;color:#172b2b}.device-contact small{color:#667781;overflow-wrap:anywhere}.contact-action{border:0;border-radius:18px;padding:8px 11px;background:#008069;color:#fff;font-weight:700;cursor:pointer;white-space:nowrap}
   .main-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:#008069;padding:0 8px 8px}
@@ -65,6 +66,13 @@
   .chat-info { flex: 1; overflow: hidden; }
   .chat-name { font-weight: 600; color: #111; font-size: 16px; margin-bottom: 4px; }
   #chatBox { flex: 1; overflow-y: auto; padding: 20px; background-color: #efeae2; display: flex; flex-direction: column; }
+  .message.selected-message { outline: 2px solid #008069; background: #c8f2e6 !important; }
+  .message-selection-bar { display:none; align-items:center; justify-content:space-between; gap:10px; padding:9px 14px; background:#e8f5f1; border-bottom:1px solid #c9e5dc; color:#075e54; }
+  .message-selection-bar.active { display:flex; }
+  .message-selection-bar button { border:0; border-radius:8px; padding:9px 13px; background:#b91c1c; color:#fff; font-weight:700; }
+  .attachment-card { display:flex; align-items:center; gap:10px; padding:10px; margin-top:7px; background:#ffffffb8; border:1px solid #d9e2df; border-radius:10px; max-width:260px; }
+  .attachment-card a { color:#006b58; text-decoration:none; overflow-wrap:anywhere; font-weight:600; }
+  .attachment-card small { display:block; color:#77838e; font-weight:400; margin-top:3px; }
   .message { background: white; padding: 10px 14px; margin-bottom: 10px; border-radius: 12px; max-width: 85%; align-self: flex-start; word-wrap: break-word; box-shadow: 0 1px 1px rgba(0,0,0,0.1);}
   .message.mine { background: #D9FDD3; align-self: flex-end; }
   .msg-name { font-size: 12px; color: #008069; font-weight: bold; margin-bottom: 4px; }
@@ -231,7 +239,7 @@
     <div class="brand"><div class="brand-mark"><span>Eth</span><b>L</b></div><span>EthioLegacy</span></div>
     <div class="header-actions">
       <button class="header-icon" aria-label="Notifications" onclick="showNotifications()">🔔<span id="notificationBadge" class="notification-badge" style="display:none">0</span></button>
-      <button class="header-icon" aria-label="New chat" onclick="openNewChatModal()">✚</button>
+      <button class="header-tree-button" aria-label="Open create menu" title="Create group, contact, community or event" onclick="openNewChatModal()">🌳</button>
       <button class="header-icon" aria-label="Settings" onclick="openSettings()">⚙️</button>
     </div>
   </div>
@@ -264,6 +272,7 @@
 <button class="header-icon" onclick="manageCommunity()" style="display:none;" id="communityManageBtn" title="Edit community or invite members">⋮</button>
     </div>
   </div>
+    <div id="messageSelectionBar" class="message-selection-bar"><span id="selectedMessageCount">0 selected</span><div style="display:flex;gap:8px;"><button type="button" onclick="deleteSelectedMessages()">Delete selected</button><button type="button" onclick="clearMessageSelection()" style="background:#64748b;">Cancel</button></div></div>
     <div id="chatBox"></div>
   <div class="input-area">
     <button class="header-icon" onclick="document.getElementById('fileInput').click()" style="color:#54656f; font-size:20px;">📎</button>
@@ -491,7 +500,7 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
   import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
   import { getFirestore, collection, doc, setDoc, getDoc, getDocs, query, where, orderBy, onSnapshot, addDoc, deleteDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-  import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
+  import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 
   // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
@@ -1162,7 +1171,7 @@ window.manageCommunity = async () => {
     if (!Array.isArray(data.admins) || !data.admins.includes(currentUser.uid)) {
       return toast('Only community admins can edit or invite members.');
     }
-    const choice = prompt('Community options:\n1 = Edit community name\n2 = Invite member by email');
+    const choice = prompt('Community options:\n1 = Edit community name\n2 = Invite member by email\n3 = Delete this community');
     if (choice === '1') {
       const newName = prompt('Enter the new community name:', data.name || 'Community');
       if (!newName || !newName.trim()) return;
@@ -1178,6 +1187,22 @@ window.manageCommunity = async () => {
       if (invited.id === currentUser.uid) return toast('You are already a community member.');
       await updateDoc(ref, { members: arrayUnion(invited.id), updatedAt: serverTimestamp() });
       toast('Member added to the community. They can now open it from their Chats.');
+    } else if (choice === '3') {
+      const communityName = data.name || 'this community';
+      if (!confirm('Delete "' + communityName + '" for all members? This cannot be undone.')) return;
+      // Remove the community's message documents first; deleting a Firestore parent
+      // document alone does not remove its messages subcollection.
+      const messagesSnap = await getDocs(collection(db, 'chats', currentChatId, 'messages'));
+      for (const messageDoc of messagesSnap.docs) {
+        await deleteDoc(doc(db, 'chats', currentChatId, 'messages', messageDoc.id));
+      }
+      await deleteDoc(ref);
+      if (unsubscribeMessages) { unsubscribeMessages(); unsubscribeMessages = null; }
+      currentChatId = null;
+      currentPartner = null;
+      showScreen('homeScreen');
+      await loadGroupChats();
+      toast('Community deleted.');
     }
   } catch (e) {
     console.error('Community management failed:', e);
@@ -1432,70 +1457,77 @@ window.saveNewContact = async () => {
   const m = d.data();
   const isMine = m.senderId === currentUser.uid;
   const time = m.timestamp ? new Date(m.timestamp.seconds * 1000).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '';
-  
+  const safeUrl = escapeHTML(m.attachmentUrl || '');
+  const safeName = escapeHTML(m.attachmentName || 'Attachment');
   let attachmentHtml = '';
   if (m.attachmentUrl) {
-    if (m.attachmentKind === 'image') attachmentHtml = `<div style="margin-top:6px;"><img src="${escapeHTML(m.attachmentUrl)}" style="max-width:200px;border-radius:8px;" onclick="window.open('${escapeHTML(m.attachmentUrl)}','_blank')"></div>`;
-    else if (m.attachmentKind === 'video') attachmentHtml = `<div style="margin-top:6px;"><video src="${escapeHTML(m.attachmentUrl)}" controls style="max-width:200px;border-radius:8px;"></video></div>`;
-    else attachmentHtml = `<div style="margin-top:6px;"><a href="${escapeHTML(m.attachmentUrl)}" target="_blank" style="color:#008069;">📎 ${escapeHTML(m.attachmentName||'File')}</a></div>`;
+    if (m.attachmentKind === 'image') attachmentHtml = `<div class="attachment-card"><a href="${safeUrl}" target="_blank" rel="noopener"><img src="${safeUrl}" alt="${safeName}" style="display:block;max-width:220px;max-height:220px;object-fit:contain;border-radius:8px;"><small>📷 ${safeName} · Open image</small></a></div>`;
+    else if (m.attachmentKind === 'video') attachmentHtml = `<div class="attachment-card" style="display:block;"><video src="${safeUrl}" controls playsinline style="display:block;width:100%;max-width:240px;border-radius:8px;"></video><a href="${safeUrl}" download="${safeName}" target="_blank" rel="noopener">⬇️ ${safeName}</a></div>`;
+    else if (m.attachmentKind === 'audio') attachmentHtml = `<div class="attachment-card" style="display:block;"><div>🎵 ${safeName}</div><audio src="${safeUrl}" controls style="width:100%;max-width:240px;margin:6px 0;"></audio><a href="${safeUrl}" download="${safeName}" target="_blank" rel="noopener">⬇️ Download audio</a></div>`;
+    else attachmentHtml = `<div class="attachment-card"><span style="font-size:26px;">📄</span><div><a href="${safeUrl}" download="${safeName}" target="_blank" rel="noopener">${safeName}</a><small>Tap to download or open</small></div></div>`;
   }
 
   box.innerHTML += `
-  <div class="message ${isMine ? 'mine' : ''}" onclick="selectMessage(this, '${d.id}')">
+  <div class="message ${isMine ? 'mine' : ''} ${selectedMessageIds.has(d.id) ? 'selected-message' : ''}" data-message-id="${escapeHTML(d.id)}" onclick="selectMessage(this, '${d.id}')">
     ${!isMine ? `<div class="msg-name">${escapeHTML(m.senderName||'Member')}</div>` : ''}
     ${m.text ? `<div>${escapeHTML(m.text)}</div>` : ''}
     ${attachmentHtml}
-    <div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;font-size:10px;color:#999;margin-top:4px;">
-      <span>${time}</span>
-    </div>
+    <div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;font-size:10px;color:#999;margin-top:4px;"><span>${time}</span></div>
   </div>`;
 });
+      updateMessageSelectionBar();
       box.scrollTop = box.scrollHeight;
     });
   };
 
-  let selectedMessageId = null;
-let selectedMessageElement = null;
-
-window.selectMessage = (element, messageId) => {
-  // If tapping the same message, deselect it
-  if (selectedMessageElement === element) {
-    element.style.backgroundColor = '';
-    selectedMessageElement = null;
-    selectedMessageId = null;
-    return;
+  const selectedMessageIds = new Set();
+  function updateMessageSelectionBar() {
+    const bar = document.getElementById('messageSelectionBar');
+    const count = document.getElementById('selectedMessageCount');
+    if (!bar || !count) return;
+    count.textContent = `${selectedMessageIds.size} selected`;
+    bar.classList.toggle('active', selectedMessageIds.size > 0);
+    document.querySelectorAll('#chatBox .message').forEach(el => el.classList.toggle('selected-message', selectedMessageIds.has(el.dataset.messageId)));
   }
-
-  // Deselect previous
-  if (selectedMessageElement) {
-    selectedMessageElement.style.backgroundColor = '';
-  }
-
-  // Select new
-  selectedMessageElement = element;
-  selectedMessageId = messageId;
-  element.style.backgroundColor = 'rgba(0, 128, 105, 0.2)'; // Highlight color
-
-  // Show a prompt to delete
-  if (confirm('Do you want to delete this message for everyone?')) {
-    window.deleteMessage(messageId);
-    element.style.backgroundColor = '';
-    selectedMessageElement = null;
-    selectedMessageId = null;
-  }
-};
-
-window.deleteMessage = async (messageId) => {
-  if (!currentUser || !currentChatId) return;
-  try {
-    // Anyone in the chat can now delete the message
-    await deleteDoc(doc(db, 'chats', currentChatId, 'messages', messageId));
-    toast('Message deleted.');
-  } catch (e) { 
-    console.error(e); 
-    toast('Could not delete message. Check Firestore rules.'); 
-  }
-};
+  window.selectMessage = (element, messageId) => {
+    if (selectedMessageIds.has(messageId)) selectedMessageIds.delete(messageId);
+    else selectedMessageIds.add(messageId);
+    updateMessageSelectionBar();
+  };
+  window.clearMessageSelection = () => { selectedMessageIds.clear(); updateMessageSelectionBar(); };
+  window.deleteSelectedMessages = async () => {
+    if (!currentUser || !currentChatId || selectedMessageIds.size === 0) return;
+    const ids = [...selectedMessageIds];
+    if (!confirm(`Delete ${ids.length} selected message(s) for everyone in this chat?`)) return;
+    let deleted = 0;
+    for (const id of ids) {
+      try { await window.deleteMessage(id, true); deleted++; }
+      catch (e) { console.error('Message delete failed:', id, e); }
+    }
+    selectedMessageIds.clear(); updateMessageSelectionBar();
+    toast(deleted === ids.length ? `${deleted} message(s) deleted.` : `${deleted} of ${ids.length} messages deleted. Check Firebase rules.`);
+  };
+  window.deleteMessage = async (messageId, quiet = false) => {
+    if (!currentUser || !currentChatId) return false;
+    try {
+      const messageRef = doc(db, 'chats', currentChatId, 'messages', messageId);
+      const messageSnap = await getDoc(messageRef);
+      if (messageSnap.exists()) {
+        const data = messageSnap.data();
+        if (data.storagePath) {
+          try { await deleteObject(ref(storage, data.storagePath)); }
+          catch (storageError) { console.warn('Attachment storage cleanup failed:', storageError); }
+        }
+      }
+      await deleteDoc(messageRef);
+      if (!quiet) toast('Message deleted.');
+      return true;
+    } catch (e) {
+      console.error(e);
+      if (!quiet) toast('Could not delete message. Check Firestore and Storage rules.');
+      throw e;
+    }
+  };
 
   window.removeUserFromLists = async (uid, name) => {
     if (!currentUser || !confirm(`Remove ${name} from your private Chats and Calls lists? This will not remove them from another user's list.`)) return;
@@ -1539,10 +1571,11 @@ window.deleteMessage = async (messageId) => {
 
     await addDoc(collection(db, "chats", currentChatId, "messages"), {
       senderId: currentUser.uid, senderName: currentUser.displayName, text: '',
-      attachmentUrl: url, attachmentKind: kind, attachmentName: file.name, timestamp: serverTimestamp()
+      attachmentUrl: url, attachmentKind: kind, attachmentName: file.name, storagePath: path, attachmentSize: file.size, timestamp: serverTimestamp()
     });
     event.target.value = '';
-  } catch (e) { toast('Upload failed. Check Firebase Storage rules.'); }
+  } catch (e) { console.error('Chat attachment upload failed:', e); toast('Upload failed. Check Firebase Storage rules and internet connection.'); }
+  finally { event.target.value = ''; }
 };
 
   // ================= WEBRTC CALLING =================
