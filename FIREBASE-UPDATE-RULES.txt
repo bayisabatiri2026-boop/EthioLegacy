@@ -1,0 +1,74 @@
+ETHIOLEGACY STATUS + CHANNELS — FIREBASE RULES ADD-ON
+
+IMPORTANT
+- These are ADD-ON match blocks, not a replacement for your existing Firestore or Storage rules.
+- Back up your current rules first. Merge the blocks inside the existing service rules { ... } blocks. Do not create a second service rules block.
+- These examples allow any signed-in EthioLegacy account to read active statuses and public channels. Statuses expire from the app's list after 24 hours; this client-side expiry does not automatically erase old Firestore documents. Configure Firestore TTL on expiresAt if you want database cleanup.
+- Test with two separate accounts before publishing.
+
+FIRESTORE RULES — merge these match blocks inside service cloud.firestore { match /databases/{database}/documents { ... } }
+
+match /statuses/{statusId} {
+  allow read: if request.auth != null;
+  allow create: if request.auth != null
+    && request.resource.data.uid == request.auth.uid
+    && request.resource.data.expiresAt is number;
+  allow update: if request.auth != null && (
+    resource.data.uid == request.auth.uid ||
+    (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewers'])
+      && request.resource.data.viewers is list
+      && request.resource.data.viewers.hasAll(resource.data.viewers)
+      && request.resource.data.viewers.hasAny([request.auth.uid]))
+  );
+  allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
+}
+
+match /channels/{channelId} {
+  allow read: if request.auth != null && resource.data.isPublic == true;
+  allow create: if request.auth != null
+    && request.resource.data.ownerUid == request.auth.uid;
+  allow update: if request.auth != null && (
+    resource.data.ownerUid == request.auth.uid ||
+    (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['followers'])
+      && request.resource.data.followers is list)
+  );
+  allow delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
+
+  match /posts/{postId} {
+    function channelDoc() {
+      return get(/databases/$(database)/documents/channels/$(channelId));
+    }
+    allow read: if request.auth != null
+      && channelDoc().data.isPublic == true;
+    allow create: if request.auth != null
+      && channelDoc().data.ownerUid == request.auth.uid
+      && request.resource.data.uid == request.auth.uid;
+    allow update, delete: if request.auth != null
+      && channelDoc().data.ownerUid == request.auth.uid;
+  }
+}
+
+STORAGE RULES — merge inside service firebase.storage { match /b/{bucket}/o { ... } }
+
+match /statuses/{userId}/{fileName} {
+  allow read: if request.auth != null;
+  allow write: if request.auth != null && request.auth.uid == userId
+    && request.resource.size < 50 * 1024 * 1024;
+}
+match /channelPosts/{channelId}/{userId}/{fileName} {
+  allow read: if request.auth != null;
+  allow write: if request.auth != null && request.auth.uid == userId
+    && request.resource.size < 50 * 1024 * 1024;
+}
+
+DEPLOY / TEST
+1. Firebase Console → Firestore Database → Rules: merge and Publish the Firestore blocks.
+2. Firebase Console → Storage → Rules: merge and Publish the Storage blocks.
+3. Ensure Firebase Authentication → Sign-in method → Email/Password is enabled and the GitHub Pages domain is authorized.
+4. Sign in on two devices/accounts. Create a text status, then a photo/video status; check it appears on the other signed-in account and disappears from the list after 24 hours.
+5. Create a channel with account A. On account B, tap Follow. Account A can publish text or media; account B can open the channel and see posts.
+
+NOTES / LIMITATIONS
+- This update implements public-to-signed-in-users statuses and public channels. Fine-grained status audience/privacy lists, reactions, replies, channel search, push notifications, and background deletion are not included yet.
+- Status and channel media use Firebase Storage. Your project's Storage billing/quotas and security rules apply.
+- Browser permission and Firebase rules errors are shown in the browser console; no live test against your Firebase project has been performed here.

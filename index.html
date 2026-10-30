@@ -50,7 +50,7 @@
   .header-tree-button{width:44px;height:44px;min-width:44px;border:2px solid rgba(255,255,255,.9);border-radius:50%;background:#fff;color:#008069;display:grid;place-items:center;font-size:23px;line-height:1;cursor:pointer;box-shadow:0 2px 6px #003b3028;padding:0}.header-tree-button:active{transform:scale(.96)}
   .home-search-wrap { padding: 10px 14px; background: #fff; border-bottom: 1px solid #e6e9eb; }
   .contacts-toolbar{display:flex;gap:8px;margin-top:9px;align-items:center}.contacts-button{border:0;border-radius:20px;padding:10px 13px;background:#e7f6f1;color:#006b58;font-weight:700;cursor:pointer}.contacts-hint{font-size:11px;color:#667781;line-height:1.35}.device-contact{display:flex;align-items:center;gap:12px;padding:12px 15px;border-bottom:1px solid #f0f2f5}.device-contact .contact-details{flex:1;min-width:0}.device-contact b{display:block;color:#172b2b}.device-contact small{color:#667781;overflow-wrap:anywhere}.contact-action{border:0;border-radius:18px;padding:8px 11px;background:#008069;color:#fff;font-weight:700;cursor:pointer;white-space:nowrap}
-  .main-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:#008069;padding:0 8px 8px}
+  .main-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:#008069;padding:0 8px 8px}
   .main-tab{border:0;border-radius:10px;padding:11px 5px;background:transparent;color:#d7f3ec;font-weight:700;font-size:14px;cursor:pointer}
   .main-tab.active{background:#fff;color:#006b58;box-shadow:0 2px 7px #003b3020}
   .home-pane{display:none;flex:1;min-height:0;overflow:auto;background:#fff}.home-pane.active{display:block}
@@ -183,6 +183,8 @@
 
   .brand{display:flex;align-items:center;gap:10px}.brand-mark{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#f7c948,#ef7f32 48%,#008069 49%,#075e54);display:flex;align-items:center;justify-content:center;color:#fff;position:relative;font-size:11px;font-weight:800;box-shadow:0 3px 9px #0002;flex-shrink:0}.brand-mark span{position:absolute;left:4px;top:7px;font-size:9px}.brand-mark b{font-size:22px;margin:8px 0 0 13px;text-shadow:0 1px 2px #333}.brand-mark.large{width:54px;height:54px;border-radius:50%}.notification-badge{position:absolute;top:0;right:0;background:#ef4444;color:white;border-radius:20px;min-width:17px;height:17px;font-size:11px;display:inline-flex;align-items:center;justify-content:center}.header-icon{position:relative}.toast{position:fixed;top:14px;left:50%;transform:translate(-50%,-150%);background:#243746;color:#fff;padding:12px 18px;border-radius:12px;z-index:3000;box-shadow:0 6px 24px #0003;max-width:90vw;transition:transform .25s ease}.toast.show{transform:translate(-50%,0)}.notification-panel{display:none;position:fixed;z-index:1500;top:72px;right:12px;width:min(360px,calc(100vw - 24px));max-height:65vh;overflow:auto;background:#fff;border-radius:16px;box-shadow:0 12px 35px #0003;padding:16px;color:#243746}.notification-panel.open{display:block}.panel-heading{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.panel-heading button,.close-settings{border:0;background:transparent;font-size:20px;cursor:pointer}.notification-entry{padding:11px 4px;border-bottom:1px solid #edf0f2;font-size:14px}.muted{color:#7b8790;font-size:13px}.settings-overlay{z-index:2000;overflow-y:auto;padding:16px}.settings-content{max-height:90vh;overflow-y:auto;text-align:left;max-width:480px;padding:20px}.settings-title{display:flex;gap:12px;align-items:center;margin-bottom:20px}.settings-title h2{font-size:19px;color:#243746}.settings-title p{font-size:12px;color:#77838e;margin:4px 0 0}.close-settings{margin-left:auto;align-self:flex-start}.profile-upload{display:flex;align-items:center;gap:14px;padding:14px 0 18px;border-bottom:1px solid #e8ecef;margin-bottom:8px}.profile-initial,.profile-upload img{width:64px;height:64px;border-radius:50%;background:#008069;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:22px;object-fit:cover;flex-shrink:0}.upload-label{display:inline-block;color:#008069;font-weight:700;font-size:13px;margin-top:8px;cursor:pointer}.setting-row{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 3px;border:0;border-bottom:1px solid #edf0f2;background:white;color:#273746;font-size:14px;text-align:left}.setting-row select{max-width:145px;padding:8px;border:1px solid #d4d9df;border-radius:8px;background:#fff}.setting-button{cursor:pointer}.logout-button{width:100%;margin-top:18px;padding:13px;border:0;border-radius:10px;background:#b91c1c;color:#fff;font-weight:700}.settings-note{line-height:1.5;margin-top:14px}.call-history-entry{padding:10px 0;border-bottom:1px solid #eee;text-align:left;font-size:14px}
 
+
+  .updates-actions{display:flex;gap:10px;padding:10px 14px}.updates-actions button,.update-action{border:0;border-radius:20px;padding:10px 14px;background:#008069;color:#fff;font-weight:700;cursor:pointer}.update-row,.channel-row{display:flex;align-items:center;gap:12px;padding:12px 15px;border-bottom:1px solid #edf0f1}.status-ring{width:50px;height:50px;border-radius:50%;border:3px solid #00a884;display:grid;place-items:center;font-size:22px;flex-shrink:0}.update-meta{flex:1;min-width:0}.update-meta b{display:block;color:#172b2b}.update-meta small{color:#667781}.update-preview{max-width:100px;max-height:65px;border-radius:8px;object-fit:cover}
 </style>
 </head>
 <body>
@@ -246,6 +248,7 @@
   <div class="main-tabs" role="tablist" aria-label="Main navigation">
     <button class="main-tab active" data-pane="chatsPane" onclick="switchHomeTab('chatsPane',this)">💬 Chats</button>
     <button class="main-tab" data-pane="callsPane" onclick="switchHomeTab('callsPane',this)">📞 Calls</button>
+    <button class="main-tab" data-pane="updatesPane" onclick="switchHomeTab('updatesPane',this)">🟢 Updates</button>
     <button class="main-tab" data-pane="communitiesPane" onclick="switchHomeTab('communitiesPane',this)">👥 Communities</button>
   </div>
   <div class="home-search-wrap" id="homeSearchWrap">
@@ -254,6 +257,7 @@
   </div>
   <div id="chatsPane" class="home-pane active"><div id="deviceContactsList"></div><div id="userList"></div><div id="groupChatList"></div></div>
   <div id="callsPane" class="home-pane"><div id="callDeviceContactsList"></div><div class="pane-heading">Start a call</div><div id="callList"></div></div>
+  <div id="updatesPane" class="home-pane"><div class="pane-heading">Status · expires after 24 hours</div><div class="updates-actions"><button onclick="createStatus()">＋ Add status</button><button onclick="createChannel()">＋ Create channel</button></div><div id="statusList"></div><div class="pane-heading">Channels</div><div id="channelList"></div></div>
   <div id="communitiesPane" class="home-pane"><div class="pane-heading">Communities</div><div class="community-card" onclick="openNewCommunity()"><div class="community-icon">＋</div><div class="community-meta"><b>Create new community</b><small>Create it, then invite members and manage it from its chat</small></div></div></div>
 </div>
 
@@ -783,6 +787,8 @@ const firebaseConfig = {
       const savedLang=localStorage.getItem('ethiolegacy_language')||'en';const langSelect=document.getElementById('appLanguage');if(langSelect)langSelect.value=savedLang;const loginLang=document.querySelector('.language-row select');if(loginLang)loginLang.value=savedLang;changeLanguage(savedLang);
     } else {
       if (friendsLiveUnsub) { friendsLiveUnsub(); friendsLiveUnsub = null; }
+      if(statusLiveUnsub){statusLiveUnsub();statusLiveUnsub=null;}
+      if(channelLiveUnsub){channelLiveUnsub();channelLiveUnsub=null;}
       currentUser = null;
       myFriends = []; allUsers = [];
       showScreen('loginScreen');
@@ -1972,6 +1978,110 @@ window.saveNewContact = async () => {
     video.enabled = !video.enabled;
     document.getElementById('activeVideoBtn')?.classList.toggle('active', video.enabled);
   };
+
+  // ---- WhatsApp-style Status and Channels ----
+  let statusLiveUnsub = null, channelLiveUnsub = null;
+  const statusCache = new Map();
+  const statusExpiryMs = 24 * 60 * 60 * 1000;
+  function updateSafe(value){ return String(value||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  window.createStatus = async () => {
+    if(!currentUser) return toast('Please sign in first.');
+    const caption = prompt('Write a status update (leave blank if you are posting media):');
+    if(caption===null) return;
+    const picker=document.createElement('input'); picker.type='file'; picker.accept='image/*,video/*';
+    const choose=confirm('Attach a photo or video? Choose Cancel to post text only.');
+    let mediaUrl='', mediaType='', mediaName='';
+    if(choose){
+      picker.click();
+      const file=await new Promise(resolve=>{picker.onchange=()=>resolve(picker.files?.[0]||null);});
+      if(!file) return;
+      if(file.size>50*1024*1024) return toast('Please choose media smaller than 50 MB.');
+      try{
+        const storageRef=ref(storage,`statuses/${currentUser.uid}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`);
+        await uploadBytes(storageRef,file); mediaUrl=await getDownloadURL(storageRef); mediaType=file.type.startsWith('video/')?'video':'image'; mediaName=file.name;
+      }catch(e){console.error(e);return toast('Media upload failed. Check Firebase Storage rules.');}
+    }
+    if(!caption.trim()&&!mediaUrl) return toast('Write text or choose media.');
+    try{
+      await addDoc(collection(db,'statuses'),{uid:currentUser.uid,displayName:currentUser.displayName||'EthioLegacy member',photoURL:currentUser.photoURL||'',text:caption.trim(),mediaUrl,mediaType,mediaName,createdAt:serverTimestamp(),expiresAt:Date.now()+statusExpiryMs,viewers:[]});
+      toast('Status shared. It will expire after 24 hours.');
+    }catch(e){console.error(e);toast('Could not share status. Check Firestore rules.');}
+  };
+  window.openStatusById = id => {const data=statusCache.get(id);if(data)window.openStatus(id,data);};
+  window.openStatus = async (id,data) => {
+    if(!currentUser)return;
+    const age=Math.max(0,Math.ceil((data.expiresAt-Date.now())/3600000));
+    let body=updateSafe(data.text||'');
+    if(data.mediaType==='image'&&data.mediaUrl) body+=`<br><img src="${updateSafe(data.mediaUrl)}" style="max-width:100%;max-height:55vh;border-radius:12px;margin-top:10px">`;
+    if(data.mediaType==='video'&&data.mediaUrl) body+=`<br><video src="${updateSafe(data.mediaUrl)}" controls playsinline style="max-width:100%;max-height:55vh;border-radius:12px;margin-top:10px"></video>`;
+    alert(`${data.displayName||'Member'} · expires in about ${age} hour(s)\n\n${data.text||'Media status'}`);
+    if(data.mediaUrl) window.open(data.mediaUrl,'_blank','noopener');
+    if(data.uid!==currentUser.uid){try{await updateDoc(doc(db,'statuses',id),{viewers:arrayUnion(currentUser.uid)});}catch(e){console.warn('Could not record status view',e);}}
+  };
+  async function loadStatuses(){
+    const box=document.getElementById('statusList'); if(!box||!currentUser)return;
+    if(statusLiveUnsub)statusLiveUnsub();
+    statusLiveUnsub=onSnapshot(collection(db,'statuses'),snap=>{
+      const docs=snap.docs.map(d=>({id:d.id,...d.data()})).filter(x=>Number(x.expiresAt)>Date.now()).sort((a,b)=>(b.expiresAt||0)-(a.expiresAt||0));
+      if(!docs.length){box.innerHTML='<div class="empty-state">No active status updates yet. Add the first one.</div>';return;}
+      statusCache.clear();docs.forEach(x=>statusCache.set(x.id,x));
+      box.innerHTML=docs.map(x=>`<div class="update-row" onclick="openStatusById('${x.id}')"><div class="status-ring">${x.mediaType==='video'?'▶️':x.mediaType==='image'?'🖼️':'●'}</div><div class="update-meta"><b>${updateSafe(x.displayName||'Member')}${x.uid===currentUser.uid?' (You)':''}</b><small>${updateSafe(x.text||x.mediaType||'Status')} · ${Math.max(1,Math.ceil((x.expiresAt-Date.now())/3600000))}h left</small></div></div>`).join('');
+    },e=>{console.error(e);box.innerHTML='<div class="empty-state">Statuses could not load. Check Firestore rules.</div>';});
+  }
+  window.createChannel = async () => {
+    if(!currentUser)return toast('Please sign in first.');
+    const name=prompt('Channel name:'); if(!name||!name.trim())return;
+    const description=prompt('Channel description (optional):')||'';
+    try{
+      const ch=await addDoc(collection(db,'channels'),{name:name.trim(),description:description.trim(),ownerUid:currentUser.uid,ownerName:currentUser.displayName||'EthioLegacy member',followers:[currentUser.uid],createdAt:serverTimestamp(),isPublic:true});
+      const post=prompt('Write your first channel update (optional):');
+      if(post&&post.trim()) await addDoc(collection(db,'channels',ch.id,'posts'),{uid:currentUser.uid,text:post.trim(),createdAt:serverTimestamp()});
+      toast('Channel created.');
+    }catch(e){console.error(e);toast('Channel creation failed. Check Firestore rules.');}
+  };
+  window.followChannel = async (id,following) => {
+    if(!currentUser)return;
+    try{await updateDoc(doc(db,'channels',id),{followers:following?arrayRemove(currentUser.uid):arrayUnion(currentUser.uid)});toast(following?'Channel unfollowed.':'Channel followed.');}
+    catch(e){console.error(e);toast('Could not update channel follow.');}
+  };
+  window.postToChannel = async id => {
+    if(!currentUser)return;
+    const textValue=prompt('Write a channel update (optional if attaching media):'); if(textValue===null)return;
+    let mediaUrl='',mediaType='',mediaName='';
+    if(confirm('Attach a photo, video or document? Choose Cancel to publish text only.')){
+      const picker=document.createElement('input');picker.type='file';picker.accept='image/*,video/*,.pdf,.doc,.docx,.txt';picker.click();
+      const file=await new Promise(resolve=>{picker.onchange=()=>resolve(picker.files?.[0]||null);});if(!file)return;
+      if(file.size>50*1024*1024)return toast('Please choose a file smaller than 50 MB.');
+      try{const storageRef=ref(storage,`channelPosts/${id}/${currentUser.uid}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`);await uploadBytes(storageRef,file);mediaUrl=await getDownloadURL(storageRef);mediaType=file.type.startsWith('image/')?'image':file.type.startsWith('video/')?'video':'file';mediaName=file.name;}
+      catch(e){console.error(e);return toast('Media upload failed. Check Firebase Storage rules.');}
+    }
+    if(!textValue.trim()&&!mediaUrl)return toast('Write an update or attach a file.');
+    try{await addDoc(collection(db,'channels',id,'posts'),{uid:currentUser.uid,text:textValue.trim(),mediaUrl,mediaType,mediaName,createdAt:serverTimestamp()});toast('Channel update published.');}
+    catch(e){console.error(e);toast('Could not publish. Only the channel owner can post.');}
+  };
+  window.viewChannel = async id => {
+    try{
+      const snap=await getDoc(doc(db,'channels',id));if(!snap.exists())return toast('Channel not found.');
+      const d=snap.data();const posts=await getDocs(query(collection(db,'channels',id,'posts'),orderBy('createdAt','desc')));
+      const lines=posts.docs.map(x=>{const p=x.data();return `${p.text||''}${p.mediaUrl?'\n'+p.mediaType+': '+p.mediaUrl:''}`;}).filter(Boolean);
+      alert(`${d.name}\n${d.description||''}\n\n${lines.join('\n\n')||'No posts yet.'}`);
+    }catch(e){console.error(e);toast('Could not open channel. Check Firestore rules.');}
+  };
+  async function loadChannels(){
+    const box=document.getElementById('channelList');if(!box||!currentUser)return;
+    if(channelLiveUnsub)channelLiveUnsub();
+    channelLiveUnsub=onSnapshot(collection(db,'channels'),snap=>{
+      const rows=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+      if(!rows.length){box.innerHTML='<div class="empty-state">No channels yet. Create a channel to share updates with followers.</div>';return;}
+      box.innerHTML=rows.map(c=>{const following=Array.isArray(c.followers)&&c.followers.includes(currentUser.uid);const owner=c.ownerUid===currentUser.uid;return `<div class="channel-row"><div class="avatar">📢</div><div class="update-meta"><b>${updateSafe(c.name||'Channel')}</b><small>${updateSafe(c.description||'')} · ${(c.followers||[]).length} followers</small></div><button class="update-action" onclick="viewChannel('${c.id}')">Open</button>${owner?`<button class="update-action" onclick="postToChannel('${c.id}')">Post</button>`:`<button class="update-action" onclick="followChannel('${c.id}',${following})">${following?'Following':'Follow'}</button>`}</div>`;}).join('');
+    },e=>{console.error(e);box.innerHTML='<div class="empty-state">Channels could not load. Check Firestore rules.</div>';});
+  }
+  function loadUpdates(){loadStatuses();loadChannels();}
+  window.switchHomeTab = ((original)=>function(paneId,button){original(paneId,button);if(paneId==='updatesPane')loadUpdates();})(window.switchHomeTab);
+  // Refresh update listeners for each signed-in session and stop them at sign-out.
+  const originalAuthUpdateHook = onAuthStateChanged;
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&currentUser&&document.getElementById('updatesPane')?.classList.contains('active'))loadUpdates();});
+
 </script>
 
 <script>

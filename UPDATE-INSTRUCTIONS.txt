@@ -1,0 +1,11 @@
+EthioLegacy update: Tree Create Button + Community Delete
+
+1. Replace the existing index.html in your GitHub repository with this index.html.
+2. Keep your existing Firebase project configuration and hosting settings unchanged.
+3. The top create button is now a circular tree icon. Tap it to open the existing menu containing New group, New contact, New community, and New event.
+4. In a community chat, tap the three-dot menu (⋮), choose option 3, and confirm to delete the community and its message documents for all members.
+
+Important:
+- Only community admins can edit, invite, or delete the community.
+- Firestore rules must allow an admin to read/delete the community's messages and delete the community document.
+- This update has not been live-tested against your Firebase project. Back up your current index.html before replacing it.
