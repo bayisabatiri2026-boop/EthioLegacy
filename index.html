@@ -762,13 +762,11 @@ const firebaseConfig = {
 
         if (validInviterUid) {
           try {
-            const inviterProfileRef = doc(db, 'users', validInviterUid);
-            const inviterProfileSnap = await getDoc(inviterProfileRef);
-            const inviterProfile = inviterProfileSnap.exists() ? inviterProfileSnap.data() : {};
-            const inviterName = inviterProfile.displayName || 'EthioLegacy member';
-            // Use merge writes on both sides so the inviter and receiver each get
-            // their own private Chats and Calls contact entry.
-            await setDoc(inviterProfileRef, { linkedUsers: arrayUnion(cred.user.uid) }, { merge: true });
+            // Do not update the inviter's profile document from the new account.
+            // Owner-only Firestore rules correctly reject that cross-account write.
+            // Instead, the rules add-on below allows the joining user to create
+            // only their own friend-entry document under the inviter's friends list.
+            const inviterName = urlParams.get('inviterName') || 'EthioLegacy member';
             await setDoc(doc(db, 'users', cred.user.uid, 'friends', validInviterUid), {
               uid: validInviterUid, displayName: inviterName, addedAt: serverTimestamp()
             }, { merge: true });
@@ -1337,6 +1335,7 @@ function getEthioLegacyInviteUrl() {
   // Build exactly one invite parameter; never append an existing query string.
   const url = new URL(location.pathname, location.origin);
   url.searchParams.set('invite', currentUser.uid);
+  if (currentUser.displayName) url.searchParams.set('inviterName', currentUser.displayName);
   return url.toString();
 }
 
@@ -1936,11 +1935,13 @@ window.saveNewContact = async () => {
   onAuthStateChanged(auth, (user) => {
     if (incomingCallUnsub) { incomingCallUnsub(); incomingCallUnsub = null; }
     if (!user) return;
-    const q = query(collection(db, 'calls'), where('receiverId', '==', user.uid), where('status', '==', 'ringing'));
+    // A single-field receiver query avoids the composite receiverId+status index.
+    const q = query(collection(db, 'calls'), where('receiverId', '==', user.uid));
     incomingCallUnsub = onSnapshot(q, (snapshot) => {
       snapshot.docChanges().forEach(change => {
         if (change.type !== 'added') return;
         const callData = change.doc.data();
+        if (callData.status !== 'ringing') return;
         if (document.getElementById('activeCallModal').classList.contains('active') || currentCallDocId) return;
         currentCallDocId = change.doc.id;
         const callerName = callData.callerName || 'Incoming Call';
@@ -1956,7 +1957,7 @@ window.saveNewContact = async () => {
         document.getElementById('incomingCallModal').classList.add('active');
         playRingtone('incoming');
       });
-    }, e => { console.error('Incoming call listener failed', e); toast('Cannot receive calls. Check Firestore rules and call query index.'); });
+    }, e => { console.error('Incoming call listener failed:', e.code, e.message, e); toast('Cannot receive calls: '+(e.code || e.message || 'check Firestore calls read rules')); });
   });
 
   window.acceptCall = async (forceVideo = false) => {
@@ -2103,7 +2104,7 @@ window.saveNewContact = async () => {
   window.inviteIntoSpecialGroup=contact=>{if(!currentUser)return toast('Sign in first.');pendingSpecialGroupInvite={...contact,group:activeSpecialGroup};renderPendingSpecialGroupInvite();};
   window.cancelSpecialGroupInvite=()=>{pendingSpecialGroupInvite=null;renderPendingSpecialGroupInvite();toast('Invitation selection cancelled.');};
   function renderPendingSpecialGroupInvite(){const box=document.getElementById('specialGroupPendingInvite');if(!box)return;if(!pendingSpecialGroupInvite){box.innerHTML='';return;}const c=pendingSpecialGroupInvite;box.innerHTML=`<div class="device-contact" style="margin:8px 12px;padding:12px;border:1px solid #d1d5db;border-radius:12px;background:#f8fafc"><div class="contact-details"><b>Selected: ${updateSafe(c.name||'Contact')}</b><small>${updateSafe(c.tel||c.email||'')} · ${updateSafe(specialGroupNames[c.group]||'Special Group')}</small></div><button class="contact-action" onclick="sendPendingSpecialGroupInvite()">Send invite</button><button class="mini-action" onclick="cancelSpecialGroupInvite()" title="Cancel invitation">✕ Cancel</button></div>`;}
-  window.sendPendingSpecialGroupInvite=async()=>{if(!pendingSpecialGroupInvite||!currentUser)return;const c=pendingSpecialGroupInvite,group=c.group;const link=new URL(location.pathname,location.origin);link.searchParams.set('invite',currentUser.uid);link.searchParams.set('group',group);const msg=`Join me on EthioLegacy. I am inviting you to my ${specialGroupNames[group]} group.`;try{if(navigator.share)await navigator.share({title:'EthioLegacy invitation',text:msg,url:link.toString()});else if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(msg+'\n'+link);toast('Group invitation link copied.');}else prompt('Copy invitation link',link.toString());pendingSpecialGroupInvite=null;renderPendingSpecialGroupInvite();}catch(e){if(e.name==='AbortError'){toast('Invitation cancelled.');}else prompt('Copy invitation link',link.toString());}};
+  window.sendPendingSpecialGroupInvite=async()=>{if(!pendingSpecialGroupInvite||!currentUser)return;const c=pendingSpecialGroupInvite,group=c.group;const link=new URL(location.pathname,location.origin);link.searchParams.set('invite',currentUser.uid);link.searchParams.set('group',group);if(currentUser.displayName)link.searchParams.set('inviterName',currentUser.displayName);const msg=`Join me on EthioLegacy. I am inviting you to my ${specialGroupNames[group]} group.`;try{if(navigator.share)await navigator.share({title:'EthioLegacy invitation',text:msg,url:link.toString()});else if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(msg+'\n'+link);toast('Group invitation link copied.');}else prompt('Copy invitation link',link.toString());pendingSpecialGroupInvite=null;renderPendingSpecialGroupInvite();}catch(e){if(e.name==='AbortError'){toast('Invitation cancelled.');}else prompt('Copy invitation link',link.toString());}};
   window.renderSpecialGroup=async()=>{const box=document.getElementById('specialGroupMembers');if(!box||!currentUser)return;try{const snap=await getDocs(collection(db,'users',currentUser.uid,'specialGroups',activeSpecialGroup,'members'));specialGroupRows=snap.docs.map(d=>({id:d.id,...d.data()}));const q=(document.getElementById('specialGroupSearch')?.value||'').toLowerCase();const rows=specialGroupRows.filter(x=>[x.displayName,x.email,x.phone].some(v=>(v||'').toLowerCase().includes(q)));box.innerHTML=`<div class="pane-heading">${specialGroupNames[activeSpecialGroup]} · ${rows.length} saved</div>`+(rows.length?rows.map(x=>`<div class="chat-item"><div class="avatar">${updateSafe((x.displayName||'M').slice(0,1).toUpperCase())}</div><div class="chat-info" onclick="openChat('${x.uid}','${updateSafe(x.displayName||'Member')}')"><div class="chat-name">🌳 ${updateSafe(x.displayName||'Member')}</div><small>${updateSafe(x.email||x.phone||'EthioLegacy member')}</small></div><button class="mini-action" title="Remove from this group" onclick="removeSpecialGroupMember('${x.uid}')">✕</button></div>`).join(''):'<div class="empty-state">No members saved here yet. Search your device contacts or add people from Chats.</div>');}catch(e){console.error(e);box.innerHTML='<div class="empty-state">Could not load this group. Check Firestore rules.</div>';}};
   window.renderSpecialGroupDeviceContacts=()=>{
     const box=document.getElementById('specialGroupDeviceContacts');if(!box)return;

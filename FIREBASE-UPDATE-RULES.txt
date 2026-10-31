@@ -82,3 +82,60 @@ match /users/{userId}/specialGroups/{groupName}/members/{memberId} {
 }
 
 The app writes each accepted invitation to both users' own specialGroups subcollection. Existing users/{uid}/friends rules must also permit each signed-in user to write their own friends subcollection for two-way Chats/Calls linking. Do not replace your current rules; merge this block into them.
+
+INVITATION LINKING + INCOMING CALLS — FIRESTORE ADD-ON
+Merge these blocks INSIDE your existing service cloud.firestore / match /databases/{database}/documents block. Do not paste them into Firebase Storage Rules and do not replace your other rules.
+
+// A joining user may create/update only their own contact entry (document ID == their UID)
+// under the inviter's friends list. The inviter can read/manage their own friends list.
+match /users/{ownerUid}/friends/{friendUid} {
+  allow read, delete: if request.auth != null && request.auth.uid == ownerUid;
+  allow create, update: if request.auth != null && (
+    request.auth.uid == ownerUid ||
+    (request.auth.uid == friendUid && request.resource.data.uid == request.auth.uid)
+  );
+}
+
+// The inviter can read their own saved category. The invited user can write
+// only their own membership document into the inviter's category.
+match /users/{ownerUid}/specialGroups/{groupName}/members/{memberUid} {
+  allow read, delete: if request.auth != null && request.auth.uid == ownerUid;
+  allow create, update: if request.auth != null && (
+    request.auth.uid == ownerUid ||
+    (request.auth.uid == memberUid && groupName in ['love', 'family', 'friend', 'classmate'])
+  );
+}
+
+// Incoming call listener queries calls by receiverId only; the app filters status locally.
+match /calls/{callId} {
+  allow create: if request.auth != null
+    && request.resource.data.callerId == request.auth.uid
+    && request.resource.data.receiverId is string;
+  allow read: if request.auth != null && (
+    resource.data.callerId == request.auth.uid ||
+    resource.data.receiverId == request.auth.uid
+  );
+  allow update: if request.auth != null && (
+    resource.data.callerId == request.auth.uid ||
+    resource.data.receiverId == request.auth.uid
+  );
+  allow delete: if request.auth != null && resource.data.callerId == request.auth.uid;
+
+  match /offerCandidates/{candidateId} {
+    function parentCall() {
+      return get(/databases/$(database)/documents/calls/$(callId));
+    }
+    allow read, write: if request.auth != null && parentCall().exists()
+      && (parentCall().data.callerId == request.auth.uid || parentCall().data.receiverId == request.auth.uid);
+  }
+  match /answerCandidates/{candidateId} {
+    function parentCall() {
+      return get(/databases/$(database)/documents/calls/$(callId));
+    }
+    allow read, write: if request.auth != null && parentCall().exists()
+      && (parentCall().data.callerId == request.auth.uid || parentCall().data.receiverId == request.auth.uid);
+  }
+}
+
+IMPORTANT SECURITY NOTE
+These rules allow a signed-in user to create only their own UID entry under another user's friends/specialGroups collection. They do not allow arbitrary edits to the other user's profile. Review these additions against your existing rules before publishing; overlapping match rules are OR-combined by Firestore.

@@ -1,0 +1,23 @@
+ETHIOLEGACY — INVITATION CONTACT LINK + INCOMING CALL REPAIR
+
+WHAT THIS UPDATE CHANGES
+1. When a new member registers using an invitation URL, the app creates a Friends entry for both accounts. This is the list used by Chats and Calls.
+2. Special Group invitation URLs retain the selected category (Love, Family, Friend, or Classmate), and save the new member under that category for both accounts.
+3. The registration code no longer tries to edit the inviter's main profile document. Owner-only Firebase rules correctly reject that cross-account profile write, which previously could stop the rest of the invitation linking sequence.
+4. The incoming-call listener now queries only receiverId and filters status == ringing in the app. This avoids the receiverId + status composite-index requirement that could trigger the message shown in your screenshot.
+5. If the incoming-call listener still fails, the toast now displays the Firebase error code/message to help identify the remaining rule/configuration issue.
+
+FIREBASE STEPS
+1. Open Firebase Console → Firestore Database → Rules.
+2. Merge the section named “INVITATION LINKING + INCOMING CALLS” from FIREBASE-UPDATE-RULES.txt into the existing documents rules block.
+3. Publish Firestore rules.
+4. Do NOT paste these Firestore rules into Storage → Rules.
+5. Replace your GitHub Pages index.html with the one in this folder and commit/push it.
+6. Test with two separate accounts on two devices: A shares an invite link; B opens that exact link, registers, then both accounts should see each other in Chats and Calls. For a Special Group invite, both should also see the member under the selected category.
+
+NOTES
+- Existing members who registered before this update will not be linked automatically. They must use a fresh invite link or be added through the in-app contact flow.
+- The receiver must complete registration from the invite URL on the same browser session so the invite UID is preserved.
+- This is a client-side invitation redemption flow. For high-security production use, move reciprocal membership writes into a trusted Firebase Cloud Function.
+- The call fix removes the composite index dependency but still requires Firestore rules to permit the caller and receiver to read/update the call document and candidate subcollections.
+- Voice/video connectivity across different networks still depends on valid STUN/TURN configuration and device permissions.
