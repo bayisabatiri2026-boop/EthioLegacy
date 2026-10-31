@@ -258,7 +258,20 @@
   <div id="chatsPane" class="home-pane active"><div id="deviceContactsList"></div><div id="userList"></div><div id="groupChatList"></div></div>
   <div id="callsPane" class="home-pane"><div id="callDeviceContactsList"></div><div class="pane-heading">Start a call</div><div id="callList"></div></div>
   <div id="updatesPane" class="home-pane"><div class="pane-heading">Special Groups · your personal circles</div><div class="contacts-toolbar" style="padding:8px 14px"><button class="contacts-button" onclick="importDeviceContacts()">📱 Search device contacts</button></div><div class="updates-actions" style="flex-wrap:wrap"><button onclick="openSpecialGroup('love')">❤️ Love</button><button onclick="openSpecialGroup('family')">🏡 Family</button><button onclick="openSpecialGroup('friend')">🤝 Friend</button><button onclick="openSpecialGroup('classmate')">🎓 Classmate</button></div><div style="padding:0 14px 12px"><input id="specialGroupSearch" class="home-search" placeholder="Search name, email or phone..." oninput="renderSpecialGroup()"></div><div id="specialGroupMembers"></div><div class="pane-heading">Invite someone into a selected group</div><div id="specialGroupDeviceContacts"></div></div>
-  <div id="communitiesPane" class="home-pane"><div class="pane-heading">Communities</div><div class="community-card" onclick="openNewCommunity()"><div class="community-icon">＋</div><div class="community-meta"><b>Create new community</b><small>Create it, then invite members and manage it from its chat</small></div></div></div>
+  <div id="communitiesPane" class="home-pane">
+    <div class="pane-heading">Communities</div>
+    <div class="community-card" onclick="toggleCommunityCreator()"><div class="community-icon">＋</div><div class="community-meta"><b>Create new community</b><small>Search members, name your community, and create it</small></div></div>
+    <section id="communityCreator" style="display:none;padding:12px 14px 16px;border-bottom:1px solid #edf0f2">
+      <label style="display:block;font-weight:600;margin-bottom:7px">Community name</label>
+      <input id="communityNameInput" class="home-search" placeholder="Enter community name" maxlength="60">
+      <div class="contacts-toolbar" style="padding:10px 0"><button class="contacts-button" onclick="importDeviceContacts();setTimeout(renderCommunityPicker,400)">📱 Sync my phone contacts</button></div>
+      <input id="communityMemberSearch" class="home-search" placeholder="Search by name, email or phone..." oninput="renderCommunityPicker()">
+      <div id="communityMemberPicker" style="max-height:220px;overflow:auto;margin-top:8px"></div>
+      <div style="display:flex;gap:10px;margin-top:12px"><button style="flex:1;border:0;border-radius:9px;padding:11px;background:#008f72;color:white;font-weight:600" onclick="createCommunityFromPane()">Create community</button><button style="border:1px solid #d8dee2;border-radius:9px;padding:11px;background:white" onclick="cancelCommunityCreator()">Cancel</button></div>
+    </section>
+    <div class="pane-heading" style="margin-top:8px">Your communities</div>
+    <div id="communityList"><p class="muted" style="padding:12px">Your communities will appear here.</p></div>
+  </div>
 </div>
 
 <!-- SCREEN 3: CHAT -->
@@ -945,6 +958,7 @@ window.importDeviceContacts = async () => {
     persistDeviceContacts();
     await resolveSelectedDeviceContacts();
     renderDeviceContacts();
+    renderCommunityPicker();
     renderWaContacts(); // Update the WhatsApp-style menu immediately
     toast(importedDeviceContacts.length + ' contacts synced on this device.');
   } catch (e) {
@@ -1125,12 +1139,73 @@ window.saveNewContact = async () => {
     }
   }
 
+  let selectedCommunityMembers = new Set();
+  window.toggleCommunityCreator = () => {
+    const box=document.getElementById('communityCreator');
+    box.style.display=box.style.display==='none'?'block':'none';
+    if(box.style.display==='block') { selectedCommunityMembers=new Set(); renderCommunityPicker(); document.getElementById('communityNameInput').focus(); }
+  };
+  window.cancelCommunityCreator = () => {
+    document.getElementById('communityCreator').style.display='none';
+    document.getElementById('communityNameInput').value='';
+    document.getElementById('communityMemberSearch').value='';
+    selectedCommunityMembers=new Set();
+  };
+  window.renderCommunityPicker = () => {
+    const box=document.getElementById('communityMemberPicker'); if(!box) return;
+    const q=(document.getElementById('communityMemberSearch')?.value||'').trim().toLowerCase();
+    const records=[...(myFriends||[])];
+    for(const u of (allUsers||[])) if(!records.some(x=>x.uid===u.uid)) records.push(u);
+    const phoneMatches=(importedDeviceContacts||[]).filter(c=>[c.name,c.email,c.tel].some(v=>String(v||'').toLowerCase().includes(q)));
+    const contactMatchedUids=new Set(phoneMatches.map(c=>findEthioLegacyContact(c)?.uid).filter(Boolean));
+    const filtered=records.filter(u=>!q||contactMatchedUids.has(u.uid)||[u.displayName,u.name,u.email,u.phone,u.phoneNumber].some(v=>String(v||'').toLowerCase().includes(q)));
+    box.innerHTML='';
+    if(!filtered.length && !phoneMatches.length){box.innerHTML='<p class="muted" style="padding:10px">No matching contacts. Sync your phone contacts or search a registered member.</p>';return;}
+    filtered.forEach(u=>{
+      const row=document.createElement('label'); row.style.cssText='display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid #f0f2f5';
+      const cb=document.createElement('input');cb.type='checkbox';cb.checked=selectedCommunityMembers.has(u.uid);cb.onchange=()=>cb.checked?selectedCommunityMembers.add(u.uid):selectedCommunityMembers.delete(u.uid);
+      const info=document.createElement('span');info.style.flex='1';
+      const nm=document.createElement('b');nm.textContent=u.displayName||u.name||'Member';
+      const sub=document.createElement('small');sub.style.cssText='display:block;color:#667781';sub.textContent=u.email||u.phone||u.phoneNumber||'EthioLegacy member';
+      info.append(nm,sub);row.append(cb,info);box.append(row);
+    });
+    phoneMatches.forEach(c=>{
+      const match=findEthioLegacyContact(c);
+      if(!match){const row=document.createElement('div');row.style.cssText='padding:8px 4px;color:#667781;font-size:13px';row.textContent=(c.name||'Phone contact')+' — not registered yet; invite them to EthioLegacy first.';box.append(row);}
+    });
+  };
   async function loadCommunities(){
-    // The Communities tab intentionally shows only "Create new community".
-    // Existing communities are opened and managed from Chats.
-    const list=document.getElementById('communityList');
-    if(list) list.innerHTML='';
+    const list=document.getElementById('communityList'); if(!list||!currentUser)return;
+    try{
+      const snap=await getDocs(query(collection(db,'chats'),where('isCommunity','==',true),where('members','array-contains',currentUser.uid)));
+      list.innerHTML='';
+      if(snap.empty){list.innerHTML='<p class="muted" style="padding:12px">No communities yet. Tap “Create new community” to start one.</p>';return;}
+      snap.forEach(d=>{
+        const data=d.data();const row=document.createElement('div');row.className='community-card';
+        row.innerHTML=`<div class="community-icon">👥</div><div class="community-meta"><b>${escapeHTML(data.name||'Community')}</b><small>${(data.members||[]).length} member(s)</small></div><button class="mini-action" title="Rename" aria-label="Rename">✎</button><button class="mini-action" title="Cancel community" aria-label="Cancel community">✕</button>`;
+        row.querySelector('.community-meta').onclick=()=>openChat(d.id,data.name||'Community');
+        row.querySelectorAll('button')[0].onclick=async e=>{e.stopPropagation();if(!(data.admins||[]).includes(currentUser.uid))return toast('Only the community admin can change its name.');const next=prompt('Change community name:',data.name||'Community');if(!next||!next.trim())return;try{await updateDoc(doc(db,'chats',d.id),{name:next.trim(),updatedAt:serverTimestamp()});await loadCommunities();toast('Community name changed.');}catch(err){console.error(err);toast('Could not rename community.');}};
+        row.querySelectorAll('button')[1].onclick=async e=>{e.stopPropagation();if(!(data.admins||[]).includes(currentUser.uid))return toast('Only the community admin can cancel it.');if(!confirm('Cancel and delete “'+(data.name||'Community')+'”? This cannot be undone.'))return;try{const msgs=await getDocs(collection(db,'chats',d.id,'messages'));for(const m of msgs.docs)await deleteDoc(doc(db,'chats',d.id,'messages',m.id));await deleteDoc(doc(db,'chats',d.id));await loadCommunities();await loadGroupChats();toast('Community cancelled.');}catch(err){console.error(err);toast('Could not cancel community. Check Firestore permissions.');}};
+        list.append(row);
+      });
+    }catch(e){console.error('Could not load communities:',e);list.innerHTML='<p class="muted" style="padding:12px">Communities could not load. Check Firestore rules.</p>';}
   }
+  window.createCommunityFromPane=async()=>{
+    if(!currentUser)return toast('Please sign in first.');
+    const name=document.getElementById('communityNameInput').value.trim();if(!name)return toast('Enter a community name first.');
+    const members=[currentUser.uid,...selectedCommunityMembers];
+    try{
+      const communityId='community_'+currentUser.uid.slice(0,8)+'_'+Date.now();
+      await setDoc(doc(db,'chats',communityId),{name,isGroup:true,isCommunity:true,members,admins:[currentUser.uid],createdBy:currentUser.uid,createdAt:serverTimestamp(),updatedAt:serverTimestamp()});
+      for(const uid of selectedCommunityMembers){
+        try{
+          await setDoc(doc(db,'users',currentUser.uid,'friends',uid),{uid,addedAt:serverTimestamp()},{merge:true});
+          await setDoc(doc(db,'users',uid,'friends',currentUser.uid),{uid:currentUser.uid,addedAt:serverTimestamp()},{merge:true});
+        }catch(friendError){console.warn('Community member added, but private contact-list linking was blocked by Firestore rules:',friendError);}
+      }
+      cancelCommunityCreator();await loadCommunities();await loadGroupChats();toast('Community created and saved in Your communities.');
+    }catch(e){console.error('Community creation failed:',e);toast('Could not create community. Check Firestore permissions for chats and friends.');}
+  };
 
   window.openNewCommunity = () => {
     if (!currentUser) return toast('Please sign in first.');

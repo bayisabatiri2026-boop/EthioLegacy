@@ -1,0 +1,21 @@
+ETHIOLEGACY — COMMUNITIES UPDATE
+
+The Communities tab now contains:
+- Create new community at the top.
+- Community name field.
+- Sync my phone contacts button (requires a supported Android browser such as Chrome and HTTPS permission).
+- Search by name, email, or phone. Registered EthioLegacy contacts selected/synced from the phone can be added to the new community.
+- Create community saves it in the Your communities list below.
+- Each saved community has Rename and Cancel/Delete controls. Only its admin can rename or cancel it.
+
+HOW TO UPDATE
+1. Back up your current EthioLegacy folder.
+2. Replace its index.html with this ZIP's index.html.
+3. Keep your existing Firebase project and merge the rules from FIREBASE-UPDATE-RULES.txt with your existing rules; do not replace unrelated rules.
+4. Deploy the updated folder to your existing hosting/GitHub Pages setup.
+5. Test with two registered accounts on two devices.
+
+NOTES
+- A phone contact who is not yet registered cannot be added as an active community member. Invite them to register first, then sync/search again.
+- Community creation and membership visibility depend on your Firestore rules allowing the signed-in user to create/read the relevant chats documents. Private Chats/Calls contact-list linking may also require owner-authorized friends-subcollection rules. The app logs any blocked linking in the browser console.
+- The device contact picker is a browser feature and is not supported by every browser/device.
