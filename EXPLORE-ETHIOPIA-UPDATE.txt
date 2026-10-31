@@ -1,0 +1,23 @@
+ETHIOLEGACY – EXPLORE ETHIOPIA UPDATE
+
+This folder is based on EthioLegacy-Invite-Calls-Repair.
+
+WHAT WAS ADDED
+- Added “Explore Ethiopia · Green Legacy & Digital Ethiopia” inside the existing 🌳 tree button menu.
+- Green Legacy section links to the official Green Legacy website and Ethiopian Forestry Development.
+- Digital Ethiopia section links to the Office of the Prime Minister website.
+- Added online topic search. Search results are shown one by one and each result opens its source.
+- Search uses Wikipedia's public search API and therefore requires an internet connection. It does NOT search every website on the internet; official links are provided separately.
+
+WHAT WAS PRESERVED
+- Existing EthioLegacy chats, calls, groups, communities, sign-in/sign-up, and other existing code were retained from the source folder.
+- No Firebase configuration or security rules were changed in this update.
+
+HOW TO USE
+1. Upload the contents of this folder to the same GitHub Pages repository that hosts EthioLegacy, replacing the previous site files with this complete folder's contents.
+2. Keep your existing Firebase project and published Firestore/Storage rules unchanged.
+3. Open EthioLegacy, tap the 🌳 button, then tap “Explore Ethiopia · Green Legacy & Digital Ethiopia”.
+4. Choose a topic or enter a search phrase and tap Search.
+
+IMPORTANT TESTING NOTE
+The new search interface is added, but live online search depends on the phone's internet connection and the public search service. Existing calls/authentication still require your own Firebase setup and device-to-device testing.

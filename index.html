@@ -353,6 +353,9 @@
         <div class="wa-menu-item" onclick="openNewCommunity()">
           <div class="wa-icon" style="background: #00a884;">👥</div> <span>New community</span>
         </div>
+        <div class="wa-menu-item" onclick="openExploreEthiopia()">
+          <div class="wa-icon" style="background:#e8f5e9;">🌳</div> <span>Explore Ethiopia · Green Legacy & Digital Ethiopia</span>
+        </div>
         <div class="wa-menu-item" onclick="alert('Events coming soon!')">
           <div class="wa-icon" style="background: #00a884;">📅</div> <span>New event</span>
         </div>
@@ -762,13 +765,11 @@ const firebaseConfig = {
 
         if (validInviterUid) {
           try {
-            const inviterProfileRef = doc(db, 'users', validInviterUid);
-            const inviterProfileSnap = await getDoc(inviterProfileRef);
-            const inviterProfile = inviterProfileSnap.exists() ? inviterProfileSnap.data() : {};
-            const inviterName = inviterProfile.displayName || 'EthioLegacy member';
-            // Use merge writes on both sides so the inviter and receiver each get
-            // their own private Chats and Calls contact entry.
-            await setDoc(inviterProfileRef, { linkedUsers: arrayUnion(cred.user.uid) }, { merge: true });
+            // Do not update the inviter's profile document from the new account.
+            // Owner-only Firestore rules correctly reject that cross-account write.
+            // Instead, the rules add-on below allows the joining user to create
+            // only their own friend-entry document under the inviter's friends list.
+            const inviterName = urlParams.get('inviterName') || 'EthioLegacy member';
             await setDoc(doc(db, 'users', cred.user.uid, 'friends', validInviterUid), {
               uid: validInviterUid, displayName: inviterName, addedAt: serverTimestamp()
             }, { merge: true });
@@ -1337,6 +1338,7 @@ function getEthioLegacyInviteUrl() {
   // Build exactly one invite parameter; never append an existing query string.
   const url = new URL(location.pathname, location.origin);
   url.searchParams.set('invite', currentUser.uid);
+  if (currentUser.displayName) url.searchParams.set('inviterName', currentUser.displayName);
   return url.toString();
 }
 
@@ -1936,11 +1938,13 @@ window.saveNewContact = async () => {
   onAuthStateChanged(auth, (user) => {
     if (incomingCallUnsub) { incomingCallUnsub(); incomingCallUnsub = null; }
     if (!user) return;
-    const q = query(collection(db, 'calls'), where('receiverId', '==', user.uid), where('status', '==', 'ringing'));
+    // A single-field receiver query avoids the composite receiverId+status index.
+    const q = query(collection(db, 'calls'), where('receiverId', '==', user.uid));
     incomingCallUnsub = onSnapshot(q, (snapshot) => {
       snapshot.docChanges().forEach(change => {
         if (change.type !== 'added') return;
         const callData = change.doc.data();
+        if (callData.status !== 'ringing') return;
         if (document.getElementById('activeCallModal').classList.contains('active') || currentCallDocId) return;
         currentCallDocId = change.doc.id;
         const callerName = callData.callerName || 'Incoming Call';
@@ -1956,7 +1960,7 @@ window.saveNewContact = async () => {
         document.getElementById('incomingCallModal').classList.add('active');
         playRingtone('incoming');
       });
-    }, e => { console.error('Incoming call listener failed', e); toast('Cannot receive calls. Check Firestore rules and call query index.'); });
+    }, e => { console.error('Incoming call listener failed:', e.code, e.message, e); toast('Cannot receive calls: '+(e.code || e.message || 'check Firestore calls read rules')); });
   });
 
   window.acceptCall = async (forceVideo = false) => {
@@ -2103,7 +2107,7 @@ window.saveNewContact = async () => {
   window.inviteIntoSpecialGroup=contact=>{if(!currentUser)return toast('Sign in first.');pendingSpecialGroupInvite={...contact,group:activeSpecialGroup};renderPendingSpecialGroupInvite();};
   window.cancelSpecialGroupInvite=()=>{pendingSpecialGroupInvite=null;renderPendingSpecialGroupInvite();toast('Invitation selection cancelled.');};
   function renderPendingSpecialGroupInvite(){const box=document.getElementById('specialGroupPendingInvite');if(!box)return;if(!pendingSpecialGroupInvite){box.innerHTML='';return;}const c=pendingSpecialGroupInvite;box.innerHTML=`<div class="device-contact" style="margin:8px 12px;padding:12px;border:1px solid #d1d5db;border-radius:12px;background:#f8fafc"><div class="contact-details"><b>Selected: ${updateSafe(c.name||'Contact')}</b><small>${updateSafe(c.tel||c.email||'')} · ${updateSafe(specialGroupNames[c.group]||'Special Group')}</small></div><button class="contact-action" onclick="sendPendingSpecialGroupInvite()">Send invite</button><button class="mini-action" onclick="cancelSpecialGroupInvite()" title="Cancel invitation">✕ Cancel</button></div>`;}
-  window.sendPendingSpecialGroupInvite=async()=>{if(!pendingSpecialGroupInvite||!currentUser)return;const c=pendingSpecialGroupInvite,group=c.group;const link=new URL(location.pathname,location.origin);link.searchParams.set('invite',currentUser.uid);link.searchParams.set('group',group);const msg=`Join me on EthioLegacy. I am inviting you to my ${specialGroupNames[group]} group.`;try{if(navigator.share)await navigator.share({title:'EthioLegacy invitation',text:msg,url:link.toString()});else if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(msg+'\n'+link);toast('Group invitation link copied.');}else prompt('Copy invitation link',link.toString());pendingSpecialGroupInvite=null;renderPendingSpecialGroupInvite();}catch(e){if(e.name==='AbortError'){toast('Invitation cancelled.');}else prompt('Copy invitation link',link.toString());}};
+  window.sendPendingSpecialGroupInvite=async()=>{if(!pendingSpecialGroupInvite||!currentUser)return;const c=pendingSpecialGroupInvite,group=c.group;const link=new URL(location.pathname,location.origin);link.searchParams.set('invite',currentUser.uid);link.searchParams.set('group',group);if(currentUser.displayName)link.searchParams.set('inviterName',currentUser.displayName);const msg=`Join me on EthioLegacy. I am inviting you to my ${specialGroupNames[group]} group.`;try{if(navigator.share)await navigator.share({title:'EthioLegacy invitation',text:msg,url:link.toString()});else if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(msg+'\n'+link);toast('Group invitation link copied.');}else prompt('Copy invitation link',link.toString());pendingSpecialGroupInvite=null;renderPendingSpecialGroupInvite();}catch(e){if(e.name==='AbortError'){toast('Invitation cancelled.');}else prompt('Copy invitation link',link.toString());}};
   window.renderSpecialGroup=async()=>{const box=document.getElementById('specialGroupMembers');if(!box||!currentUser)return;try{const snap=await getDocs(collection(db,'users',currentUser.uid,'specialGroups',activeSpecialGroup,'members'));specialGroupRows=snap.docs.map(d=>({id:d.id,...d.data()}));const q=(document.getElementById('specialGroupSearch')?.value||'').toLowerCase();const rows=specialGroupRows.filter(x=>[x.displayName,x.email,x.phone].some(v=>(v||'').toLowerCase().includes(q)));box.innerHTML=`<div class="pane-heading">${specialGroupNames[activeSpecialGroup]} · ${rows.length} saved</div>`+(rows.length?rows.map(x=>`<div class="chat-item"><div class="avatar">${updateSafe((x.displayName||'M').slice(0,1).toUpperCase())}</div><div class="chat-info" onclick="openChat('${x.uid}','${updateSafe(x.displayName||'Member')}')"><div class="chat-name">🌳 ${updateSafe(x.displayName||'Member')}</div><small>${updateSafe(x.email||x.phone||'EthioLegacy member')}</small></div><button class="mini-action" title="Remove from this group" onclick="removeSpecialGroupMember('${x.uid}')">✕</button></div>`).join(''):'<div class="empty-state">No members saved here yet. Search your device contacts or add people from Chats.</div>');}catch(e){console.error(e);box.innerHTML='<div class="empty-state">Could not load this group. Check Firestore rules.</div>';}};
   window.renderSpecialGroupDeviceContacts=()=>{
     const box=document.getElementById('specialGroupDeviceContacts');if(!box)return;
@@ -2238,5 +2242,27 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(err => console.warn('Service worker registration failed:', err)));
 }
 </script>
+
+<style>
+#exploreEthiopia{display:none;position:fixed;inset:0;z-index:1200;background:#f6f8f7;flex-direction:column;color:#172b2b}
+#exploreEthiopia.active{display:flex}.explore-head{display:flex;align-items:center;gap:12px;padding:15px;background:#008069;color:white;padding-top:max(15px,env(safe-area-inset-top))}.explore-head button{border:0;background:transparent;color:white;font-size:25px}.explore-body{padding:14px;overflow:auto}.explore-card{background:white;border-radius:13px;padding:14px;margin:10px 0;box-shadow:0 1px 4px #0001}.explore-card h3{margin-bottom:7px}.explore-card p{font-size:14px;line-height:1.5;color:#526170}.explore-card a{color:#007b66;font-weight:600;overflow-wrap:anywhere}.explore-search{display:flex;gap:7px;margin:12px 0}.explore-search input{min-width:0;flex:1;padding:12px;border:1px solid #d5dfdc;border-radius:10px;font-size:15px}.explore-search button{border:0;border-radius:10px;padding:0 14px;background:#008069;color:white;font-weight:700}.explore-result{padding:13px 0;border-bottom:1px solid #edf0ef}.explore-result h4{color:#006b58;margin-bottom:5px}.explore-result p{font-size:13px;color:#526170;line-height:1.45}.explore-result a{display:inline-block;margin-top:7px;color:#007b66;font-weight:700}
+</style>
+<div id="exploreEthiopia" aria-label="Explore Ethiopia">
+ <div class="explore-head"><button onclick="closeExploreEthiopia()" aria-label="Back">←</button><div><b>Explore Ethiopia</b><div style="font-size:12px;opacity:.9">Green Legacy · Digital Ethiopia</div></div></div>
+ <div class="explore-body">
+  <div class="explore-card"><h3>🌳 Ethio Green Legacy</h3><p>Explore Ethiopia's tree-planting, forest restoration, ecosystem protection and environmental programmes. Search online results below or visit official information sources.</p><p style="margin-top:8px"><a href="https://www.ethio-greenlegacy.et/" target="_blank" rel="noopener">Official Green Legacy website ↗</a><br><a href="https://www.efd.gov.et/green-legacy/" target="_blank" rel="noopener">Ethiopian Forestry Development ↗</a></p><button class="contacts-button" style="margin-top:10px" onclick="searchExploreTopic('Ethiopia Green Legacy Initiative')">Search Green Legacy</button></div>
+  <div class="explore-card"><h3>💻 Digital Ethiopia</h3><p>Learn about Ethiopia's digital transformation strategy, digital public services, connectivity, innovation, technology and the Digital Ethiopia 2030 vision.</p><p style="margin-top:8px"><a href="https://www.pmo.gov.et/" target="_blank" rel="noopener">Office of the Prime Minister ↗</a></p><button class="contacts-button" style="margin-top:10px" onclick="searchExploreTopic('Ethiopia Digital Ethiopia 2030 strategy')">Search Digital Ethiopia</button></div>
+  <div class="explore-card"><h3>🔎 Search online</h3><p>Search articles and information from the web. Results appear one by one; open a result to read the source.</p><div class="explore-search"><input id="exploreSearchInput" placeholder="Search Green Legacy or Digital Ethiopia..."><button onclick="runExploreSearch()">Search</button></div><div id="exploreResults" aria-live="polite"><p style="font-size:13px;color:#667781">Choose a topic above or enter a search phrase.</p></div><p style="font-size:11px;color:#77838e;margin-top:12px">Search results are provided by Wikipedia's public search service. This does not search every website on the internet. Official government links are listed above.</p></div>
+ </div>
+</div>
+<script>
+window.openExploreEthiopia=()=>{document.getElementById('newChatModal')?.classList.remove('active');document.getElementById('exploreEthiopia').classList.add('active');};
+window.closeExploreEthiopia=()=>document.getElementById('exploreEthiopia').classList.remove('active');
+window.searchExploreTopic=(q)=>{document.getElementById('exploreSearchInput').value=q;runExploreSearch();};
+window.runExploreSearch=async()=>{const input=document.getElementById('exploreSearchInput'),box=document.getElementById('exploreResults'),q=(input.value||'').trim();if(!q){box.innerHTML='<p>Please enter a search phrase.</p>';return;}box.innerHTML='<p>Searching online…</p>';try{const url='https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch='+encodeURIComponent(q)+'&format=json&origin=*&srlimit=20';const res=await fetch(url);if(!res.ok)throw new Error('Search service unavailable');const data=await res.json();const rows=data.query?.search||[];if(!rows.length){box.innerHTML='<p>No results found. Try another phrase or use the official links above.</p>';return;}box.innerHTML=rows.map((r,i)=>{const title=r.title;const page='https://en.wikipedia.org/wiki/'+encodeURIComponent(title.replace(/ /g,'_'));const snippet=(r.snippet||'').replace(/<[^>]*>/g,' ').replace(/&quot;/g,'"').replace(/&#039;/g,"'").replace(/&amp;/g,'&');return `<div class="explore-result"><h4>${i+1}. ${escapeExploreText(title)}</h4><p>${snippet}</p><a href="${page}" target="_blank" rel="noopener">Read this result ↗</a></div>`;}).join('');}catch(e){console.error(e);box.innerHTML='<p>Could not load online results. Check your internet connection and try again. You can still open the official sources above.</p>';}};
+function escapeExploreText(v){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+document.getElementById('exploreSearchInput')?.addEventListener('keydown',e=>{if(e.key==='Enter')runExploreSearch();});
+</script>
+
 </body>
 </html>
