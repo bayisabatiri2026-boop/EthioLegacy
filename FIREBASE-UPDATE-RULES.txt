@@ -72,3 +72,13 @@ NOTES / LIMITATIONS
 - This update implements public-to-signed-in-users statuses and public channels. Fine-grained status audience/privacy lists, reactions, replies, channel search, push notifications, and background deletion are not included yet.
 - Status and channel media use Firebase Storage. Your project's Storage billing/quotas and security rules apply.
 - Browser permission and Firebase rules errors are shown in the browser console; no live test against your Firebase project has been performed here.
+
+
+SPECIAL GROUPS — add this match block inside the existing Firestore documents rules block.
+
+match /users/{userId}/specialGroups/{groupName}/members/{memberId} {
+  allow read, write: if request.auth != null && request.auth.uid == userId
+    && groupName in ['love', 'family', 'friend', 'classmate'];
+}
+
+The app writes each accepted invitation to both users' own specialGroups subcollection. Existing users/{uid}/friends rules must also permit each signed-in user to write their own friends subcollection for two-way Chats/Calls linking. Do not replace your current rules; merge this block into them.

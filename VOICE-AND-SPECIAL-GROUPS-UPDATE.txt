@@ -1,0 +1,24 @@
+ETHIOLEGACY — VOICE CLEANUP AND SPECIAL GROUPS
+
+CHANGES
+1. Replaced the old Updates tab with Special Groups: Love, Family, Friend and Classmate.
+2. Search selected device contacts by name, phone or email. Contacts already registered on EthioLegacy can be saved into a category.
+3. Invites contain both inviter ID and selected group. When the recipient completes signup from that link, both accounts receive the person in the selected category and in their private Chats/Calls lists.
+4. For a registered contact, Save group adds both people to each other's category and private Chats/Calls lists.
+5. Voice capture already requests echoCancellation, noiseSuppression and autoGainControl on the microphone track; this is retained. These are browser/device audio-processing controls, not a guarantee of removing every noise source. Use a headset, reduce speaker volume and avoid Bluetooth hands-free devices with poor microphones for best results.
+
+FIREBASE
+Merge the SPECIAL GROUPS block from FIREBASE-UPDATE-RULES.txt into your existing Firestore rules. Do not replace the full rules file. Existing users/{uid}/friends permissions must allow a signed-in user to write their own friends subcollection. Both participants' own specialGroups and friends subcollections are written separately.
+
+DEVICE CONTACTS
+The device contact picker requires a supported browser (usually Chrome on Android), HTTPS, and the user to select contacts. It cannot silently read the entire address book. Search only works on contacts the user selected/imported.
+
+TEST
+Use two separate accounts/devices:
+- Account A selects Love and invites B using the generated link.
+- B completes signup from that link.
+- Check that A and B both see each other in Chats, Calls and Love.
+- Repeat with Family, Friend and Classmate.
+- Test voice and video calls over different Wi-Fi/mobile networks. Noise reduction depends on each device/browser microphone hardware and network conditions.
+
+No live test against your Firebase project was possible here. Publish the updated files and Firebase rules before testing.

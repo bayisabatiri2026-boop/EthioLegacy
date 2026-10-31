@@ -248,7 +248,7 @@
   <div class="main-tabs" role="tablist" aria-label="Main navigation">
     <button class="main-tab active" data-pane="chatsPane" onclick="switchHomeTab('chatsPane',this)">💬 Chats</button>
     <button class="main-tab" data-pane="callsPane" onclick="switchHomeTab('callsPane',this)">📞 Calls</button>
-    <button class="main-tab" data-pane="updatesPane" onclick="switchHomeTab('updatesPane',this)">🟢 Updates</button>
+    <button class="main-tab" data-pane="updatesPane" onclick="switchHomeTab('updatesPane',this)">💗 Special Groups</button>
     <button class="main-tab" data-pane="communitiesPane" onclick="switchHomeTab('communitiesPane',this)">👥 Communities</button>
   </div>
   <div class="home-search-wrap" id="homeSearchWrap">
@@ -257,7 +257,7 @@
   </div>
   <div id="chatsPane" class="home-pane active"><div id="deviceContactsList"></div><div id="userList"></div><div id="groupChatList"></div></div>
   <div id="callsPane" class="home-pane"><div id="callDeviceContactsList"></div><div class="pane-heading">Start a call</div><div id="callList"></div></div>
-  <div id="updatesPane" class="home-pane"><div class="pane-heading">Status · expires after 24 hours</div><div class="updates-actions"><button onclick="createStatus()">＋ Add status</button><button onclick="createChannel()">＋ Create channel</button></div><div id="statusList"></div><div class="pane-heading">Channels</div><div id="channelList"></div></div>
+  <div id="updatesPane" class="home-pane"><div class="pane-heading">Special Groups · your personal circles</div><div class="contacts-toolbar" style="padding:8px 14px"><button class="contacts-button" onclick="importDeviceContacts()">📱 Search device contacts</button></div><div class="updates-actions" style="flex-wrap:wrap"><button onclick="openSpecialGroup('love')">❤️ Love</button><button onclick="openSpecialGroup('family')">🏡 Family</button><button onclick="openSpecialGroup('friend')">🤝 Friend</button><button onclick="openSpecialGroup('classmate')">🎓 Classmate</button></div><div style="padding:0 14px 12px"><input id="specialGroupSearch" class="home-search" placeholder="Search name, email or phone..." oninput="renderSpecialGroup()"></div><div id="specialGroupMembers"></div><div class="pane-heading">Invite someone into a selected group</div><div id="specialGroupDeviceContacts"></div></div>
   <div id="communitiesPane" class="home-pane"><div class="pane-heading">Communities</div><div class="community-card" onclick="openNewCommunity()"><div class="community-icon">＋</div><div class="community-meta"><b>Create new community</b><small>Create it, then invite members and manage it from its chat</small></div></div></div>
 </div>
 
@@ -523,8 +523,11 @@ const firebaseConfig = {
   const storage = getStorage(app);
   // Preserve the inviter UID while a new user completes registration.
   try {
-    const inviteOnLanding = new URLSearchParams(window.location.search).get('invite');
+    const inviteParams = new URLSearchParams(window.location.search);
+    const inviteOnLanding = inviteParams.get('invite');
+    const inviteGroup = inviteParams.get('group');
     if (inviteOnLanding) localStorage.setItem('ethiolegacy_pending_inviter', inviteOnLanding);
+    if (['love','family','friend','classmate'].includes(inviteGroup)) localStorage.setItem('ethiolegacy_pending_group', inviteGroup);
   } catch (_) {}
 
   window.showScreen = (id) => {
@@ -743,7 +746,13 @@ const firebaseConfig = {
             await setDoc(doc(db, 'users', validInviterUid, 'friends', cred.user.uid), {
               uid: cred.user.uid, displayName: name, email: cred.user.email || email, addedAt: serverTimestamp()
             }, { merge: true });
+            const invitedGroup = localStorage.getItem('ethiolegacy_pending_group') || 'friend';
+            if (['love','family','friend','classmate'].includes(invitedGroup)) {
+              await setDoc(doc(db,'users',validInviterUid,'specialGroups',invitedGroup,'members',cred.user.uid),{uid:cred.user.uid,displayName:name,email:cred.user.email||email,addedAt:serverTimestamp()},{merge:true});
+              await setDoc(doc(db,'users',cred.user.uid,'specialGroups',invitedGroup,'members',validInviterUid),{uid:validInviterUid,displayName:inviterName,addedAt:serverTimestamp()},{merge:true});
+            }
             localStorage.removeItem('ethiolegacy_pending_inviter');
+            localStorage.removeItem('ethiolegacy_pending_group');
           } catch (inviteError) {
             console.warn('Account created, but invite linking failed:', inviteError);
             toast('Account created, but contact linking failed. Check Firestore rules for users/{uid}/friends.');
@@ -1979,6 +1988,18 @@ window.saveNewContact = async () => {
     document.getElementById('activeVideoBtn')?.classList.toggle('active', video.enabled);
   };
 
+  // ---- Special Groups: Love, Family, Friend and Classmate ----
+  const specialGroupNames={love:'❤️ Love',family:'🏡 Family',friend:'🤝 Friend',classmate:'🎓 Classmate'};
+  let activeSpecialGroup='love', specialGroupRows=[];
+  window.openSpecialGroup=async key=>{if(!specialGroupNames[key])return;activeSpecialGroup=key;document.querySelectorAll('#updatesPane .updates-actions button').forEach((b,i)=>b.style.outline=Object.keys(specialGroupNames)[i]===key?'3px solid #075e54':'none');await renderSpecialGroup();renderSpecialGroupDeviceContacts();};
+  window.addMemberToSpecialGroup=async uid=>{if(!currentUser||!uid)return;try{const profile=await getDoc(doc(db,'users',uid));if(!profile.exists())return toast('This person has not joined EthioLegacy yet. Invite them first.');const d=profile.data();await setDoc(doc(db,'users',currentUser.uid,'specialGroups',activeSpecialGroup,'members',uid),{uid,displayName:d.displayName||'Member',email:d.email||'',phone:d.phone||d.phoneNumber||'',addedAt:serverTimestamp()},{merge:true});await setDoc(doc(db,'users',uid,'specialGroups',activeSpecialGroup,'members',currentUser.uid),{uid:currentUser.uid,displayName:currentUser.displayName||'Member',email:currentUser.email||'',addedAt:serverTimestamp()},{merge:true});await setDoc(doc(db,'users',currentUser.uid,'friends',uid),{uid,displayName:d.displayName||'Member',email:d.email||'',addedAt:serverTimestamp()},{merge:true});await setDoc(doc(db,'users',uid,'friends',currentUser.uid),{uid:currentUser.uid,displayName:currentUser.displayName||'Member',email:currentUser.email||'',addedAt:serverTimestamp()},{merge:true});toast('Saved for both people in '+specialGroupNames[activeSpecialGroup]+'.');await renderSpecialGroup();}catch(e){console.error(e);toast('Could not save this member. Check Firestore rules.');}};
+  window.removeSpecialGroupMember=async uid=>{try{await deleteDoc(doc(db,'users',currentUser.uid,'specialGroups',activeSpecialGroup,'members',uid));await renderSpecialGroup();}catch(e){console.error(e);toast('Could not remove member.');}};
+  window.inviteIntoSpecialGroup=async contact=>{if(!currentUser)return toast('Sign in first.');const link=new URL(location.pathname,location.origin);link.searchParams.set('invite',currentUser.uid);link.searchParams.set('group',activeSpecialGroup);const msg=`Join me on EthioLegacy. I am inviting you to my ${specialGroupNames[activeSpecialGroup]} group.`;try{if(navigator.share)await navigator.share({title:'EthioLegacy invitation',text:msg,url:link.toString()});else if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(msg+'\n'+link);toast('Group invitation link copied.');}else prompt('Copy invitation link',link.toString());}catch(e){if(e.name!=='AbortError')prompt('Copy invitation link',link.toString());}};
+  window.renderSpecialGroup=async()=>{const box=document.getElementById('specialGroupMembers');if(!box||!currentUser)return;try{const snap=await getDocs(collection(db,'users',currentUser.uid,'specialGroups',activeSpecialGroup,'members'));specialGroupRows=snap.docs.map(d=>({id:d.id,...d.data()}));const q=(document.getElementById('specialGroupSearch')?.value||'').toLowerCase();const rows=specialGroupRows.filter(x=>[x.displayName,x.email,x.phone].some(v=>(v||'').toLowerCase().includes(q)));box.innerHTML=`<div class="pane-heading">${specialGroupNames[activeSpecialGroup]} · ${rows.length} saved</div>`+(rows.length?rows.map(x=>`<div class="chat-item"><div class="avatar">${updateSafe((x.displayName||'M').slice(0,1).toUpperCase())}</div><div class="chat-info" onclick="openChat('${x.uid}','${updateSafe(x.displayName||'Member')}')"><div class="chat-name">${updateSafe(x.displayName||'Member')}</div><small>${updateSafe(x.email||x.phone||'EthioLegacy member')}</small></div><button class="mini-action" onclick="removeSpecialGroupMember('${x.uid}')">✕</button></div>`).join(''):'<div class="empty-state">No members saved here yet. Search your device contacts or add people from Chats.</div>');}catch(e){console.error(e);box.innerHTML='<div class="empty-state">Could not load this group. Check Firestore rules.</div>';}};
+  window.renderSpecialGroupDeviceContacts=()=>{const box=document.getElementById('specialGroupDeviceContacts');if(!box)return;const q=(document.getElementById('specialGroupSearch')?.value||'').toLowerCase();const contacts=(importedDeviceContacts||[]).filter(c=>[c.name,c.tel,c.email].some(v=>(v||'').toLowerCase().includes(q)));box.innerHTML=contacts.map(c=>{const match=findMatchingUserForContact(c);return `<div class="device-contact"><div class="contact-details"><b>${updateSafe(c.name||'Contact')}</b><small>${updateSafe(c.tel||c.email||'')}</small></div><button class="contact-action" onclick="${match?`addMemberToSpecialGroup('${match.uid}')`:'inviteIntoSpecialGroup('+JSON.stringify({name:c.name||'',tel:c.tel||'',email:c.email||''})+')'}">${match?'Save group':'Invite'}</button></div>`;}).join('');};
+  function findMatchingUserForContact(c){return (allUsers||[]).find(u=>{const a=(c.email||'').toLowerCase(),b=(u.email||'').toLowerCase(),p=(c.tel||'').replace(/\D/g,''),up=String(u.phone||u.phoneNumber||'').replace(/\D/g,'');return (a&&a===b)||(p&&up&&(p.endsWith(up)||up.endsWith(p)));})||null;}
+  const originalImportContacts=window.importDeviceContacts;window.importDeviceContacts=async()=>{await originalImportContacts();renderSpecialGroupDeviceContacts();};
+
   // ---- WhatsApp-style Status and Channels ----
   let statusLiveUnsub = null, channelLiveUnsub = null;
   const statusCache = new Map();
@@ -2077,7 +2098,7 @@ window.saveNewContact = async () => {
     },e=>{console.error(e);box.innerHTML='<div class="empty-state">Channels could not load. Check Firestore rules.</div>';});
   }
   function loadUpdates(){loadStatuses();loadChannels();}
-  window.switchHomeTab = ((original)=>function(paneId,button){original(paneId,button);if(paneId==='updatesPane')loadUpdates();})(window.switchHomeTab);
+  window.switchHomeTab = ((original)=>function(paneId,button){original(paneId,button);if(paneId==='updatesPane'){openSpecialGroup(activeSpecialGroup);renderSpecialGroupDeviceContacts();}})(window.switchHomeTab);
   // Refresh update listeners for each signed-in session and stop them at sign-out.
   const originalAuthUpdateHook = onAuthStateChanged;
   document.addEventListener('visibilitychange',()=>{if(!document.hidden&&currentUser&&document.getElementById('updatesPane')?.classList.contains('active'))loadUpdates();});
