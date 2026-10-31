@@ -1,0 +1,22 @@
+ETHIOLEGACY MODERNIZATION UPDATE
+
+1) SPECIAL GROUP INVITATIONS
+- Invitation URLs retain the selected category (Love, Family, Friend, Classmate).
+- After the invited person registers, the inviter and new member are written into that same category on both accounts.
+- The new member also gets the inviter in Chats/Calls contacts. Search refreshes both saved members and synced phone contacts.
+- This requires Firestore rules that allow the authenticated user to write their own friends and specialGroups documents, and the inviter-side reciprocal writes used by this app.
+
+2) GROUP VOICE / VIDEO CONFERENCE
+- Group/community chat call buttons open a unique Jitsi Meet conference room in a new browser tab and post the join link in that group chat.
+- Participants join the same room for a conference call. Audio-only starts with video muted; video conference allows camera use.
+- This is a third-party meeting room, not a native Firebase/WebRTC mesh call. It requires internet, HTTPS, microphone/camera permissions, and Jitsi availability. Review Jitsi's privacy/terms before using for sensitive calls. One-to-one calls remain on the existing WebRTC flow.
+
+3) CHANGE PASSWORD
+- Settings now includes Old password, New password, Confirm new password, and a Password changed button/status.
+- For email/password accounts, Firebase re-authenticates with the old password before updating.
+- Phone-only accounts need a phone-auth re-authentication flow; this UI reports that limitation instead of falsely claiming success.
+
+DEPLOY
+- Replace the existing index.html with this version and deploy the folder to GitHub Pages/your HTTPS host.
+- Keep your existing Firebase project configuration and merge Firestore rules; do not replace all existing rules blindly.
+- Test special-group invite redemption with two separate accounts/devices. Test conference links with at least two participants and grant microphone/camera permissions.

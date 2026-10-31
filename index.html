@@ -257,7 +257,7 @@
   </div>
   <div id="chatsPane" class="home-pane active"><div id="deviceContactsList"></div><div id="userList"></div><div id="groupChatList"></div></div>
   <div id="callsPane" class="home-pane"><div id="callDeviceContactsList"></div><div class="pane-heading">Start a call</div><div id="callList"></div></div>
-  <div id="updatesPane" class="home-pane"><div class="pane-heading">Special Groups · your personal circles</div><div class="contacts-toolbar" style="padding:8px 14px"><button class="contacts-button" onclick="importDeviceContacts()">📱 Search device contacts</button></div><div class="updates-actions" style="flex-wrap:wrap"><button onclick="openSpecialGroup('love')">❤️ Love</button><button onclick="openSpecialGroup('family')">🏡 Family</button><button onclick="openSpecialGroup('friend')">🤝 Friend</button><button onclick="openSpecialGroup('classmate')">🎓 Classmate</button></div><div style="padding:0 14px 12px"><input id="specialGroupSearch" class="home-search" placeholder="Search name, email or phone..." oninput="renderSpecialGroup()"></div><div id="specialGroupMembers"></div><div class="pane-heading">Invite someone into a selected group</div><div id="specialGroupDeviceContacts"></div></div>
+  <div id="updatesPane" class="home-pane"><div class="pane-heading">Special Groups · your personal circles</div><div class="contacts-toolbar" style="padding:8px 14px"><button class="contacts-button" onclick="importDeviceContacts()">📱 Search device contacts</button></div><div class="updates-actions" style="flex-wrap:wrap"><button onclick="openSpecialGroup('love')">❤️ Love</button><button onclick="openSpecialGroup('family')">🏡 Family</button><button onclick="openSpecialGroup('friend')">🤝 Friend</button><button onclick="openSpecialGroup('classmate')">🎓 Classmate</button></div><div style="padding:0 14px 12px"><input id="specialGroupSearch" class="home-search" placeholder="Search name, email or phone..." oninput="renderSpecialGroup();renderSpecialGroupDeviceContacts()"></div><div id="specialGroupMembers"></div><div class="pane-heading">Invite someone into a selected group</div><div id="specialGroupDeviceContacts"></div></div>
   <div id="communitiesPane" class="home-pane">
     <div class="pane-heading">Communities</div>
     <div class="community-card" onclick="toggleCommunityCreator()"><div class="community-icon">＋</div><div class="community-meta"><b>Create new community</b><small>Search members, name your community, and create it</small></div></div>
@@ -317,6 +317,7 @@
     <button class="setting-row setting-button" onclick="requestAppPermissions()"><span id="settingsPermissionsLabel">🔐 Permissions (camera, microphone, notifications)</span><b>›</b></button>
     <button class="setting-row setting-button" onclick="showLinkedDevices()"><span id="settingsLinkedLabel">📱 Linked device / current session</span><b>›</b></button>
     <button class="setting-row setting-button" onclick="showCallHistory()"><span id="settingsHistoryLabel">📞 Call history</span><b>›</b></button>
+    <section class="setting-row" style="display:block;padding:14px 16px"><b>🔐 Change password</b><div style="display:grid;gap:8px;margin-top:10px"><input id="oldPasswordChange" class="home-search" type="password" autocomplete="current-password" placeholder="Old password"><input id="newPasswordChange" class="home-search" type="password" autocomplete="new-password" placeholder="New password"><input id="confirmNewPasswordChange" class="home-search" type="password" autocomplete="new-password" placeholder="Confirm new password"><button class="btn-primary" style="margin:0" onclick="changeAccountPassword()">Password changed</button></div><small id="passwordChangeStatus" class="muted" aria-live="polite"></small></section>
     <button class="setting-row setting-button" onclick="showMessageSettings()"><span id="settingsMessageLabel">💬 Message settings</span><b>›</b></button>
     <button class="setting-row setting-button" onclick="showAbout()"><span id="settingsAboutLabel">ℹ️ About EthioLegacy</span><b>›</b></button>
     <button id="settingsLogout" class="logout-button" onclick="logout()">Log out</button>
@@ -515,7 +516,7 @@
 <!-- Firebase & App Logic -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
   import { getFirestore, collection, doc, setDoc, getDoc, getDocs, query, where, orderBy, onSnapshot, addDoc, deleteDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
   import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 
@@ -586,6 +587,20 @@ const firebaseConfig = {
       initial.textContent=(currentUser.displayName||'EL').split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase();
     }
     document.getElementById('settingsModal').classList.add('active');
+  };
+  window.changeAccountPassword=async()=>{
+    const oldPass=document.getElementById('oldPasswordChange')?.value||'';
+    const newPass=document.getElementById('newPasswordChange')?.value||'';
+    const confirmPass=document.getElementById('confirmNewPasswordChange')?.value||'';
+    const status=document.getElementById('passwordChangeStatus');
+    const user=auth.currentUser;
+    if(!user)return status.textContent='Please sign in again.';
+    if(!user.email)return status.textContent='Password change for phone-only accounts needs phone re-authentication; contact support.';
+    if(!oldPass||!newPass||!confirmPass)return status.textContent='Fill in all three password fields.';
+    if(newPass.length<6)return status.textContent='New password must contain at least 6 characters.';
+    if(newPass!==confirmPass)return status.textContent='New password and confirmation do not match.';
+    try{await reauthenticateWithCredential(user,EmailAuthProvider.credential(user.email,oldPass));await updatePassword(user,newPass);['oldPasswordChange','newPasswordChange','confirmNewPasswordChange'].forEach(id=>document.getElementById(id).value='');status.textContent='Password changed successfully.';toast('Your password was changed.');}
+    catch(e){console.error('Password change:',e);status.textContent=e.code==='auth/wrong-password'||e.code==='auth/invalid-credential'?'Old password is incorrect.':e.code==='auth/requires-recent-login'?'Please sign out and sign in again, then retry.':'Could not change password: '+(e.message||e.code);}
   };
   window.closeSettings=()=>document.getElementById('settingsModal').classList.remove('active');
 
@@ -1525,7 +1540,7 @@ window.saveNewContact = async () => {
   }
   
   // Show group call buttons if it's a group
-  if(uid.startsWith("group_")) {
+  if(uid.startsWith("group_") || uid.startsWith("community_")) {
     document.getElementById('groupAudioBtn').style.display = 'block';
     document.getElementById('groupVideoBtn').style.display = 'block';
     document.getElementById('communityManageBtn').style.display = 'block';
@@ -2063,6 +2078,20 @@ window.saveNewContact = async () => {
     document.getElementById('activeVideoBtn')?.classList.toggle('active', video.enabled);
   };
 
+  // Group conference uses a unique Jitsi room; it is separate from 1-to-1 WebRTC calls.
+  window.joinGroupCall=async(type='audio')=>{
+    if(!currentUser||!currentChatId)return toast('Open a group chat or community first.');
+    try{
+      const chatSnap=await getDoc(doc(db,'chats',currentChatId));
+      if(!chatSnap.exists()||!chatSnap.data().isGroup)return toast('Conference calls are available inside group chats and communities.');
+      const room='EthioLegacy-'+currentChatId.replace(/[^a-zA-Z0-9]/g,'').slice(0,24)+'-'+Date.now().toString(36);
+      const url='https://meet.jit.si/'+encodeURIComponent(room)+'#config.startWithVideoMuted='+(type==='audio'?'true':'false')+'&config.prejoinPageEnabled=true';
+      await addDoc(collection(db,'chats',currentChatId,'messages'),{text:(type==='audio'?'🎧 Voice':'🎥 Video')+' conference started. Join: '+url,senderId:currentUser.uid,senderName:currentUser.displayName||'Member',timestamp:serverTimestamp(),type:'text'});
+      window.open(url,'_blank','noopener,noreferrer');
+      toast('Conference link shared in this group. Everyone can join using the link.');
+    }catch(e){console.error('Group conference:',e);toast('Could not start conference. Check group chat permissions.');}
+  };
+
   // ---- Special Groups: Love, Family, Friend and Classmate ----
   const specialGroupNames={love:'❤️ Love',family:'🏡 Family',friend:'🤝 Friend',classmate:'🎓 Classmate'};
   let activeSpecialGroup='love', specialGroupRows=[];
@@ -2070,7 +2099,7 @@ window.saveNewContact = async () => {
   window.addMemberToSpecialGroup=async uid=>{if(!currentUser||!uid)return;try{const profile=await getDoc(doc(db,'users',uid));if(!profile.exists())return toast('This person has not joined EthioLegacy yet. Invite them first.');const d=profile.data();await setDoc(doc(db,'users',currentUser.uid,'specialGroups',activeSpecialGroup,'members',uid),{uid,displayName:d.displayName||'Member',email:d.email||'',phone:d.phone||d.phoneNumber||'',addedAt:serverTimestamp()},{merge:true});await setDoc(doc(db,'users',uid,'specialGroups',activeSpecialGroup,'members',currentUser.uid),{uid:currentUser.uid,displayName:currentUser.displayName||'Member',email:currentUser.email||'',addedAt:serverTimestamp()},{merge:true});await setDoc(doc(db,'users',currentUser.uid,'friends',uid),{uid,displayName:d.displayName||'Member',email:d.email||'',addedAt:serverTimestamp()},{merge:true});await setDoc(doc(db,'users',uid,'friends',currentUser.uid),{uid:currentUser.uid,displayName:currentUser.displayName||'Member',email:currentUser.email||'',addedAt:serverTimestamp()},{merge:true});toast('Saved for both people in '+specialGroupNames[activeSpecialGroup]+'.');await renderSpecialGroup();}catch(e){console.error(e);toast('Could not save this member. Check Firestore rules.');}};
   window.removeSpecialGroupMember=async uid=>{try{await deleteDoc(doc(db,'users',currentUser.uid,'specialGroups',activeSpecialGroup,'members',uid));await renderSpecialGroup();}catch(e){console.error(e);toast('Could not remove member.');}};
   window.inviteIntoSpecialGroup=async contact=>{if(!currentUser)return toast('Sign in first.');const link=new URL(location.pathname,location.origin);link.searchParams.set('invite',currentUser.uid);link.searchParams.set('group',activeSpecialGroup);const msg=`Join me on EthioLegacy. I am inviting you to my ${specialGroupNames[activeSpecialGroup]} group.`;try{if(navigator.share)await navigator.share({title:'EthioLegacy invitation',text:msg,url:link.toString()});else if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(msg+'\n'+link);toast('Group invitation link copied.');}else prompt('Copy invitation link',link.toString());}catch(e){if(e.name!=='AbortError')prompt('Copy invitation link',link.toString());}};
-  window.renderSpecialGroup=async()=>{const box=document.getElementById('specialGroupMembers');if(!box||!currentUser)return;try{const snap=await getDocs(collection(db,'users',currentUser.uid,'specialGroups',activeSpecialGroup,'members'));specialGroupRows=snap.docs.map(d=>({id:d.id,...d.data()}));const q=(document.getElementById('specialGroupSearch')?.value||'').toLowerCase();const rows=specialGroupRows.filter(x=>[x.displayName,x.email,x.phone].some(v=>(v||'').toLowerCase().includes(q)));box.innerHTML=`<div class="pane-heading">${specialGroupNames[activeSpecialGroup]} · ${rows.length} saved</div>`+(rows.length?rows.map(x=>`<div class="chat-item"><div class="avatar">${updateSafe((x.displayName||'M').slice(0,1).toUpperCase())}</div><div class="chat-info" onclick="openChat('${x.uid}','${updateSafe(x.displayName||'Member')}')"><div class="chat-name">${updateSafe(x.displayName||'Member')}</div><small>${updateSafe(x.email||x.phone||'EthioLegacy member')}</small></div><button class="mini-action" onclick="removeSpecialGroupMember('${x.uid}')">✕</button></div>`).join(''):'<div class="empty-state">No members saved here yet. Search your device contacts or add people from Chats.</div>');}catch(e){console.error(e);box.innerHTML='<div class="empty-state">Could not load this group. Check Firestore rules.</div>';}};
+  window.renderSpecialGroup=async()=>{const box=document.getElementById('specialGroupMembers');if(!box||!currentUser)return;try{const snap=await getDocs(collection(db,'users',currentUser.uid,'specialGroups',activeSpecialGroup,'members'));specialGroupRows=snap.docs.map(d=>({id:d.id,...d.data()}));const q=(document.getElementById('specialGroupSearch')?.value||'').toLowerCase();const rows=specialGroupRows.filter(x=>[x.displayName,x.email,x.phone].some(v=>(v||'').toLowerCase().includes(q)));box.innerHTML=`<div class="pane-heading">${specialGroupNames[activeSpecialGroup]} · ${rows.length} saved</div>`+(rows.length?rows.map(x=>`<div class="chat-item"><div class="avatar">${updateSafe((x.displayName||'M').slice(0,1).toUpperCase())}</div><div class="chat-info" onclick="openChat('${x.uid}','${updateSafe(x.displayName||'Member')}')"><div class="chat-name">🌳 ${updateSafe(x.displayName||'Member')}</div><small>${updateSafe(x.email||x.phone||'EthioLegacy member')}</small></div><button class="mini-action" title="Remove from this group" onclick="removeSpecialGroupMember('${x.uid}')">✕</button></div>`).join(''):'<div class="empty-state">No members saved here yet. Search your device contacts or add people from Chats.</div>');}catch(e){console.error(e);box.innerHTML='<div class="empty-state">Could not load this group. Check Firestore rules.</div>';}};
   window.renderSpecialGroupDeviceContacts=()=>{const box=document.getElementById('specialGroupDeviceContacts');if(!box)return;const q=(document.getElementById('specialGroupSearch')?.value||'').toLowerCase();const contacts=(importedDeviceContacts||[]).filter(c=>[c.name,c.tel,c.email].some(v=>(v||'').toLowerCase().includes(q)));box.innerHTML=contacts.map(c=>{const match=findMatchingUserForContact(c);return `<div class="device-contact"><div class="contact-details"><b>${updateSafe(c.name||'Contact')}</b><small>${updateSafe(c.tel||c.email||'')}</small></div><button class="contact-action" onclick="${match?`addMemberToSpecialGroup('${match.uid}')`:'inviteIntoSpecialGroup('+JSON.stringify({name:c.name||'',tel:c.tel||'',email:c.email||''})+')'}">${match?'Save group':'Invite'}</button></div>`;}).join('');};
   function findMatchingUserForContact(c){return (allUsers||[]).find(u=>{const a=(c.email||'').toLowerCase(),b=(u.email||'').toLowerCase(),p=(c.tel||'').replace(/\D/g,''),up=String(u.phone||u.phoneNumber||'').replace(/\D/g,'');return (a&&a===b)||(p&&up&&(p.endsWith(up)||up.endsWith(p)));})||null;}
   const originalImportContacts=window.importDeviceContacts;window.importDeviceContacts=async()=>{await originalImportContacts();renderSpecialGroupDeviceContacts();};
