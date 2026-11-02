@@ -1,0 +1,72 @@
+name: Build EthioLegacy Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout EthioLegacy
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Prepare Capacitor project
+        shell: bash
+        run: |
+          set -e
+
+          # Copy the existing GitHub Pages website into Capacitor's web folder.
+          mkdir -p www
+          rsync -a ./ www/ \
+            --exclude '.git/' \
+            --exclude '.github/' \
+            --exclude 'node_modules/' \
+            --exclude 'android/' \
+            --exclude 'www/'
+
+          # Create a minimal npm project if the repository does not already have one.
+          if [ ! -f package.json ]; then
+            npm init -y
+          fi
+
+          npm install --save-exact @capacitor/core@6.2.1
+          npm install --save-dev --save-exact @capacitor/cli@6.2.1
+          npm install --save-exact @capacitor/android@6.2.1
+
+          # Use a config that points to the copied website files.
+          cat > capacitor.config.json <<'EOF'
+          {
+            "appId": "com.ethiolegacy.app",
+            "appName": "EthioLegacy",
+            "webDir": "www"
+          }
+          EOF
+
+          if [ ! -d android ]; then
+            npx cap add android
+          fi
+
+          npx cap sync android
+
+      - name: Build debug APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
