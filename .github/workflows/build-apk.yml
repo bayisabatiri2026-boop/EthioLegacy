@@ -30,12 +30,8 @@ jobs:
       - name: Prepare Capacitor project
   run: |
     npm install -D typescript
-    npx cap add android
-    npx cap sync
-    # (whatever other commands you already had here)
           set -e
-
-          # Copy the existing GitHub Pages website into Capacitor's web folder.
+      # Copy the existing GitHub Pages website into Capacitor's web folder.
           mkdir -p www
           rsync -a ./ www/ \
             --exclude '.git/' \
