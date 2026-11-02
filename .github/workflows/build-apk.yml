@@ -1,5 +1,4 @@
 name: Build EthioLegacy Android APK
-
 on:
   workflow_dispatch:
   push:
@@ -28,10 +27,10 @@ jobs:
           java-version: 17
 
       - name: Prepare Capacitor project
-  run: |
-    npm install -D typescript
+        run: |
           set -e
-      # Copy the existing GitHub Pages website into Capacitor's web folder.
+          
+          # 1. Copy the website into Capacitor's web folder
           mkdir -p www
           rsync -a ./ www/ \
             --exclude '.git/' \
@@ -40,17 +39,19 @@ jobs:
             --exclude 'android/' \
             --exclude 'www/'
 
-          # Create a minimal npm project if the repository does not already have one.
+          # 2. Create a minimal npm project if it doesn't exist
           if [ ! -f package.json ]; then
             npm init -y
           fi
 
+          # 3. Install Capacitor and TypeScript
           npm install --save-exact @capacitor/core@6.2.1
           npm install --save-dev --save-exact @capacitor/cli@6.2.1
           npm install --save-exact @capacitor/android@6.2.1
+          npm install -D typescript
 
-          # Use a config that points to the copied website files.
-          cat > capacitor.config.json <<'EOF'
+          # 4. Create the Capacitor config
+          cat > capacitor.config.json << EOF
           {
             "appId": "com.ethiolegacy.app",
             "appName": "EthioLegacy",
@@ -58,14 +59,18 @@ jobs:
           }
           EOF
 
-          if [ ! -d android ]; then
-            npx cap add android
-          fi
-
-          npx cap sync android
+          # 5. Add Android platform and sync
+          npx cap add android
+          npx cap sync
 
       - name: Build debug APK
         run: |
           cd android
-          chmod +x gradlew
+          chmod +x ./gradlew
           ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
