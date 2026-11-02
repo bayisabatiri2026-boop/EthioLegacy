@@ -29,6 +29,8 @@ jobs:
       - name: Prepare Capacitor project
         run: |
           set -e
+          
+          # 1. Copy web files
           mkdir -p www
           rsync -a ./ www/ \
             --exclude '.git/' \
@@ -37,15 +39,18 @@ jobs:
             --exclude 'android/' \
             --exclude 'www/'
 
+          # 2. Setup npm
           if [ ! -f package.json ]; then
             npm init -y
           fi
 
+          # 3. Install Capacitor and fixed TypeScript version
           npm install --save-exact @capacitor/core@6.2.1
           npm install --save-dev --save-exact @capacitor/cli@6.2.1
           npm install --save-exact @capacitor/android@6.2.1
-          npm install -D typescript
+          npm install -D typescript@5
 
+          # 4. Create JS Config (Prevents the CLI parsing crash)
           cat > capacitor.config.json << EOF
           {
             "appId": "com.ethiolegacy.app",
@@ -53,7 +58,11 @@ jobs:
             "webDir": "www"
           }
           EOF
+          
+          # Remove .ts config if it exists to avoid conflicts
+          rm -f capacitor.config.ts
 
+          # 5. Add Android and sync
           npx cap add android
           npx cap sync
 
