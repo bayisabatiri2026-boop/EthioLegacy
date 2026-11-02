@@ -28,8 +28,11 @@ jobs:
           java-version: 17
 
       - name: Prepare Capacitor project
-        shell: bash
-        run: |
+  run: |
+    npm install -D typescript
+    npx cap add android
+    npx cap sync
+    # (whatever other commands you already had here)
           set -e
 
           # Copy the existing GitHub Pages website into Capacitor's web folder.
