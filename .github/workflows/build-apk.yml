@@ -34,18 +34,22 @@ jobs:
 
           mkdir -p www
 
+          # 1. Copy ONLY the web files to www
           rsync -a ./ www/ \
             --exclude '.git/' \
             --exclude '.github/' \
             --exclude 'node_modules/' \
             --exclude 'android/' \
-            --exclude 'www/'
+            --exclude 'www/' \
+            --exclude 'package.json' \
+            --exclude 'package-lock.json'
 
-          # 1. Force install Capacitor 7 and all plugins matching that version
+          # 2. Force install Capacitor 7 and plugins, completely ignoring the repo's package.json
+          npm init -y > /dev/null
           npm install --no-audit --no-fund --legacy-peer-deps @capacitor/core@7 @capacitor/android@7 @capacitor/cli@7
           npm install --no-audit --no-fund --legacy-peer-deps @capacitor/camera@7 @capacitor-community/contacts@latest @capacitor/local-notifications@7 @capacitor/push-notifications@7
 
-          # 2. Create Capacitor configuration
+          # 3. Create Capacitor configuration
           cat > capacitor.config.json << 'EOF'
           {
             "appId": "com.ethiolegacy.chat",
@@ -57,13 +61,9 @@ jobs:
           }
           EOF
 
-          rm -f capacitor.config.ts
-
-          # 3. Always remove old android folder and regenerate it clean
+          # 4. Regenerate Android project
           rm -rf android
           npx cap add android
-
-          # 4. Synchronize application and native plugins
           npx cap sync android
 
       - name: Build debug APK
