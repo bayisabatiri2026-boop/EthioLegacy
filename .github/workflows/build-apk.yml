@@ -45,10 +45,6 @@ jobs:
           npm install --save-dev --save-exact @capacitor/cli@6.2.1
           npm install --save-exact @capacitor/android@6.2.1
           npm install -D typescript@5
-          npm install --save @capacitor-community/contacts@6
-          
-          # Install a tool to fix the image automatically
-          sudo apt-get install -y imagemagick
 
           cat > capacitor.config.json << EOF
           {
@@ -61,27 +57,6 @@ jobs:
           rm -f capacitor.config.ts
           npx cap add android
           npx cap sync
-
-      - name: FORCE Logo and Permissions
-        run: |
-          # 1. ADD PERMISSIONS
-          MANIFEST="android/app/src/main/AndroidManifest.xml"
-          sed -i '/<\/manifest>/i \    <uses-permission android:name="android.permission.READ_CONTACTS" />' $MANIFEST
-          sed -i '/<\/manifest>/i \    <uses-permission android:name="android.permission.WRITE_CONTACTS" />' $MANIFEST
-          sed -i '/<\/manifest>/i \    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />' $MANIFEST
-          
-          # 2. FIX THE IMAGE
-          echo "Converting logo to proper Android format..."
-          if [ -f logo.png ]; then
-            # This forces the image to be a perfect 512x512 solid square
-            convert logo.png -background white -alpha remove -alpha off -resize 512x512! logo_fixed.png
-            
-            find android/app/src/main/res -type d -name "mipmap-*" | while read dir; do
-              cp logo_fixed.png "$dir/ic_launcher.png" 2>/dev/null || true
-            done
-          else
-            echo "WARNING: logo.png not found! Check if the file name is exactly logo.png in the main folder."
-          fi
 
       - name: Build debug APK
         run: |
