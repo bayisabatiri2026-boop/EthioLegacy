@@ -46,6 +46,9 @@ jobs:
           npm install --save-exact @capacitor/android@6.2.1
           npm install -D typescript@5
           npm install --save @capacitor-community/contacts@6
+          
+          # Install a tool to fix the image automatically
+          sudo apt-get install -y imagemagick
 
           cat > capacitor.config.json << EOF
           {
@@ -67,14 +70,14 @@ jobs:
           sed -i '/<\/manifest>/i \    <uses-permission android:name="android.permission.WRITE_CONTACTS" />' $MANIFEST
           sed -i '/<\/manifest>/i \    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />' $MANIFEST
           
-          # 2. OVERWRITE THE LOGO (Safer than deleting)
-          echo "Overwriting default icons with logo.png..."
-          
-          # Check if logo.png exists first to prevent crashing
+          # 2. FIX THE IMAGE
+          echo "Converting logo to proper Android format..."
           if [ -f logo.png ]; then
+            # This forces the image to be a perfect 512x512 solid square
+            convert logo.png -background white -alpha remove -alpha off -resize 512x512! logo_fixed.png
+            
             find android/app/src/main/res -type d -name "mipmap-*" | while read dir; do
-              # Overwrite the existing files. If they don't exist, it just copies them.
-              cp -f logo.png "$dir/ic_launcher.png" 2>/dev/null || true
+              cp logo_fixed.png "$dir/ic_launcher.png" 2>/dev/null || true
             done
           else
             echo "WARNING: logo.png not found! Check if the file name is exactly logo.png in the main folder."
