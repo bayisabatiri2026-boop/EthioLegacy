@@ -44,13 +44,14 @@ jobs:
             npm init -y
           fi
 
-          # 3. Install Capacitor and fixed TypeScript version
+          # 3. Install Capacitor, TypeScript, and Assets Generator
           npm install --save-exact @capacitor/core@6.2.1
           npm install --save-dev --save-exact @capacitor/cli@6.2.1
           npm install --save-exact @capacitor/android@6.2.1
           npm install -D typescript@5
+          npm install --save-dev @capacitor/assets
 
-          # 4. Create JS Config (Prevents the CLI parsing crash)
+          # 4. Create JS Config
           cat > capacitor.config.json << EOF
           {
             "appId": "com.ethiolegacy.app",
@@ -59,12 +60,21 @@ jobs:
           }
           EOF
           
-          # Remove .ts config if it exists to avoid conflicts
           rm -f capacitor.config.ts
 
           # 5. Add Android and sync
           npx cap add android
           npx cap sync
+
+      - name: Generate Circle App Icon
+        run: |
+          # This generates the icons using your logo.png file. 
+          # It creates both standard and round (circular) icons automatically.
+          if [ -f logo.png ]; then
+            npx @capacitor/assets generate --android
+          else
+            echo "Warning: logo.png not found in the main folder. Using default icon."
+          fi
 
       - name: Build debug APK
         run: |
