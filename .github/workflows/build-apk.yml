@@ -48,7 +48,7 @@ jobs:
 
           cat > capacitor.config.json << EOF
           {
-            "appId": "com.ethiolegacy.app",
+            "appId": "com.ethiolegacy.chat",
             "appName": "EthioLegacy",
             "webDir": "www"
           }
