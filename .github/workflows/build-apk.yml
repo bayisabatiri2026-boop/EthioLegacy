@@ -1,4 +1,5 @@
 name: Build EthioLegacy Android APK
+
 on:
   workflow_dispatch:
   push:
@@ -11,6 +12,7 @@ permissions:
 jobs:
   build-apk:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout EthioLegacy
         uses: actions/checkout@v4
@@ -29,7 +31,9 @@ jobs:
       - name: Prepare Capacitor project
         run: |
           set -e
+
           mkdir -p www
+
           rsync -a ./ www/ \
             --exclude '.git/' \
             --exclude '.github/' \
@@ -37,26 +41,30 @@ jobs:
             --exclude 'android/' \
             --exclude 'www/'
 
-          if [ ! -f package.json ]; then
-            npm init -y
-          fi
+          # Install exact versions from package.json
+          npm install --no-audit --no-fund
 
-          npm install --save-exact @capacitor/core@6.2.1
-          npm install --save-dev --save-exact @capacitor/cli@6.2.1
-          npm install --save-exact @capacitor/android@6.2.1
-          npm install -D typescript@5
+          # Verify Capacitor versions
+          npm ls @capacitor/core @capacitor/android @capacitor/cli
 
-          cat > capacitor.config.json << EOF
+          # Create Capacitor configuration
+          cat > capacitor.config.json << 'EOF'
           {
             "appId": "com.ethiolegacy.chat",
             "appName": "EthioLegacy",
             "webDir": "www"
           }
           EOF
-          
+
           rm -f capacitor.config.ts
-          npx cap add android
-          npx cap sync
+
+          # Create Android project if it does not exist
+          if [ ! -d android ]; then
+            npx cap add android
+          fi
+
+          # Synchronize application
+          npx cap sync android
 
       - name: Build debug APK
         run: |
@@ -67,5 +75,6 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug-apk
+          name: EthioLegacy-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
