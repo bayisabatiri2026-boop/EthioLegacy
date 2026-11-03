@@ -2278,6 +2278,30 @@ window.runExploreSearch=async()=>{const input=document.getElementById('exploreSe
 function escapeExploreText(v){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 document.getElementById('exploreSearchInput')?.addEventListener('keydown',e=>{if(e.key==='Enter')runExploreSearch();});
 </script>
+    <!-- ... your other website code ... -->
 
+    <!-- ADD THIS RIGHT BEFORE </body> -->
+    <script type="module">
+      // 1. Load the Capacitor Push Notifications plugin
+      import { PushNotifications } from 'https://cdn.jsdelivr.net/npm/@capacitor/push-notifications@6.0.0/+esm';
+
+      // 2. Ask for permission when the app opens
+      const requestNotificationPermission = async () => {
+        let permStatus = await PushNotifications.checkPermissions();
+
+        if (permStatus.receive === 'prompt') {
+          permStatus = await PushNotifications.requestPermissions();
+        }
+
+        if (permStatus.receive === 'granted') {
+          await PushNotifications.register();
+        }
+      };
+
+      // 3. Only run this if the app is running inside the Android wrapper
+      if (window.Capacitor) {
+        requestNotificationPermission();
+      }
+    </script>
 </body>
 </html>
