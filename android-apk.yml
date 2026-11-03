@@ -1,0 +1,43 @@
+name: Build EthioLegacy APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Install dependencies
+        run: npm install
+      - name: Generate Android project
+        run: npx cap add android
+      - name: Add EthioLegacy native permission handler
+        run: |
+          mkdir -p android/app/src/main/java/com/ethiolegacy/app
+          cp native/android/app/src/main/java/com/ethiolegacy/app/*.java android/app/src/main/java/com/ethiolegacy/app/
+          cp native/android/app/src/main/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
+          cp -R native/android/app/src/main/res/. android/app/src/main/res/
+      - name: Sync Capacitor
+        run: npx cap sync android
+      - name: Build debug APK
+        working-directory: android
+        run: chmod +x gradlew && ./gradlew assembleDebug
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: EthioLegacy-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk

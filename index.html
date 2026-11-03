@@ -9,8 +9,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="icon" href="icons/icon-192.png">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" type="image/png" href="./logo.png">
+<link rel="apple-touch-icon" href="./logo.png">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Roboto', sans-serif; }
@@ -21,7 +21,7 @@
   /* --- LOGIN / SIGNUP STYLES --- */
   .login-wrapper { background: transparent; height: 100%; min-height: 100dvh; display: flex; justify-content: center; align-items: center; padding: 20px; overflow-y: auto;}
   .card { background-color: #f4ece8; width: 100%; max-width: 430px; border-radius: 28px; padding: 34px 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.18); margin: auto 0;}
-  .login-logo{width:76px;height:76px;margin:0 auto 14px;position:relative;border:3px solid #fff;box-shadow:0 5px 15px #0002}.login-logo span{left:8px;top:16px;font-size:13px}.login-logo b{font-size:35px;margin:17px 0 0 19px}.card h1 { text-align: center; color: #2B3A4A; font-size: 26px; margin-bottom: 6px; }
+  .brand-image{width:42px;height:42px;border-radius:50%;object-fit:cover;display:block;flex-shrink:0}.brand-image.large{width:54px;height:54px}.login-logo{width:76px;height:76px;margin:0 auto 14px;border:3px solid #fff;box-shadow:0 5px 15px #0002}.card h1 { text-align: center; color: #2B3A4A; font-size: 26px; margin-bottom: 6px; }
   .card p { text-align: center; color: #7A8B9A; font-size: 15px; margin-bottom: 24px; }
   .input-group { margin-bottom: 12px; }
   .input-field { width: 100%; padding: 17px 16px; border-radius: 16px; border: 1px solid transparent; background-color: #FFFFFF; font-size: 16px; color: #2B3A4A; outline: none; }
@@ -193,7 +193,7 @@
 <div id="loginScreen" class="screen active">
   <div class="login-wrapper">
     <div class="card">
-      <div class="brand-mark login-logo" aria-label="EthioLegacy logo"><span>Eth</span><b>L</b></div>
+      <img class="brand-image login-logo" src="./logo.png" alt="EthioLegacy logo">
       <div class="language-row"><select id="loginLanguage" aria-label="Choose language" onchange="changeLanguage(this.value)"><option value="en">English</option><option value="om">Afaan Oromoo</option><option value="am">አማርኛ</option><option value="ti">ትግርኛ</option><option value="so">Soomaali</option></select></div>
       <h1>EthioLegacy</h1>
       <p id="authSubtitle">Create your EthioLegacy account</p>
@@ -238,23 +238,13 @@
 <!-- SCREEN 2: HOME / CHATS -->
 <div id="homeScreen" class="screen">
   <div class="header">
-    <div class="brand"><div class="brand-mark"><span>Eth</span><b>L</b></div><span>EthioLegacy</span></div>
+    <div class="brand"><img class="brand-image" src="./logo.png" alt="EthioLegacy logo"><span>EthioLegacy</span></div>
     <div class="header-actions">
       <button class="header-icon" aria-label="Notifications" onclick="showNotifications()">🔔<span id="notificationBadge" class="notification-badge" style="display:none">0</span></button>
       <button class="header-tree-button" aria-label="Open create menu" title="Create group, contact, community or event" onclick="openNewChatModal()">🌳</button>
       <button class="header-icon" aria-label="Settings" onclick="openSettings()">⚙️</button>
     </div>
   </div>
-  <button class="explore-front-banner" type="button" onclick="openExploreEthiopia()" aria-label="Explore Ethiopia">
-    <span class="explore-flag" role="img" aria-label="Ethiopian flag">
-      <svg viewBox="0 0 60 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <rect width="60" height="13.34" fill="#078930"/><rect y="13.33" width="60" height="13.34" fill="#FCDD09"/><rect y="26.66" width="60" height="13.34" fill="#DA121A"/>
-        <circle cx="30" cy="20" r="9.2" fill="#0F47AF"/><path d="M30 11.8 32 17.4 37.9 17.5 33.2 21 34.9 26.7 30 23.3 25.1 26.7 26.8 21 22.1 17.5 28 17.4Z" fill="#FCDD09"/>
-      </svg>
-    </span>
-    <span class="explore-front-copy"><strong>Explore Ethiopia</strong><small>Ethio Green Legacy · Digital Ethiopia</small></span>
-    <span class="explore-front-arrow" aria-hidden="true">›</span>
-  </button>
   <div class="main-tabs" role="tablist" aria-label="Main navigation">
     <button class="main-tab active" data-pane="chatsPane" onclick="switchHomeTab('chatsPane',this)">💬 Chats</button>
     <button class="main-tab" data-pane="callsPane" onclick="switchHomeTab('callsPane',this)">📞 Calls</button>
@@ -317,7 +307,7 @@
 
 <div id="settingsModal" class="modal settings-overlay">
   <div class="modal-content settings-content">
-    <div class="settings-title"><div class="brand-mark large"><span>Eth</span><b>L</b></div><div><h2 id="settingsHeading">EthioLegacy Settings</h2><p id="settingsDescription">Profile, privacy and app preferences</p></div><button class="close-settings" onclick="closeSettings()">✕</button></div>
+    <div class="settings-title"><img class="brand-image large" src="./logo.png" alt="EthioLegacy logo"><div><h2 id="settingsHeading">EthioLegacy Settings</h2><p id="settingsDescription">Profile, privacy and app preferences</p></div><button class="close-settings" onclick="closeSettings()">✕</button></div>
     <div class="profile-upload">
       <img id="profilePreview" alt="Profile photo" src="" style="display:none;width:64px;height:64px;border-radius:50%;object-fit:cover;">
       <div id="profileInitial" class="profile-initial">EL</div>
@@ -362,9 +352,6 @@
 </div>
         <div class="wa-menu-item" onclick="openNewCommunity()">
           <div class="wa-icon" style="background: #00a884;">👥</div> <span>New community</span>
-        </div>
-        <div class="wa-menu-item" onclick="openExploreEthiopia()">
-          <div class="wa-icon" style="background:#e8f5e9;">🌳</div> <span>Explore Ethiopia · Green Legacy & Digital Ethiopia</span>
         </div>
         <div class="wa-menu-item" onclick="alert('Events coming soon!')">
           <div class="wa-icon" style="background: #00a884;">📅</div> <span>New event</span>
@@ -528,10 +515,12 @@
 
 <!-- Firebase & App Logic -->
 <script type="module">
+  import { registerPlugin } from "https://esm.sh/@capacitor/core@7.4.3";
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
   import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
   import { getFirestore, collection, doc, setDoc, getDoc, getDocs, query, where, orderBy, onSnapshot, addDoc, deleteDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
   import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
+  const NativePermissions = registerPlugin("NativePermissions");
 
   // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
@@ -578,7 +567,7 @@ const firebaseConfig = {
     so:{settings:'Dejinta',notifications:'Ogeysiisyada',logout:'Ka bax',search:'Raadi isticmaaleyaasha...',message:'Qor fariin...',signupTitle:'Samee akoonkaaga EthioLegacy',signinTitle:'Soo gal si aad u sii wadato',fullName:'Magaca oo buuxa',yourName:'Magacaaga',emailPhone:'Iimayl / lambarka telefoonka',emailPlaceholder:'Iimayl ama lambarka telefoonka',password:'Furaha sirta ah',enterPassword:'Geli furaha sirta ah',confirmPassword:'Xaqiiji furaha sirta ah',confirmPlaceholder:'Mar kale geli furaha sirta ah',signup:'Is diiwaangeli',signin:'Soo gal',already:'Akoon ma leedahay?',noAccount:'Akoon ma lihid?',newChat:'Sheeko cusub ama koox',userEmail:'Iimaylka isticmaalaha',groupName:'Magaca kooxda',cancel:'Jooji',start:'Bilow',profile:'Astaantaada',uploadPhoto:'📷 Soo geli sawirka astaanta',language:'🌐 Luqad',permissions:'🔐 Oggolaanshaha (kamarad, makarafoon, ogeysiisyo)',linkedDevices:'📱 Qalab ku xiran / gelitaanka hadda',callHistory:'📞 Taariikhda wicitaannada',messageSettings:'💬 Dejinta fariimaha',about:'ℹ️ Ku saabsan EthioLegacy',profilePrivacy:'Astaan, asturnaan iyo doorashooyinka app-ka',incoming:'Wicitaan soo socda...',accept:'Aqbal',reject:'Diid',endCall:'Dhammee wicitaanka',emptyUsers:'Weli ma jiraan isticmaaleyaal kale.',caughtUp:'Wax ogeysiis cusub ah ma jiro.'}
   };
   function toast(message){const el=document.getElementById('toast');if(!el)return;el.textContent=message;el.classList.add('show');clearTimeout(window.__toastTimer);window.__toastTimer=setTimeout(()=>el.classList.remove('show'),3200);}
-  function pushNotice(title,body){notifications.unshift({title,body,time:new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})});notifications=notifications.slice(0,40);const badge=document.getElementById('notificationBadge');badge.textContent=notifications.length;badge.style.display=notifications.length?'inline-flex':'none';renderNotifications();toast(title+(body?': '+body:''));if('Notification' in window && Notification.permission==='granted' && document.visibilityState!=='visible'){try{new Notification(title,{body,icon:'data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="20" fill="%23008069"/><text x="8" y="42" fill="white" font-size="23">Eth</text><text x="48" y="78" fill="white" font-size="48">L</text></svg>')});}catch(e){}}}
+  function pushNotice(title,body){notifications.unshift({title,body,time:new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})});notifications=notifications.slice(0,40);const badge=document.getElementById('notificationBadge');badge.textContent=notifications.length;badge.style.display=notifications.length?'inline-flex':'none';renderNotifications();toast(title+(body?': '+body:''));if('Notification' in window && Notification.permission==='granted' && document.visibilityState!=='visible'){try{new Notification(title,{body,icon:'./logo.png'});}catch(e){}}}
   window.showNotifications=()=>{document.getElementById('notificationPanel').classList.toggle('open');renderNotifications();};
   window.closeNotifications=()=>document.getElementById('notificationPanel').classList.remove('open');
   function renderNotifications(){const box=document.getElementById('notificationList');if(!box)return;box.innerHTML=notifications.length?notifications.map(n=>`<div class="notification-entry"><b>${escapeHTML(n.title)}</b><div>${escapeHTML(n.body||'')}</div><small class="muted">${n.time}</small></div>`).join(''):'<p class="muted">You’re all caught up.</p>';}
@@ -618,82 +607,27 @@ const firebaseConfig = {
   };
   window.closeSettings=()=>document.getElementById('settingsModal').classList.remove('active');
 
-  window.requestAppPermissions = async () => {
-  let results = [];
-
-  // Check if running inside the APK (Capacitor Native)
-  if (window.Capacitor && window.Capacitor.isNativePlatform()) {
-    try {
-      // 1. Push Notifications
-      if (window.Capacitor.Plugins.PushNotifications) {
-        const push = await window.Capacitor.Plugins.PushNotifications.requestPermissions();
-        results.push('Push Notifications: ' + push.receive);
-      }
-
-      // 2. Local Notifications
-      if (window.Capacitor.Plugins.LocalNotifications) {
-        const local = await window.Capacitor.Plugins.LocalNotifications.requestPermissions();
-        results.push('Local Notifications: ' + local.display);
-      }
-
-      // 3. Camera
-      if (window.Capacitor.Plugins.Camera) {
-        const cam = await window.Capacitor.Plugins.Camera.requestPermissions({ permissions: ['camera', 'photos'] });
-        results.push('Camera: ' + cam.camera);
-      }
-
-      // 4. Contacts (Using the community plugin)
-      if (window.Capacitor.Plugins.Contacts) {
-        const con = await window.Capacitor.Plugins.Contacts.requestPermissions();
-        results.push('Contacts: ' + con.contacts);
-      }
-
-    } catch (e) {
-      results.push('Error checking permissions: ' + e.message);
-    }
-    
-    // Show the result to the user
+  window.requestAppPermissions=async()=>{
+    const results=[];
+    const isNative=!!window.Capacitor?.isNativePlatform?.();
+    try{
+      if(isNative){
+        const status=await NativePermissions.requestAll();
+        results.push('Camera: '+(status.camera||'unknown'));
+        results.push('Microphone: '+(status.microphone||'unknown'));
+        results.push('Notifications: '+(status.notifications||'unknown'));
+      } else if('Notification' in window) {
+        results.push('Notifications: '+await Notification.requestPermission());
+      } else results.push('Notifications are not supported in this browser.');
+    }catch(e){console.error('Native permission request failed:',e);results.push('Android permission request failed: '+(e.message||e));}
+    try{
+      if(!navigator.mediaDevices?.getUserMedia) throw new Error('Media access is unavailable. Rebuild the Android APK with the updated native manifest.');
+      const stream=await navigator.mediaDevices.getUserMedia({audio:true,video:true});
+      stream.getTracks().forEach(t=>t.stop());
+      results.push('Camera and microphone access test: successful.');
+    }catch(e){console.warn('Media permission check:',e);results.push('Camera/microphone access: '+(e.message||'not granted'));}
     alert(results.join('\n'));
-    return;
-  }
-
-  // --- WEB BROWSER FALLBACK ---
-  try {
-    if ('Notification' in window) {
-      const p = await Notification.requestPermission();
-      results.push('Notifications: ' + p);
-    }
-  } catch (e) { results.push('Notification permission unavailable.'); }
-  
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
-    stream.getTracks().forEach(t => t.stop());
-    results.push('Camera and microphone permission granted.');
-  } catch (e) {
-    results.push('Camera/microphone: allow access in your browser or phone settings.');
-  }
-  
-  alert(results.join('\n'));
-};
-
-  // --- WEB BROWSER FALLBACK ---
-  try {
-    if ('Notification' in window) {
-      const p = await Notification.requestPermission();
-      results.push('Notifications: ' + p);
-    }
-  } catch (e) { results.push('Notification permission unavailable.'); }
-  
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
-    stream.getTracks().forEach(t => t.stop());
-    results.push('Camera and microphone permission granted.');
-  } catch (e) {
-    results.push('Camera/microphone: allow access in your browser or phone settings.');
-  }
-  
-  alert(results.join('\n'));
-};
+  };
 
   window.uploadProfilePhoto=async(event)=>{
     const file=event.target.files?.[0];
@@ -845,11 +779,13 @@ const firebaseConfig = {
 
         if (validInviterUid) {
           try {
-            // Do not update the inviter's profile document from the new account.
-            // Owner-only Firestore rules correctly reject that cross-account write.
-            // Instead, the rules add-on below allows the joining user to create
-            // only their own friend-entry document under the inviter's friends list.
-            const inviterName = urlParams.get('inviterName') || 'EthioLegacy member';
+            const inviterProfileRef = doc(db, 'users', validInviterUid);
+            const inviterProfileSnap = await getDoc(inviterProfileRef);
+            const inviterProfile = inviterProfileSnap.exists() ? inviterProfileSnap.data() : {};
+            const inviterName = inviterProfile.displayName || 'EthioLegacy member';
+            // Use merge writes on both sides so the inviter and receiver each get
+            // their own private Chats and Calls contact entry.
+            await setDoc(inviterProfileRef, { linkedUsers: arrayUnion(cred.user.uid) }, { merge: true });
             await setDoc(doc(db, 'users', cred.user.uid, 'friends', validInviterUid), {
               uid: validInviterUid, displayName: inviterName, addedAt: serverTimestamp()
             }, { merge: true });
@@ -1034,64 +970,29 @@ const firebaseConfig = {
   }
 window.importDeviceContacts = async () => {
   if (!currentUser) return toast('Please sign in first.');
-
-  // --- APK NATIVE PATH ---
-  if (window.Capacitor && window.Capacitor.isNativePlatform()) {
-    try {
-      const { Contacts } = await import('@capacitor-community/contacts');
-      const result = await Contacts.getContacts({
-        projection: { name: true, phones: true, emails: true }
-      });
-      
-      const seen = new Set();
-      importedDeviceContacts = (result.contacts || []).map(c => ({
-        name: c.name?.display || 'Unnamed contact',
-        tel: (c.phones?.[0]?.number || '').replace(/\D/g, ''),
-        email: c.emails?.[0]?.address || ''
-      })).filter(c => {
-        const key = (c.email + '|' + c.tel + '|' + c.name).toLowerCase();
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
-      
-      persistDeviceContacts();
-      await resolveSelectedDeviceContacts();
-      renderDeviceContacts();
-      renderCommunityPicker();
-      renderWaContacts();
-      toast(importedDeviceContacts.length + ' contacts synced natively.');
-      return;
-    } catch (e) {
-      console.error(e);
-      return toast('Contacts permission denied. Please allow it in settings.');
-    }
-  }
-
-  // --- WEB BROWSER FALLBACK ---
   if (!('contacts' in navigator) || !navigator.contacts?.select) {
-    toast('Device contact picker is not supported here.');
+    toast('Device contact picker is not supported here. Open EthioLegacy in Chrome on Android over HTTPS.');
     return;
   }
   try {
     const props = ['name', 'tel', 'email'];
     const picked = await navigator.contacts.select(props, { multiple: true });
     const seen = new Set();
+    
     importedDeviceContacts = picked.map(c => ({
       name: (c.name && c.name[0]) || 'Unnamed contact',
-      tel: (c.tel && c.tel[0]) ? c.tel[0].replace(/\D/g, '') : '',
+      tel: (c.tel && c.tel[0]) ? c.tel[0].replace(/\D/g,'') : '', // Clean the number (removes spaces/dashes)
       email: (c.email && c.email[0]) || ''
     })).filter(c => {
-      const key = (c.email + '|' + c.tel + '|' + c.name).toLowerCase();
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
+      const key = (c.email+'|'+c.tel+'|'+c.name).toLowerCase();
+      if (seen.has(key)) return false; seen.add(key); return true;
     });
+    
     persistDeviceContacts();
     await resolveSelectedDeviceContacts();
     renderDeviceContacts();
     renderCommunityPicker();
-    renderWaContacts();
+    renderWaContacts(); // Update the WhatsApp-style menu immediately
     toast(importedDeviceContacts.length + ' contacts synced on this device.');
   } catch (e) {
     if (e.name !== 'AbortError') toast('Could not read selected contacts. Check browser permission.');
@@ -1453,7 +1354,6 @@ function getEthioLegacyInviteUrl() {
   // Build exactly one invite parameter; never append an existing query string.
   const url = new URL(location.pathname, location.origin);
   url.searchParams.set('invite', currentUser.uid);
-  if (currentUser.displayName) url.searchParams.set('inviterName', currentUser.displayName);
   return url.toString();
 }
 
@@ -2053,13 +1953,11 @@ window.saveNewContact = async () => {
   onAuthStateChanged(auth, (user) => {
     if (incomingCallUnsub) { incomingCallUnsub(); incomingCallUnsub = null; }
     if (!user) return;
-    // A single-field receiver query avoids the composite receiverId+status index.
-    const q = query(collection(db, 'calls'), where('receiverId', '==', user.uid));
+    const q = query(collection(db, 'calls'), where('receiverId', '==', user.uid), where('status', '==', 'ringing'));
     incomingCallUnsub = onSnapshot(q, (snapshot) => {
       snapshot.docChanges().forEach(change => {
         if (change.type !== 'added') return;
         const callData = change.doc.data();
-        if (callData.status !== 'ringing') return;
         if (document.getElementById('activeCallModal').classList.contains('active') || currentCallDocId) return;
         currentCallDocId = change.doc.id;
         const callerName = callData.callerName || 'Incoming Call';
@@ -2075,7 +1973,7 @@ window.saveNewContact = async () => {
         document.getElementById('incomingCallModal').classList.add('active');
         playRingtone('incoming');
       });
-    }, e => { console.error('Incoming call listener failed:', e.code, e.message, e); toast('Cannot receive calls: '+(e.code || e.message || 'check Firestore calls read rules')); });
+    }, e => { console.error('Incoming call listener failed', e); toast('Cannot receive calls. Check Firestore rules and call query index.'); });
   });
 
   window.acceptCall = async (forceVideo = false) => {
@@ -2222,7 +2120,7 @@ window.saveNewContact = async () => {
   window.inviteIntoSpecialGroup=contact=>{if(!currentUser)return toast('Sign in first.');pendingSpecialGroupInvite={...contact,group:activeSpecialGroup};renderPendingSpecialGroupInvite();};
   window.cancelSpecialGroupInvite=()=>{pendingSpecialGroupInvite=null;renderPendingSpecialGroupInvite();toast('Invitation selection cancelled.');};
   function renderPendingSpecialGroupInvite(){const box=document.getElementById('specialGroupPendingInvite');if(!box)return;if(!pendingSpecialGroupInvite){box.innerHTML='';return;}const c=pendingSpecialGroupInvite;box.innerHTML=`<div class="device-contact" style="margin:8px 12px;padding:12px;border:1px solid #d1d5db;border-radius:12px;background:#f8fafc"><div class="contact-details"><b>Selected: ${updateSafe(c.name||'Contact')}</b><small>${updateSafe(c.tel||c.email||'')} · ${updateSafe(specialGroupNames[c.group]||'Special Group')}</small></div><button class="contact-action" onclick="sendPendingSpecialGroupInvite()">Send invite</button><button class="mini-action" onclick="cancelSpecialGroupInvite()" title="Cancel invitation">✕ Cancel</button></div>`;}
-  window.sendPendingSpecialGroupInvite=async()=>{if(!pendingSpecialGroupInvite||!currentUser)return;const c=pendingSpecialGroupInvite,group=c.group;const link=new URL(location.pathname,location.origin);link.searchParams.set('invite',currentUser.uid);link.searchParams.set('group',group);if(currentUser.displayName)link.searchParams.set('inviterName',currentUser.displayName);const msg=`Join me on EthioLegacy. I am inviting you to my ${specialGroupNames[group]} group.`;try{if(navigator.share)await navigator.share({title:'EthioLegacy invitation',text:msg,url:link.toString()});else if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(msg+'\n'+link);toast('Group invitation link copied.');}else prompt('Copy invitation link',link.toString());pendingSpecialGroupInvite=null;renderPendingSpecialGroupInvite();}catch(e){if(e.name==='AbortError'){toast('Invitation cancelled.');}else prompt('Copy invitation link',link.toString());}};
+  window.sendPendingSpecialGroupInvite=async()=>{if(!pendingSpecialGroupInvite||!currentUser)return;const c=pendingSpecialGroupInvite,group=c.group;const link=new URL(location.pathname,location.origin);link.searchParams.set('invite',currentUser.uid);link.searchParams.set('group',group);const msg=`Join me on EthioLegacy. I am inviting you to my ${specialGroupNames[group]} group.`;try{if(navigator.share)await navigator.share({title:'EthioLegacy invitation',text:msg,url:link.toString()});else if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(msg+'\n'+link);toast('Group invitation link copied.');}else prompt('Copy invitation link',link.toString());pendingSpecialGroupInvite=null;renderPendingSpecialGroupInvite();}catch(e){if(e.name==='AbortError'){toast('Invitation cancelled.');}else prompt('Copy invitation link',link.toString());}};
   window.renderSpecialGroup=async()=>{const box=document.getElementById('specialGroupMembers');if(!box||!currentUser)return;try{const snap=await getDocs(collection(db,'users',currentUser.uid,'specialGroups',activeSpecialGroup,'members'));specialGroupRows=snap.docs.map(d=>({id:d.id,...d.data()}));const q=(document.getElementById('specialGroupSearch')?.value||'').toLowerCase();const rows=specialGroupRows.filter(x=>[x.displayName,x.email,x.phone].some(v=>(v||'').toLowerCase().includes(q)));box.innerHTML=`<div class="pane-heading">${specialGroupNames[activeSpecialGroup]} · ${rows.length} saved</div>`+(rows.length?rows.map(x=>`<div class="chat-item"><div class="avatar">${updateSafe((x.displayName||'M').slice(0,1).toUpperCase())}</div><div class="chat-info" onclick="openChat('${x.uid}','${updateSafe(x.displayName||'Member')}')"><div class="chat-name">🌳 ${updateSafe(x.displayName||'Member')}</div><small>${updateSafe(x.email||x.phone||'EthioLegacy member')}</small></div><button class="mini-action" title="Remove from this group" onclick="removeSpecialGroupMember('${x.uid}')">✕</button></div>`).join(''):'<div class="empty-state">No members saved here yet. Search your device contacts or add people from Chats.</div>');}catch(e){console.error(e);box.innerHTML='<div class="empty-state">Could not load this group. Check Firestore rules.</div>';}};
   window.renderSpecialGroupDeviceContacts=()=>{
     const box=document.getElementById('specialGroupDeviceContacts');if(!box)return;
@@ -2353,65 +2251,9 @@ window.saveNewContact = async () => {
 
 <script>
 // Register the service worker only on HTTPS or localhost.
-if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+if (!window.Capacitor?.isNativePlatform?.() && 'serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(err => console.warn('Service worker registration failed:', err)));
 }
 </script>
-
-
-<style>
-.explore-front-banner{width:calc(100% - 24px);margin:10px 12px 8px;padding:10px 13px;display:flex;align-items:center;gap:12px;text-align:left;border:1px solid #d7e9dc;border-radius:14px;background:linear-gradient(105deg,#f0fff4 0%,#fff 58%,#fff8dc 100%);box-shadow:0 2px 7px #12351a12;color:#173c2b;cursor:pointer}
-.explore-front-banner:active{transform:scale(.99)}.explore-flag{width:58px;height:40px;flex:0 0 58px;overflow:hidden;border-radius:6px;box-shadow:0 1px 4px #0003}.explore-flag svg{display:block;width:100%;height:100%}.explore-front-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px}.explore-front-copy strong{font-size:16px;font-weight:800}.explore-front-copy small{font-size:12px;color:#5c7065}.explore-front-arrow{font-size:30px;line-height:1;color:#16834a}
-</style>
-<style>
-#exploreEthiopia{display:none;position:fixed;inset:0;z-index:1200;background:#f6f8f7;flex-direction:column;color:#172b2b}
-#exploreEthiopia.active{display:flex}.explore-head{display:flex;align-items:center;gap:12px;padding:15px;background:#008069;color:white;padding-top:max(15px,env(safe-area-inset-top))}.explore-head button{border:0;background:transparent;color:white;font-size:25px}.explore-body{padding:14px;overflow:auto}.explore-card{background:white;border-radius:13px;padding:14px;margin:10px 0;box-shadow:0 1px 4px #0001}.explore-card h3{margin-bottom:7px}.explore-card p{font-size:14px;line-height:1.5;color:#526170}.explore-card a{color:#007b66;font-weight:600;overflow-wrap:anywhere}.explore-search{display:flex;gap:7px;margin:12px 0}.explore-search input{min-width:0;flex:1;padding:12px;border:1px solid #d5dfdc;border-radius:10px;font-size:15px}.explore-search button{border:0;border-radius:10px;padding:0 14px;background:#008069;color:white;font-weight:700}.explore-result{padding:13px 0;border-bottom:1px solid #edf0ef}.explore-result h4{color:#006b58;margin-bottom:5px}.explore-result p{font-size:13px;color:#526170;line-height:1.45}.explore-result a{display:inline-block;margin-top:7px;color:#007b66;font-weight:700}
-</style>
-<div id="exploreEthiopia" aria-label="Explore Ethiopia">
- <div class="explore-head"><button onclick="closeExploreEthiopia()" aria-label="Back">←</button><div><b>Explore Ethiopia</b><div style="font-size:12px;opacity:.9">Green Legacy · Digital Ethiopia</div></div></div>
- <div class="explore-body">
-  <div class="explore-card"><h3>🌳 Ethio Green Legacy</h3><p>Explore Ethiopia's tree-planting, forest restoration, ecosystem protection and environmental programmes. Search online results below or visit official information sources.</p><p style="margin-top:8px"><a href="https://www.ethio-greenlegacy.et/" target="_blank" rel="noopener">Official Green Legacy website ↗</a><br><a href="https://www.efd.gov.et/green-legacy/" target="_blank" rel="noopener">Ethiopian Forestry Development ↗</a></p><button class="contacts-button" style="margin-top:10px" onclick="searchExploreTopic('Ethiopia Green Legacy Initiative')">Search Green Legacy</button></div>
-  <div class="explore-card"><h3>💻 Digital Ethiopia</h3><p>Learn about Ethiopia's digital transformation strategy, digital public services, connectivity, innovation, technology and the Digital Ethiopia 2030 vision.</p><p style="margin-top:8px"><a href="https://www.pmo.gov.et/" target="_blank" rel="noopener">Office of the Prime Minister ↗</a></p><button class="contacts-button" style="margin-top:10px" onclick="searchExploreTopic('Ethiopia Digital Ethiopia 2030 strategy')">Search Digital Ethiopia</button></div>
-  <div class="explore-card"><h3>🔎 Search online</h3><p>Search articles and information from the web. Results appear one by one; open a result to read the source.</p><div class="explore-search"><input id="exploreSearchInput" placeholder="Search Green Legacy or Digital Ethiopia..."><button onclick="runExploreSearch()">Search</button></div><div id="exploreResults" aria-live="polite"><p style="font-size:13px;color:#667781">Choose a topic above or enter a search phrase.</p></div><p style="font-size:11px;color:#77838e;margin-top:12px">Search results are provided by Wikipedia's public search service. This does not search every website on the internet. Official government links are listed above.</p></div>
- </div>
-</div>
-<script>
-window.openExploreEthiopia=()=>{document.getElementById('newChatModal')?.classList.remove('active');document.getElementById('exploreEthiopia').classList.add('active');};
-window.closeExploreEthiopia=()=>document.getElementById('exploreEthiopia').classList.remove('active');
-window.searchExploreTopic=(q)=>{document.getElementById('exploreSearchInput').value=q;runExploreSearch();};
-window.runExploreSearch=async()=>{const input=document.getElementById('exploreSearchInput'),box=document.getElementById('exploreResults'),q=(input.value||'').trim();if(!q){box.innerHTML='<p>Please enter a search phrase.</p>';return;}box.innerHTML='<p>Searching online…</p>';try{const url='https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch='+encodeURIComponent(q)+'&format=json&origin=*&srlimit=20';const res=await fetch(url);if(!res.ok)throw new Error('Search service unavailable');const data=await res.json();const rows=data.query?.search||[];if(!rows.length){box.innerHTML='<p>No results found. Try another phrase or use the official links above.</p>';return;}box.innerHTML=rows.map((r,i)=>{const title=r.title;const page='https://en.wikipedia.org/wiki/'+encodeURIComponent(title.replace(/ /g,'_'));const snippet=(r.snippet||'').replace(/<[^>]*>/g,' ').replace(/&quot;/g,'"').replace(/&#039;/g,"'").replace(/&amp;/g,'&');return `<div class="explore-result"><h4>${i+1}. ${escapeExploreText(title)}</h4><p>${snippet}</p><a href="${page}" target="_blank" rel="noopener">Read this result ↗</a></div>`;}).join('');}catch(e){console.error(e);box.innerHTML='<p>Could not load online results. Check your internet connection and try again. You can still open the official sources above.</p>';}};
-function escapeExploreText(v){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-document.getElementById('exploreSearchInput')?.addEventListener('keydown',e=>{if(e.key==='Enter')runExploreSearch();});
-</script>
-    <!-- ... your other website code ... -->
-
-        <!-- ADD THIS SCRIPT FOR NOTIFICATIONS -->
-    <script type="module">
-      import { PushNotifications } from 'https://cdn.jsdelivr.net/npm/@capacitor/push-notifications@6/+esm';
-
-      const requestNotificationPermission = async () => {
-        try {
-          let permStatus = await PushNotifications.checkPermissions();
-          
-          if (permStatus.receive === 'prompt') {
-            permStatus = await PushNotifications.requestPermissions();
-          }
-          
-          if (permStatus.receive === 'granted') {
-            await PushNotifications.register();
-            console.log('Notifications registered successfully!');
-          } else {
-            console.log('User denied notification permission.');
-          }
-        } catch (error) {
-          console.error('Error with notifications:', error);
-        }
-      };
-
-      // Run the request when the app opens
-      if (window.Capacitor) {
-        requestNotificationPermission();
-      }
-    </script>
-  </body>
+</body>
 </html>
