@@ -41,13 +41,10 @@ jobs:
             npm init -y
           fi
 
-          # 1. Install Capacitor
           npm install --save-exact @capacitor/core@6.2.1
           npm install --save-dev --save-exact @capacitor/cli@6.2.1
           npm install --save-exact @capacitor/android@6.2.1
           npm install -D typescript@5
-          
-          # 2. Install Contacts plugin (FIXED VERSION for Capacitor 6)
           npm install --save @capacitor-community/contacts@6
 
           cat > capacitor.config.json << EOF
@@ -64,16 +61,23 @@ jobs:
 
       - name: FORCE Logo and Permissions
         run: |
-          # 1. ADD PERMISSIONS TO MANIFEST
+          # 1. ADD PERMISSIONS
           MANIFEST="android/app/src/main/AndroidManifest.xml"
           sed -i '/<\/manifest>/i \    <uses-permission android:name="android.permission.READ_CONTACTS" />' $MANIFEST
           sed -i '/<\/manifest>/i \    <uses-permission android:name="android.permission.WRITE_CONTACTS" />' $MANIFEST
           sed -i '/<\/manifest>/i \    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />' $MANIFEST
           
-          # 2. FORCE THE SQUARE LOGO
-          echo "Forcing square logo..."
-          # This command forces the logo to be used as a standard square icon
+          # 2. FORCE THE SQUARE LOGO (CLEAN UP DUPLICATES FIRST)
+          echo "Cleaning up old icons and forcing square logo..."
           find android/app/src/main/res -type d -name "mipmap-*" | while read dir; do
+            # Delete the old system icons to prevent duplicates
+            rm -f "$dir/ic_launcher.png"
+            rm -f "$dir/ic_launcher.webp"
+            rm -f "$dir/ic_launcher.xml"
+            rm -f "$dir/ic_launcher_round.png"
+            rm -f "$dir/ic_launcher_foreground.png"
+            
+            # Copy your new logo in
             cp logo.png "$dir/ic_launcher.png"
           done
 
