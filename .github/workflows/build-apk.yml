@@ -41,12 +41,14 @@ jobs:
             npm init -y
           fi
 
-          # Install Capacitor and Plugins
+          # 1. Install Capacitor
           npm install --save-exact @capacitor/core@6.2.1
           npm install --save-dev --save-exact @capacitor/cli@6.2.1
           npm install --save-exact @capacitor/android@6.2.1
           npm install -D typescript@5
-          npm install --save @capacitor-community/contacts
+          
+          # 2. Install Contacts plugin (FIXED VERSION for Capacitor 6)
+          npm install --save @capacitor-community/contacts@6
 
           cat > capacitor.config.json << EOF
           {
@@ -67,14 +69,12 @@ jobs:
           sed -i '/<\/manifest>/i \    <uses-permission android:name="android.permission.READ_CONTACTS" />' $MANIFEST
           sed -i '/<\/manifest>/i \    <uses-permission android:name="android.permission.WRITE_CONTACTS" />' $MANIFEST
           sed -i '/<\/manifest>/i \    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />' $MANIFEST
-          sed -i '/<\/manifest>/i \    <uses-permission android:name="android.permission.CAMERA" />' $MANIFEST
-
-          # 2. FORCE THE LOGO (Replace all default icons with your logo.png)
-          echo "Replacing default icons with logo.png..."
+          
+          # 2. FORCE THE SQUARE LOGO
+          echo "Forcing square logo..."
+          # This command forces the logo to be used as a standard square icon
           find android/app/src/main/res -type d -name "mipmap-*" | while read dir; do
             cp logo.png "$dir/ic_launcher.png"
-            cp logo.png "$dir/ic_launcher_round.png"
-            cp logo.png "$dir/ic_launcher_foreground.png"
           done
 
       - name: Build debug APK
