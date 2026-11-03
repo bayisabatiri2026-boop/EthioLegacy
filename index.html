@@ -618,12 +618,52 @@ const firebaseConfig = {
   };
   window.closeSettings=()=>document.getElementById('settingsModal').classList.remove('active');
 
-  window.requestAppPermissions=async()=>{
-    let results=[];
-    try{if('Notification' in window){const p=await Notification.requestPermission();results.push('Notifications: '+p);}else results.push('Notifications are not supported by this browser.');}catch(e){results.push('Notification permission unavailable.');}
-    try{const stream=await navigator.mediaDevices.getUserMedia({audio:true,video:true});stream.getTracks().forEach(t=>t.stop());results.push('Camera and microphone permission granted.');}catch(e){results.push('Camera/microphone: allow access in your browser or phone settings.');}
+  window.requestAppPermissions = async () => {
+  let results = [];
+
+  if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+    try {
+      const { PushNotifications } = await import('@capacitor/push-notifications');
+      const push = await PushNotifications.requestPermissions();
+      results.push('Push Notifications: ' + push.receive);
+
+      const { LocalNotifications } = await import('@capacitor/local-notifications');
+      const local = await LocalNotifications.requestPermissions();
+      results.push('Local Notifications: ' + local.display);
+
+      const { Camera } = await import('@capacitor/camera');
+      const cam = await Camera.requestPermissions();
+      results.push('Camera: ' + cam.camera);
+
+      const { Contacts } = await import('@capacitor-community/contacts');
+      const con = await Contacts.requestPermissions();
+      results.push('Contacts: ' + con.contacts);
+
+    } catch (e) {
+      results.push('Error checking permissions: ' + e.message);
+    }
     alert(results.join('\n'));
-  };
+    return;
+  }
+
+  // --- WEB BROWSER FALLBACK ---
+  try {
+    if ('Notification' in window) {
+      const p = await Notification.requestPermission();
+      results.push('Notifications: ' + p);
+    }
+  } catch (e) { results.push('Notification permission unavailable.'); }
+  
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+    stream.getTracks().forEach(t => t.stop());
+    results.push('Camera and microphone permission granted.');
+  } catch (e) {
+    results.push('Camera/microphone: allow access in your browser or phone settings.');
+  }
+  
+  alert(results.join('\n'));
+};
 
   window.uploadProfilePhoto=async(event)=>{
     const file=event.target.files?.[0];
