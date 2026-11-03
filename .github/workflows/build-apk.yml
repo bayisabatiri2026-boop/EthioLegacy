@@ -41,29 +41,39 @@ jobs:
             --exclude 'android/' \
             --exclude 'www/'
 
-          # Install exact versions from package.json
+          # 1. Install all dependencies and Capacitor plugins
           npm install --no-audit --no-fund
+          npm install @capacitor/core @capacitor/android @capacitor/cli @capacitor/camera @capacitor-community/contacts @capacitor/local-notifications @capacitor/push-notifications
 
-          # Verify Capacitor versions
-          npm ls @capacitor/core @capacitor/android @capacitor/cli
-
-          # Create Capacitor configuration
+          # 2. Create Capacitor configuration with HTTPS scheme
           cat > capacitor.config.json << 'EOF'
           {
             "appId": "com.ethiolegacy.chat",
             "appName": "EthioLegacy",
-            "webDir": "www"
+            "webDir": "www",
+            "server": {
+              "androidScheme": "https"
+            },
+            "plugins": {
+              "PushNotifications": {
+                "presentationOptions": ["badge", "sound", "alert"]
+              },
+              "LocalNotifications": {
+                "smallIcon": "ic_stat_icon",
+                "iconColor": "#008069"
+              }
+            }
           }
           EOF
 
           rm -f capacitor.config.ts
 
-          # Create Android project if it does not exist
+          # 3. Create Android project if it does not exist
           if [ ! -d android ]; then
             npx cap add android
           fi
 
-          # Synchronize application
+          # 4. Synchronize application and native plugins
           npx cap sync android
 
       - name: Build debug APK
