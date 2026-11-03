@@ -41,12 +41,11 @@ jobs:
             --exclude 'android/' \
             --exclude 'www/'
 
-          # 1. Install Capacitor core at a known version, then matching plugins
-                npm install --no-audit --no-fund
-                 npm install @capacitor/core@7.4.3 @capacitor/android@7.4.3 @capacitor/cli@7.4.3
-                  npm install @capacitor/camera@latest-7 @capacitor-community/contacts@latest-7 @capacitor/local-notifications@latest-7 @capacitor/push-notifications@latest-7
+          # 1. Force install Capacitor 7 and all plugins matching that version
+          npm install --no-audit --no-fund --legacy-peer-deps @capacitor/core@7 @capacitor/android@7 @capacitor/cli@7
+          npm install --no-audit --no-fund --legacy-peer-deps @capacitor/camera@7 @capacitor-community/contacts@latest @capacitor/local-notifications@7 @capacitor/push-notifications@7
 
-          # 2. Create Capacitor configuration with HTTPS scheme
+          # 2. Create Capacitor configuration
           cat > capacitor.config.json << 'EOF'
           {
             "appId": "com.ethiolegacy.chat",
@@ -54,25 +53,15 @@ jobs:
             "webDir": "www",
             "server": {
               "androidScheme": "https"
-            },
-            "plugins": {
-              "PushNotifications": {
-                "presentationOptions": ["badge", "sound", "alert"]
-              },
-              "LocalNotifications": {
-                "smallIcon": "ic_stat_icon",
-                "iconColor": "#008069"
-              }
             }
           }
           EOF
 
           rm -f capacitor.config.ts
 
-          # 3. Create Android project if it does not exist
-          if [ ! -d android ]; then
-            npx cap add android
-          fi
+          # 3. Always remove old android folder and regenerate it clean
+          rm -rf android
+          npx cap add android
 
           # 4. Synchronize application and native plugins
           npx cap sync android
