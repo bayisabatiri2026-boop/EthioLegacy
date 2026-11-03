@@ -2303,5 +2303,31 @@ document.getElementById('exploreSearchInput')?.addEventListener('keydown',e=>{if
         requestNotificationPermission();
       }
     </script>
+  <script type="module">
+  import { Contacts } from 'https://cdn.jsdelivr.net/npm/@capacitor-community/contacts@6/+esm';
+
+  // Function to call when the user clicks "Sync Contacts"
+  window.syncContacts = async function() {
+    try {
+      // 1. Ask for permission
+      const permission = await Contacts.requestPermissions();
+      
+      if (permission.contacts === 'granted') {
+        // 2. If granted, get the contacts
+        const result = await Contacts.getContacts({
+          projection: { name: true, phones: true }
+        });
+        alert("Success! Found " + result.contacts.length + " contacts.");
+        console.log(result.contacts);
+        // Here you can add code to show the contacts on your screen
+      } else {
+        alert("Permission denied. Please allow contacts in your phone settings.");
+      }
+    } catch (error) {
+      console.error("Error getting contacts:", error);
+      alert("Error: " + error.message);
+    }
+  };
+</script>
 </body>
 </html>
