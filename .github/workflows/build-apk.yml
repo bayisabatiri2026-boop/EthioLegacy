@@ -67,19 +67,18 @@ jobs:
           sed -i '/<\/manifest>/i \    <uses-permission android:name="android.permission.WRITE_CONTACTS" />' $MANIFEST
           sed -i '/<\/manifest>/i \    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />' $MANIFEST
           
-          # 2. FORCE THE SQUARE LOGO (CLEAN UP DUPLICATES FIRST)
-          echo "Cleaning up old icons and forcing square logo..."
-          find android/app/src/main/res -type d -name "mipmap-*" | while read dir; do
-            # Delete the old system icons to prevent duplicates
-            rm -f "$dir/ic_launcher.png"
-            rm -f "$dir/ic_launcher.webp"
-            rm -f "$dir/ic_launcher.xml"
-            rm -f "$dir/ic_launcher_round.png"
-            rm -f "$dir/ic_launcher_foreground.png"
-            
-            # Copy your new logo in
-            cp logo.png "$dir/ic_launcher.png"
-          done
+          # 2. OVERWRITE THE LOGO (Safer than deleting)
+          echo "Overwriting default icons with logo.png..."
+          
+          # Check if logo.png exists first to prevent crashing
+          if [ -f logo.png ]; then
+            find android/app/src/main/res -type d -name "mipmap-*" | while read dir; do
+              # Overwrite the existing files. If they don't exist, it just copies them.
+              cp -f logo.png "$dir/ic_launcher.png" 2>/dev/null || true
+            done
+          else
+            echo "WARNING: logo.png not found! Check if the file name is exactly logo.png in the main folder."
+          fi
 
       - name: Build debug APK
         run: |
