@@ -41,9 +41,10 @@ jobs:
             --exclude 'android/' \
             --exclude 'www/'
 
-          # 1. Install all dependencies and Capacitor plugins
-          npm install --no-audit --no-fund
-          npm install @capacitor/core @capacitor/android @capacitor/cli @capacitor/camera @capacitor-community/contacts @capacitor/local-notifications @capacitor/push-notifications
+          # 1. Install Capacitor core at a known version, then matching plugins
+                npm install --no-audit --no-fund
+                 npm install @capacitor/core@7.4.3 @capacitor/android@7.4.3 @capacitor/cli@7.4.3
+                  npm install @capacitor/camera@latest-7 @capacitor-community/contacts@latest-7 @capacitor/local-notifications@latest-7 @capacitor/push-notifications@latest-7
 
           # 2. Create Capacitor configuration with HTTPS scheme
           cat > capacitor.config.json << 'EOF'
