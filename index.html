@@ -621,30 +621,60 @@ const firebaseConfig = {
   window.requestAppPermissions = async () => {
   let results = [];
 
+  // Check if running inside the APK (Capacitor Native)
   if (window.Capacitor && window.Capacitor.isNativePlatform()) {
     try {
-      const { PushNotifications } = await import('@capacitor/push-notifications');
-      const push = await PushNotifications.requestPermissions();
-      results.push('Push Notifications: ' + push.receive);
+      // 1. Push Notifications
+      if (window.Capacitor.Plugins.PushNotifications) {
+        const push = await window.Capacitor.Plugins.PushNotifications.requestPermissions();
+        results.push('Push Notifications: ' + push.receive);
+      }
 
-      const { LocalNotifications } = await import('@capacitor/local-notifications');
-      const local = await LocalNotifications.requestPermissions();
-      results.push('Local Notifications: ' + local.display);
+      // 2. Local Notifications
+      if (window.Capacitor.Plugins.LocalNotifications) {
+        const local = await window.Capacitor.Plugins.LocalNotifications.requestPermissions();
+        results.push('Local Notifications: ' + local.display);
+      }
 
-      const { Camera } = await import('@capacitor/camera');
-      const cam = await Camera.requestPermissions();
-      results.push('Camera: ' + cam.camera);
+      // 3. Camera
+      if (window.Capacitor.Plugins.Camera) {
+        const cam = await window.Capacitor.Plugins.Camera.requestPermissions({ permissions: ['camera', 'photos'] });
+        results.push('Camera: ' + cam.camera);
+      }
 
-      const { Contacts } = await import('@capacitor-community/contacts');
-      const con = await Contacts.requestPermissions();
-      results.push('Contacts: ' + con.contacts);
+      // 4. Contacts (Using the community plugin)
+      if (window.Capacitor.Plugins.Contacts) {
+        const con = await window.Capacitor.Plugins.Contacts.requestPermissions();
+        results.push('Contacts: ' + con.contacts);
+      }
 
     } catch (e) {
       results.push('Error checking permissions: ' + e.message);
     }
+    
+    // Show the result to the user
     alert(results.join('\n'));
     return;
   }
+
+  // --- WEB BROWSER FALLBACK ---
+  try {
+    if ('Notification' in window) {
+      const p = await Notification.requestPermission();
+      results.push('Notifications: ' + p);
+    }
+  } catch (e) { results.push('Notification permission unavailable.'); }
+  
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+    stream.getTracks().forEach(t => t.stop());
+    results.push('Camera and microphone permission granted.');
+  } catch (e) {
+    results.push('Camera/microphone: allow access in your browser or phone settings.');
+  }
+  
+  alert(results.join('\n'));
+};
 
   // --- WEB BROWSER FALLBACK ---
   try {
