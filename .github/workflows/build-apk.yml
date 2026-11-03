@@ -32,24 +32,22 @@ jobs:
         run: |
           set -e
 
+          # 1. Safely create the www folder and copy ONLY your html, js, css files
           mkdir -p www
+          cp -r *.html *.js *.css *.png *.svg *.json www/ 2>/dev/null || true
+          cp -r icons www/ 2>/dev/null || true
 
-          # 1. Copy ONLY the web files to www
-          rsync -a ./ www/ \
-            --exclude '.git/' \
-            --exclude '.github/' \
-            --exclude 'node_modules/' \
-            --exclude 'android/' \
-            --exclude 'www/' \
-            --exclude 'package.json' \
-            --exclude 'package-lock.json'
+          # 2. Clean out the old packages so they don't conflict
+          rm -f package.json package-lock.json
 
-          # 2. Force install Capacitor 7 and plugins, completely ignoring the repo's package.json
-          npm init -y > /dev/null
-          npm install --no-audit --no-fund --legacy-peer-deps @capacitor/core@7 @capacitor/android@7 @capacitor/cli@7
-          npm install --no-audit --no-fund --legacy-peer-deps @capacitor/camera@7 @capacitor-community/contacts@latest @capacitor/local-notifications@7 @capacitor/push-notifications@7
+          # 3. Create a fresh package environment
+          npm init -y
 
-          # 3. Create Capacitor configuration
+          # 4. Install the perfectly matched Capacitor 7 packages
+          npm install --legacy-peer-deps @capacitor/core@7 @capacitor/android@7 @capacitor/cli@7
+          npm install --legacy-peer-deps @capacitor/camera@7 @capacitor-community/contacts@latest @capacitor/local-notifications@7 @capacitor/push-notifications@7
+
+          # 5. Create Capacitor configuration
           cat > capacitor.config.json << 'EOF'
           {
             "appId": "com.ethiolegacy.chat",
@@ -61,7 +59,7 @@ jobs:
           }
           EOF
 
-          # 4. Regenerate Android project
+          # 6. Build the Android app
           rm -rf android
           npx cap add android
           npx cap sync android
