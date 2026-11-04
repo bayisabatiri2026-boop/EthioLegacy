@@ -1,4 +1,5 @@
 name: Build EthioLegacy Android APK
+
 on:
   workflow_dispatch:
   push:
@@ -11,6 +12,7 @@ permissions:
 jobs:
   build-apk:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout EthioLegacy
         uses: actions/checkout@v4
@@ -29,42 +31,48 @@ jobs:
       - name: Prepare Capacitor project
         run: |
           set -e
-          
-          # 1. Copy web files
+
+          echo "1. Copying all web files safely..."
           mkdir -p www
-          rsync -a ./ www/ \
-            --exclude '.git/' \
-            --exclude '.github/' \
-            --exclude 'node_modules/' \
-            --exclude 'android/' \
-            --exclude 'www/'
+          # Copy ALL files in the root folder without failing if one type is missing
+          find . -maxdepth 1 -type f -exec cp {} www/ \;
+          # Copy the icons folder if it exists
+          if [ -d "icons" ]; then cp -r icons www/; fi
 
-          # 2. Setup npm
-          if [ ! -f package.json ]; then
-            npm init -y
-          fi
+          echo "2. Clearing old package files to prevent conflicts..."
+          rm -f package.json package-lock.json
 
-          # 3. Install Capacitor and fixed TypeScript version
-          npm install --save-exact @capacitor/core@6.2.1
-          npm install --save-dev --save-exact @capacitor/cli@6.2.1
-          npm install --save-exact @capacitor/android@6.2.1
-          npm install -D typescript@5
+          echo "3. Installing Capacitor 7 and plugins..."
+          npm init -y
+          npm install --legacy-peer-deps @capacitor/core@7 @capacitor/android@7 @capacitor/cli@7
+          npm install --legacy-peer-deps @capacitor/camera@7 @capacitor-community/contacts@latest @capacitor/local-notifications@7 @capacitor/push-notifications@7
 
-          # 4. Create JS Config (Prevents the CLI parsing crash)
-          cat > capacitor.config.json << EOF
+          echo "4. Creating Capacitor configuration..."
+          cat > capacitor.config.json << 'EOF'
           {
-            "appId": "com.ethiolegacy.app",
+            "appId": "com.ethiolegacy.chat",
             "appName": "EthioLegacy",
-            "webDir": "www"
+            "webDir": "www",
+            "server": {
+              "androidScheme": "https"
+            }
           }
           EOF
-          
-          # Remove .ts config if it exists to avoid conflicts
-          rm -f capacitor.config.ts
 
-          # 5. Add Android and sync
+          echo "5. Building clean Android project..."
+          # Delete the old android folder to prevent conflicts
+          rm -rf android
+          
+          # Re-add the clean android project
           npx cap add android
-          npx cap sync
+          
+          # IMPORTANT: Move your custom Manifest into the new Android folder
+          if [ -f "AndroidManifest.xml" ]; then
+            cp AndroidManifest.xml android/app/src/main/AndroidManifest.xml
+          fi
+          
+          # Sync the web files and plugins
+          npx cap sync android
 
       - name: Build debug APK
         run: |
@@ -75,5 +83,6 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug-apk
+          name: EthioLegacy-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
