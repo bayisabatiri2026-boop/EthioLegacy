@@ -1,82 +1,55 @@
-name: Build EthioLegacy Android APK
+name: Build APK
 
 on:
-  workflow_dispatch:
   push:
-    branches:
-      - main
-
-permissions:
-  contents: read
+    branches: [ "main" ]
 
 jobs:
-  build-apk:
+  build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout EthioLegacy
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
-
-      - name: Set up Java
-        uses: actions/setup-java@v4
+          
+      - uses: actions/setup-java@v4
         with:
-          distribution: temurin
-          java-version: 17
+          distribution: 'temurin'
+          java-version: '17'
 
-      - name: Prepare Capacitor project
+      - name: Build App
         run: |
-          set -e
-
-          echo "1. Copying files..."
-          mkdir -p www
-          cp -r * www/ || true
-          rm -rf www/.git www/.github www/android www/node_modules
-
-          echo "2. Clearing old package files..."
-          rm -f package.json package-lock.json
-
-          echo "3. Installing Capacitor 7..."
+          mkdir www
+          cp index.html www/ || true
+          cp manifest.webmanifest www/ || true
+          cp -r icons www/ || true
+          
           npm init -y
           npm install --legacy-peer-deps @capacitor/core@7 @capacitor/android@7 @capacitor/cli@7
           npm install --legacy-peer-deps @capacitor/camera@7 @capacitor-community/contacts@latest @capacitor/local-notifications@7 @capacitor/push-notifications@7
-
-          echo "4. Creating Capacitor config..."
+          
           cat > capacitor.config.json << 'EOF'
           {
             "appId": "com.ethiolegacy.chat",
             "appName": "EthioLegacy",
             "webDir": "www",
-            "server": {
-              "androidScheme": "https"
-            }
+            "server": { "androidScheme": "https" }
           }
           EOF
-
-          echo "5. Building Android project..."
+          
           rm -rf android
           npx cap add android
-          
-          echo "6. Copying Manifest..."
-          if [ -f "AndroidManifest.xml" ]; then
-            cp AndroidManifest.xml android/app/src/main/AndroidManifest.xml
-          fi
-          
+          cp AndroidManifest.xml android/app/src/main/AndroidManifest.xml || true
           npx cap sync android
-
-      - name: Build debug APK
-        run: |
+          
           cd android
-          chmod +x ./gradlew
+          chmod +x gradlew
           ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: EthioLegacy-debug-apk
+          name: app-debug.apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
