@@ -32,22 +32,20 @@ jobs:
         run: |
           set -e
 
-          echo "1. Copying all web files safely..."
+          echo "1. Copying files..."
           mkdir -p www
-          # Copy ALL files in the root folder without failing if one type is missing
-          find . -maxdepth 1 -type f -exec cp {} www/ \;
-          # Copy the icons folder if it exists
-          if [ -d "icons" ]; then cp -r icons www/; fi
+          cp -r * www/ || true
+          rm -rf www/.git www/.github www/android www/node_modules
 
-          echo "2. Clearing old package files to prevent conflicts..."
+          echo "2. Clearing old package files..."
           rm -f package.json package-lock.json
 
-          echo "3. Installing Capacitor 7 and plugins..."
+          echo "3. Installing Capacitor 7..."
           npm init -y
           npm install --legacy-peer-deps @capacitor/core@7 @capacitor/android@7 @capacitor/cli@7
           npm install --legacy-peer-deps @capacitor/camera@7 @capacitor-community/contacts@latest @capacitor/local-notifications@7 @capacitor/push-notifications@7
 
-          echo "4. Creating Capacitor configuration..."
+          echo "4. Creating Capacitor config..."
           cat > capacitor.config.json << 'EOF'
           {
             "appId": "com.ethiolegacy.chat",
@@ -59,19 +57,15 @@ jobs:
           }
           EOF
 
-          echo "5. Building clean Android project..."
-          # Delete the old android folder to prevent conflicts
+          echo "5. Building Android project..."
           rm -rf android
-          
-          # Re-add the clean android project
           npx cap add android
           
-          # IMPORTANT: Move your custom Manifest into the new Android folder
+          echo "6. Copying Manifest..."
           if [ -f "AndroidManifest.xml" ]; then
             cp AndroidManifest.xml android/app/src/main/AndroidManifest.xml
           fi
           
-          # Sync the web files and plugins
           npx cap sync android
 
       - name: Build debug APK
