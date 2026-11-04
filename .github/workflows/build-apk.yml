@@ -32,20 +32,22 @@ jobs:
         run: |
           set -e
 
-          # 1. Safely create www and copy web files (no rsync to avoid crashes)
+          echo "1. Copying files to www folder..."
           mkdir -p www
-          cp -r *.html *.js *.css *.png *.svg *.json www/ 2>/dev/null || true
-          cp -r icons www/ 2>/dev/null || true
+          # This finds all files in the root and copies them safely to www, ignoring folders
+          find . -maxdepth 1 -type f -exec cp {} www/ \;
+          # Copy icons folder if it exists
+          if [ -d "icons" ]; then cp -r icons www/; fi
 
-          # 2. CRITICAL: Delete the conflicting package files
+          echo "2. Clearing old package files..."
           rm -f package.json package-lock.json
-          npm init -y
 
-          # 3. Install Capacitor 7 and all plugins (forcing compatible versions)
+          echo "3. Installing Capacitor 7..."
+          npm init -y
           npm install --legacy-peer-deps @capacitor/core@7 @capacitor/android@7 @capacitor/cli@7
           npm install --legacy-peer-deps @capacitor/camera@7 @capacitor-community/contacts@latest @capacitor/local-notifications@7 @capacitor/push-notifications@7
 
-          # 4. Create the configuration file
+          echo "4. Creating Capacitor config..."
           cat > capacitor.config.json << 'EOF'
           {
             "appId": "com.ethiolegacy.chat",
@@ -57,9 +59,18 @@ jobs:
           }
           EOF
 
-          # 5. Build the Android project cleanly
+          echo "5. Building Android project..."
+          # Remove the old android folder if it came from your repo
           rm -rf android
+          
+          # Re-add it cleanly
           npx cap add android
+          
+          # IMPORTANT: Copy your custom AndroidManifest.xml into the new android folder
+          if [ -f "AndroidManifest.xml" ]; then
+            cp AndroidManifest.xml android/app/src/main/AndroidManifest.xml
+          fi
+          
           npx cap sync android
 
       - name: Build debug APK
