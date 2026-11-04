@@ -609,23 +609,38 @@ const firebaseConfig = {
 
   window.requestAppPermissions=async()=>{
     const results=[];
-    const isNative=!!window.Capacitor?.isNativePlatform?.();
-    try{
-      if(isNative){
+    const isNative=!!(window.Capacitor && typeof window.Capacitor.isNativePlatform==='function' && window.Capacitor.isNativePlatform());
+    if(isNative){
+      try{
         const status=await NativePermissions.requestAll();
         results.push('Camera: '+(status.camera||'unknown'));
         results.push('Microphone: '+(status.microphone||'unknown'));
         results.push('Notifications: '+(status.notifications||'unknown'));
-      } else if('Notification' in window) {
-        results.push('Notifications: '+await Notification.requestPermission());
-      } else results.push('Notifications are not supported in this browser.');
-    }catch(e){console.error('Native permission request failed:',e);results.push('Android permission request failed: '+(e.message||e));}
-    try{
-      if(!navigator.mediaDevices?.getUserMedia) throw new Error('Media access is unavailable. Rebuild the Android APK with the updated native manifest.');
-      const stream=await navigator.mediaDevices.getUserMedia({audio:true,video:true});
-      stream.getTracks().forEach(t=>t.stop());
-      results.push('Camera and microphone access test: successful.');
-    }catch(e){console.warn('Media permission check:',e);results.push('Camera/microphone access: '+(e.message||'not granted'));}
+      }catch(e){
+        console.error('Native permission request failed:',e);
+        results.push('Android permission request failed: '+(e.message||String(e)));
+      }
+      try{
+        if(!navigator.mediaDevices?.getUserMedia) throw new Error('Android WebView media access is unavailable. Rebuild and reinstall the updated APK.');
+        const stream=await navigator.mediaDevices.getUserMedia({audio:true,video:true});
+        stream.getTracks().forEach(track=>track.stop());
+        results.push('Camera and microphone test: successful.');
+      }catch(e){
+        console.warn('Camera/microphone test:',e);
+        results.push('Camera/microphone test: '+(e.message||'not granted'));
+      }
+    }else{
+      try{
+        if('Notification' in window) results.push('Notifications: '+await Notification.requestPermission());
+        else results.push('Notifications are not supported in this browser.');
+      }catch(e){results.push('Notifications: '+(e.message||'permission unavailable'));}
+      try{
+        if(!navigator.mediaDevices?.getUserMedia) throw new Error('Media access is unavailable in this browser.');
+        const stream=await navigator.mediaDevices.getUserMedia({audio:true,video:true});
+        stream.getTracks().forEach(track=>track.stop());
+        results.push('Camera and microphone test: successful.');
+      }catch(e){results.push('Camera/microphone: '+(e.message||'not granted'));}
+    }
     alert(results.join('\n'));
   };
 
