@@ -185,6 +185,8 @@
 
 
   .updates-actions{display:flex;gap:10px;padding:10px 14px}.updates-actions button,.update-action{border:0;border-radius:20px;padding:10px 14px;background:#008069;color:#fff;font-weight:700;cursor:pointer}.update-row,.channel-row{display:flex;align-items:center;gap:12px;padding:12px 15px;border-bottom:1px solid #edf0f1}.status-ring{width:50px;height:50px;border-radius:50%;border:3px solid #00a884;display:grid;place-items:center;font-size:22px;flex-shrink:0}.update-meta{flex:1;min-width:0}.update-meta b{display:block;color:#172b2b}.update-meta small{color:#667781}.update-preview{max-width:100px;max-height:65px;border-radius:8px;object-fit:cover}
+  .explore-front-banner{width:calc(100% - 24px);margin:10px 12px 8px;padding:10px 13px;display:flex;align-items:center;gap:12px;text-align:left;border:1px solid #d7e9dc;border-radius:14px;background:linear-gradient(105deg,#f0fff4 0%,#fff 58%,#fff8dc 100%);box-shadow:0 2px 7px #12351a12;color:#173c2b;cursor:pointer}
+.explore-front-banner:active{transform:scale(.99)}.explore-flag{width:58px;height:40px;flex:0 0 58px;overflow:hidden;border-radius:6px;box-shadow:0 1px 4px #0003}.explore-flag svg{display:block;width:100%;height:100%}.explore-front-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px}.explore-front-copy strong{font-size:16px;font-weight:800}.explore-front-copy small{font-size:12px;color:#5c7065}.explore-front-arrow{font-size:30px;line-height:1;color:#16834a}
 </style>
 </head>
 <body>
@@ -245,6 +247,16 @@
       <button class="header-icon" aria-label="Settings" onclick="openSettings()">⚙️</button>
     </div>
   </div>
+  <button class="explore-front-banner" type="button" onclick="openExploreEthiopia()" aria-label="Explore Ethiopia">
+  <span class="explore-flag" role="img" aria-label="Ethiopian flag">
+    <svg viewBox="0 0 60 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect width="60" height="13.34" fill="#078930"/><rect y="13.33" width="60" height="13.34" fill="#FCDD09"/><rect y="26.66" width="60" height="13.34" fill="#DA121A"/>
+      <circle cx="30" cy="20" r="9.2" fill="#0F47AF"/><path d="M30 11.8 32 17.4 37.9 17.5 33.2 21 34.9 26.7 30 23.3 25.1 26.7 26.8 21 22.1 17.5 28 17.4Z" fill="#FCDD09"/>
+    </svg>
+  </span>
+  <span class="explore-front-copy"><strong>Explore Ethiopia</strong><small>Ethio Green Legacy · Digital Ethiopia</small></span>
+  <span class="explore-front-arrow" aria-hidden="true">›</span>
+</button>
   <div class="main-tabs" role="tablist" aria-label="Main navigation">
     <button class="main-tab active" data-pane="chatsPane" onclick="switchHomeTab('chatsPane',this)">💬 Chats</button>
     <button class="main-tab" data-pane="callsPane" onclick="switchHomeTab('callsPane',this)">📞 Calls</button>
@@ -2247,6 +2259,22 @@ window.saveNewContact = async () => {
 if (!window.Capacitor?.isNativePlatform?.() && 'serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(err => console.warn('Service worker registration failed:', err)));
 }
+</script>
+  <!-- EXPLORE ETHIOPIA POPUP -->
+<div id="exploreEthiopia" style="display:none;position:fixed;inset:0;z-index:1200;background:#f6f8f7;flex-direction:column;color:#172b2b">
+ <div style="display:flex;align-items:center;gap:12px;padding:15px;background:#008069;color:white;padding-top:max(15px,env(safe-area-inset-top))"><button onclick="closeExploreEthiopia()" style="border:0;background:transparent;color:white;font-size:25px;cursor:pointer;">←</button><div><b>Explore Ethiopia</b><div style="font-size:12px;opacity:.9">Green Legacy · Digital Ethiopia</div></div></div>
+ <div style="padding:14px;overflow:auto;flex:1">
+  <div style="background:white;border-radius:13px;padding:14px;margin:10px 0;box-shadow:0 1px 4px #0001"><h3>🌳 Ethio Green Legacy</h3><p style="font-size:14px;line-height:1.5;color:#526170">Explore Ethiopia's tree-planting, forest restoration, ecosystem protection and environmental programmes.</p><button class="contacts-button" style="margin-top:10px;border:0;border-radius:20px;padding:10px 14px;background:#008069;color:#fff;font-weight:700;cursor:pointer" onclick="searchExploreTopic('Ethiopia Green Legacy Initiative')">Search Green Legacy</button></div>
+  <div style="background:white;border-radius:13px;padding:14px;margin:10px 0;box-shadow:0 1px 4px #0001"><h3>💻 Digital Ethiopia</h3><p style="font-size:14px;line-height:1.5;color:#526170">Learn about Ethiopia's digital transformation strategy, digital public services, and technology.</p><button class="contacts-button" style="margin-top:10px;border:0;border-radius:20px;padding:10px 14px;background:#008069;color:#fff;font-weight:700;cursor:pointer" onclick="searchExploreTopic('Ethiopia Digital Ethiopia 2030 strategy')">Search Digital Ethiopia</button></div>
+  <div style="background:white;border-radius:13px;padding:14px;margin:10px 0;box-shadow:0 1px 4px #0001"><h3>🔎 Search online</h3><div style="display:flex;gap:7px;margin:12px 0"><input id="exploreSearchInput" style="min-width:0;flex:1;padding:12px;border:1px solid #d5dfdc;border-radius:10px;font-size:15px" placeholder="Search..."><button onclick="runExploreSearch()" style="border:0;border-radius:10px;padding:0 14px;background:#008069;color:white;font-weight:700;cursor:pointer">Search</button></div><div id="exploreResults" style="font-size:13px;color:#526170">Choose a topic above.</div></div>
+ </div>
+</div>
+
+<script>
+window.openExploreEthiopia=()=>{document.getElementById('newChatModal')?.classList.remove('active');document.getElementById('exploreEthiopia').style.display='flex';};
+window.closeExploreEthiopia=()=>document.getElementById('exploreEthiopia').style.display='none';
+window.searchExploreTopic=(q)=>{document.getElementById('exploreSearchInput').value=q;runExploreSearch();};
+window.runExploreSearch=async()=>{const input=document.getElementById('exploreSearchInput'),box=document.getElementById('exploreResults'),q=(input.value||'').trim();if(!q)return;box.innerHTML='<p>Searching online…</p>';try{const url='https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch='+encodeURIComponent(q)+'&format=json&origin=*&srlimit=10';const res=await fetch(url);const data=await res.json();const rows=data.query?.search||[];if(!rows.length){box.innerHTML='<p>No results found.</p>';return;}box.innerHTML=rows.map((r,i)=>{const page='https://en.wikipedia.org/wiki/'+encodeURIComponent(r.title.replace(/ /g,'_'));const snippet=(r.snippet||'').replace(/<[^>]*>/g,' ');return `<div style="padding:10px 0;border-bottom:1px solid #eee"><h4 style="margin-bottom:5px"><a href="${page}" target="_blank" rel="noopener" style="color:#007b66;text-decoration:none">${r.title}</a></h4><p>${snippet}</p></div>`;}).join('');}catch(e){box.innerHTML='<p>Could not load results. Check internet connection.</p>';}};
 </script>
 </body>
 </html>
