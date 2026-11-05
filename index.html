@@ -315,6 +315,7 @@
     </div>
     <label class="setting-row"><span id="settingsLanguageLabel">🌐 Language</span><select id="appLanguage" onchange="changeLanguage(this.value)"><option value="en">English</option><option value="om">Afaan Oromoo</option><option value="am">አማርኛ</option><option value="ti">ትግርኛ</option><option value="so">Soomaali</option></select></label>
     <button class="setting-row setting-button" onclick="requestAppPermissions()"><span id="settingsPermissionsLabel">🔐 Permissions (camera, microphone, notifications)</span><b>›</b></button>
+    <button class="setting-row setting-button" onclick="openAndroidAppSettings()"><span>⚙️ Android app settings (permissions and notifications)</span><b>›</b></button>
     <button class="setting-row setting-button" onclick="showLinkedDevices()"><span id="settingsLinkedLabel">📱 Linked device / current session</span><b>›</b></button>
     <button class="setting-row setting-button" onclick="showCallHistory()"><span id="settingsHistoryLabel">📞 Call history</span><b>›</b></button>
     <section class="setting-row" style="display:block;padding:14px 16px"><button type="button" class="setting-button" style="width:100%;border:0;background:transparent;padding:0;display:flex;justify-content:space-between" onclick="togglePasswordChangeForm()"><b>🔐 Change password</b><b id="passwordChangeChevron">＋</b></button><div id="passwordChangeForm" style="display:none;gap:8px;margin-top:12px"><input id="oldPasswordChange" class="home-search" type="password" autocomplete="current-password" placeholder="Old password"><input id="newPasswordChange" class="home-search" type="password" autocomplete="new-password" placeholder="New password"><input id="confirmNewPasswordChange" class="home-search" type="password" autocomplete="new-password" placeholder="Confirm new password"><button class="btn-primary" style="margin:0" onclick="changeAccountPassword()">Change password</button></div><small id="passwordChangeStatus" class="muted" aria-live="polite"></small></section>
@@ -606,6 +607,20 @@ const firebaseConfig = {
     catch(e){console.error('Password change:',e);status.textContent=e.code==='auth/wrong-password'||e.code==='auth/invalid-credential'?'Old password is incorrect.':e.code==='auth/requires-recent-login'?'Please sign out and sign in again, then retry.':'Could not change password: '+(e.message||e.code);}
   };
   window.closeSettings=()=>document.getElementById('settingsModal').classList.remove('active');
+
+  window.openAndroidAppSettings=async()=>{
+    const isNative=!!(window.Capacitor && typeof window.Capacitor.isNativePlatform==='function' && window.Capacitor.isNativePlatform());
+    if(!isNative){
+      alert('Android app settings are available after installing the EthioLegacy APK. In a browser, use the browser site settings.');
+      return;
+    }
+    try{
+      await NativePermissions.openAppSettings();
+    }catch(e){
+      console.error('Could not open Android app settings:',e);
+      alert('Could not open Android app settings. Open Android Settings > Apps > EthioLegacy > Permissions.');
+    }
+  };
 
   window.requestAppPermissions=async()=>{
     const results=[];

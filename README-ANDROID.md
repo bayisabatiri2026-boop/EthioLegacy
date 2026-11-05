@@ -1,25 +1,30 @@
-# EthioLegacy Android APK fix
+# EthioLegacy Android permission and app-settings repair
 
-This package keeps the supplied EthioLegacy HTML app and adds the native Android permission declarations/permission prompt handler plus the EthioLegacy logo.
+## Included corrections
+- Keeps the supplied EthioLegacy web app and Firebase configuration.
+- Aligns Capacitor application ID and Java package at `com.ethiolegacy.app`.
+- Adds Android manifest declarations for internet, network, camera, microphone, audio settings and Android 13+ notifications.
+- Registers a Capacitor `NativePermissions` plugin.
+- Settings > Permissions requests native Android runtime permissions and performs a camera/microphone test.
+- Adds Settings > Android app settings, which opens Android's App info/settings page for EthioLegacy. From there users can manage permissions and notifications.
+- Keeps the EthioLegacy launcher icon resources from the earlier package.
+- Uses Capacitor 7.4.3 consistently and Java 21 in GitHub Actions.
 
-## What changed
-- Android manifest declares CAMERA, RECORD_AUDIO, MODIFY_AUDIO_SETTINGS and POST_NOTIFICATIONS.
-- NativePermissions Capacitor plugin requests Android runtime permissions and returns their status.
-- Settings > Permissions calls the native plugin in the installed APK.
-- Service-worker registration is skipped inside the native Capacitor app to avoid interfering with the Capacitor bridge.
-- `logo.png` replaces the text/placeholder brand mark in the login, header and settings screens, and custom Android launcher icons replace the default Capacitor icon.
-- GitHub Actions workflow builds a debug APK artifact.
+## Install into GitHub
+Upload the CONTENTS of this folder into the root of the EthioLegacy repository, replacing matching files. Keep the `.github` folder and hidden workflow file.
 
-## GitHub steps
-1. Upload/replace the repository files with the contents of this folder (keep `.github/workflows/android-apk.yml`).
-2. In the repository, open **Actions**.
-3. Select **Build EthioLegacy APK** and tap **Run workflow** (or push to `main`).
-4. Wait for the green check mark. Open the completed workflow run and download **EthioLegacy-debug-apk** under Artifacts.
-5. Install the APK on Android. Open EthioLegacy > Settings > Permissions and grant Camera, Microphone and Notifications.
+Then open GitHub > Actions > Build EthioLegacy Android APK > Run workflow.
+Download `EthioLegacy-debug-apk` after the run succeeds.
 
-## Important
-- Android permission prompts can only be requested by the installed native APK; GitHub Pages in Chrome uses browser permissions instead.
-- Android 13+ displays the notification permission prompt. On older Android versions notification permission is controlled differently.
-- This permission fix does not itself implement remote push delivery while the app is closed. That requires Firebase Cloud Messaging (FCM) and a server/Cloud Function to send pushes.
-- The supplied HTML references Firebase services. Keep the existing Firebase project and configure Firebase Authentication, Firestore and Storage rules appropriately.
-- This is a debug APK. For Play Store release, create a signed release/AAB and configure a permanent signing key.
+## Test on Android
+1. Uninstall the previous test APK if Android refuses to update because its signing key differs.
+2. Install the new APK.
+3. Open EthioLegacy > Settings > Permissions and grant Camera, Microphone and Notifications when Android asks.
+4. Open EthioLegacy > Settings > Android app settings to reach Android's native App info page.
+
+## Important limits
+- This repairs native permission prompting and provides a shortcut to Android app settings. It does not create Chrome's exact PWA "Site settings" menu; native APKs use Android App info settings instead.
+- Android 13+ asks for notification permission at runtime. Earlier Android versions manage notification permission differently.
+- This does not implement remote push notifications by itself. Firebase Cloud Messaging (FCM), Android Firebase configuration (`google-services.json`), and a sender/server or Cloud Function are required for reliable background push delivery.
+- Camera/microphone prompts still depend on the Android WebView and device OS. Test on a physical phone after installing the new APK.
+- Existing Firebase authentication, Firestore, Storage, and WebRTC features are retained but cannot be verified from a static ZIP; they require live Firebase configuration and two-device testing.
