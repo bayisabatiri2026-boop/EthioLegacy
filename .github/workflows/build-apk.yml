@@ -3,6 +3,7 @@ name: Build APK
 on:
   push:
     branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -21,15 +22,22 @@ jobs:
 
       - name: Build App
         run: |
-          mkdir www
+          # 1. Create the www folder and copy your files
+          mkdir -p www
           cp index.html www/ || true
+          cp logo.png www/ || true
           cp manifest.webmanifest www/ || true
           cp -r icons www/ || true
           
+          # 2. Remove conflicting files that cause GitHub to crash
+          rm -f package.json package-lock.json capacitor.config.ts
+          
+          # 3. Install Capacitor 7 and plugins
           npm init -y
           npm install --legacy-peer-deps @capacitor/core@7 @capacitor/android@7 @capacitor/cli@7
           npm install --legacy-peer-deps @capacitor/camera@7 @capacitor-community/contacts@latest @capacitor/local-notifications@7 @capacitor/push-notifications@7
           
+          # 4. Create the JSON config
           cat > capacitor.config.json << 'EOF'
           {
             "appId": "com.ethiolegacy.chat",
@@ -39,11 +47,18 @@ jobs:
           }
           EOF
           
+          # 5. Build Android Project
           rm -rf android
           npx cap add android
-          cp AndroidManifest.xml android/app/src/main/AndroidManifest.xml || true
+          
+          # 6. Copy your custom AndroidManifest if it exists
+          if [ -f "AndroidManifest.xml" ]; then
+            cp AndroidManifest.xml android/app/src/main/AndroidManifest.xml
+          fi
+          
           npx cap sync android
           
+          # 7. Build the APK
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
