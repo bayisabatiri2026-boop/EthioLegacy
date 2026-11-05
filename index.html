@@ -975,10 +975,56 @@ const firebaseConfig = {
   }
 window.importDeviceContacts = async () => {
   if (!currentUser) return toast('Please sign in first.');
+
+  // --- 1. APK NATIVE PATH (Android Contacts) ---
+  if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+    try {
+      // Request native permission
+      const perm = await window.Capacitor.Plugins.Contacts.requestPermissions();
+      if (perm.contacts !== 'granted') {
+        return toast('Contacts permission denied. Please allow it in Android Settings.');
+      }
+
+      // Fetch contacts natively from the phone
+      const result = await window.Capacitor.Plugins.Contacts.getContacts({
+        projection: { name: true, phones: true, emails: true }
+      });
+
+      // Format them for your app
+      const seen = new Set();
+      importedDeviceContacts = (result.contacts || []).map(c => ({
+        name: c.name?.display || 'Unnamed contact',
+        tel: (c.phones?.[0]?.number || '').replace(/\D/g, ''),
+        email: c.emails?.[0]?.address || ''
+      })).filter(c => {
+        const key = (c.email + '|' + c.tel + '|' + c.name).toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+      // Save and refresh the lists
+      persistDeviceContacts();
+      await resolveSelectedDeviceContacts();
+      renderDeviceContacts();
+      renderCommunityPicker();
+      renderWaContacts(); 
+      
+      toast(importedDeviceContacts.length + ' contacts synced from your phone.');
+      return;
+
+    } catch (e) {
+      console.error('Native Contacts Error:', e);
+      return toast('Could not read contacts. Check Android permissions.');
+    }
+  }
+
+  // --- 2. WEB BROWSER FALLBACK ---
   if (!('contacts' in navigator) || !navigator.contacts?.select) {
-    toast('Device contact picker is not supported here. Open EthioLegacy in Chrome on Android over HTTPS.');
+    toast('Device contact picker is not supported here. Use the APK.');
     return;
   }
+  
   try {
     const props = ['name', 'tel', 'email'];
     const picked = await navigator.contacts.select(props, { multiple: true });
@@ -986,7 +1032,7 @@ window.importDeviceContacts = async () => {
     
     importedDeviceContacts = picked.map(c => ({
       name: (c.name && c.name[0]) || 'Unnamed contact',
-      tel: (c.tel && c.tel[0]) ? c.tel[0].replace(/\D/g,'') : '', // Clean the number (removes spaces/dashes)
+      tel: (c.tel && c.tel[0]) ? c.tel[0].replace(/\D/g,'') : '',
       email: (c.email && c.email[0]) || ''
     })).filter(c => {
       const key = (c.email+'|'+c.tel+'|'+c.name).toLowerCase();
@@ -997,7 +1043,7 @@ window.importDeviceContacts = async () => {
     await resolveSelectedDeviceContacts();
     renderDeviceContacts();
     renderCommunityPicker();
-    renderWaContacts(); // Update the WhatsApp-style menu immediately
+    renderWaContacts();
     toast(importedDeviceContacts.length + ' contacts synced on this device.');
   } catch (e) {
     if (e.name !== 'AbortError') toast('Could not read selected contacts. Check browser permission.');
