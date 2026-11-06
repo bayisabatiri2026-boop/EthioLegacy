@@ -979,13 +979,7 @@ window.importDeviceContacts = async () => {
   // --- 1. APK NATIVE PATH (Android Contacts) ---
   if (window.Capacitor && window.Capacitor.isNativePlatform()) {
     try {
-      // Request native permission
-      const perm = await window.Capacitor.Plugins.Contacts.requestPermissions();
-      if (perm.contacts !== 'granted') {
-        return toast('Contacts permission denied. Please allow it in Android Settings.');
-      }
-
-      // Fetch contacts natively from the phone
+      // DO NOT request permissions manually here. getContacts() does it automatically.
       const result = await window.Capacitor.Plugins.Contacts.getContacts({
         projection: { name: true, phones: true, emails: true }
       });
@@ -1015,6 +1009,10 @@ window.importDeviceContacts = async () => {
 
     } catch (e) {
       console.error('Native Contacts Error:', e);
+      // OS-PLUG-CONT-0020 means the user clicked "Deny"
+      if (e.code === 'OS-PLUG-CONT-0020' || String(e.message).includes('0020')) {
+        return toast('You denied contacts permission. Please allow it in Android Settings > Apps > EthioLegacy > Permissions.');
+      }
       return toast('Could not read contacts. Check Android permissions.');
     }
   }
