@@ -604,7 +604,11 @@ const firebaseConfig = {
   window.togglePasswordChangeForm=()=>{const form=document.getElementById('passwordChangeForm');const icon=document.getElementById('passwordChangeChevron');if(!form)return;const open=form.style.display==='none'||!form.style.display;form.style.display=open?'grid':'none';if(icon)icon.textContent=open?'−':'＋';if(open)document.getElementById('oldPasswordChange')?.focus();};
   window.changeAccountPassword=async()=>{
     const oldPass=document.getElementById('oldPasswordChange')?.value||'';
+    if (input.type === 'password') { input.type = 'text'; btn.textContent = '🙈'; }
+    else { input.type = 'password'; btn.textContent = '👁️'; }
     const newPass=document.getElementById('newPasswordChange')?.value||'';
+    if (input.type === 'password') { input.type = 'text'; btn.textContent = '🙈'; }
+    else { input.type = 'password'; btn.textContent = '👁️'; }
     const confirmPass=document.getElementById('confirmNewPasswordChange')?.value||'';
     const status=document.getElementById('passwordChangeStatus');
     const user=auth.currentUser;
