@@ -56,16 +56,39 @@ jobs:
           # 5. Build Android Project
           rm -rf android
           npx cap add android
-          
-          # 6. Replace Capacitor default splash screen with your logo
-           if [ -f "logo.png" ]; then
-          cp logo.png android/app/src/main/res/drawable/splash.png || true
-          cp logo.png android/app/src/main/res/drawable-mdpi/splash.png || true
-          cp logo.png android/app/src/main/res/drawable-hdpi/splash.png || true
-          cp logo.png android/app/src/main/res/drawable-xhdpi/splash.png || true
-          cp logo.png android/app/src/main/res/drawable-xxhdpi/splash.png || true
-          cp logo.png android/app/src/main/res/drawable-xxxhdpi/splash.png || true
-          fi
+          # 6. Auto-generate App Icons and Splash Screens from logo.png
+          if [ -f "logo.png" ]; then
+          # Install ImageMagick to resize the image automatically
+          sudo apt-get update && sudo apt-get install -y imagemagick
+  
+          # Generate the App Icon sizes
+          mkdir -p android/app/src/main/res/mipmap-mdpi
+          mkdir -p android/app/src/main/res/mipmap-hdpi
+          mkdir -p android/app/src/main/res/mipmap-xhdpi
+          mkdir -p android/app/src/main/res/mipmap-xxhdpi
+          mkdir -p android/app/src/main/res/mipmap-xxxhdpi
+
+          convert logo.png -resize 48x48 android/app/src/main/res/mipmap-mdpi/ic_launcher.png
+          convert logo.png -resize 72x72 android/app/src/main/res/mipmap-hdpi/ic_launcher.png
+          convert logo.png -resize 96x96 android/app/src/main/res/mipmap-xhdpi/ic_launcher.png
+          convert logo.png -resize 144x144 android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
+          convert logo.png -resize 192x192 android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+ 
+          # Generate the round App Icon sizes
+           convert logo.png -resize 48x48 android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png
+           convert logo.png -resize 72x72 android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png
+           convert logo.png -resize 96x96 android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png
+           convert logo.png -resize 144x144 android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png
+           convert logo.png -resize 192x192 android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png
+
+          # Generate Splash Screens
+           cp logo.png android/app/src/main/res/drawable/splash.png || true
+           cp logo.png android/app/src/main/res/drawable-mdpi/splash.png || true
+           cp logo.png android/app/src/main/res/drawable-hdpi/splash.png || true
+           cp logo.png android/app/src/main/res/drawable-xhdpi/splash.png || true
+           cp logo.png android/app/src/main/res/drawable-xxhdpi/splash.png || true
+           cp logo.png android/app/src/main/res/drawable-xxxhdpi/splash.png || true
+           fi
           
           # 7. Copy your custom AndroidManifest if it exists
           if [ -f "AndroidManifest.xml" ]; then
