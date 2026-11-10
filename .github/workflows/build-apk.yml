@@ -58,15 +58,13 @@ jobs:
           npx cap add android
           
           # 6. Replace Capacitor default splash screen with your logo
-          if [ -f "logo.png" ]; then
-            cp logo.png android/app/src/main/res/drawable/splash.png || true
-            cp logo.png android/app/src/main/res/drawable/ic_launcher_background.png || true
-            cp logo.png android/app/src/main/res/drawable/ic_launcher_foreground.png || true
-            cp logo.png android/app/src/main/res/drawable-mdpi/splash.png || true
-            cp logo.png android/app/src/main/res/drawable-hdpi/splash.png || true
-            cp logo.png android/app/src/main/res/drawable-xhdpi/splash.png || true
-            cp logo.png android/app/src/main/res/drawable-xxhdpi/splash.png || true
-            cp logo.png android/app/src/main/res/drawable-xxxhdpi/splash.png || true
+           if [ -f "logo.png" ]; then
+          cp logo.png android/app/src/main/res/drawable/splash.png || true
+          cp logo.png android/app/src/main/res/drawable-mdpi/splash.png || true
+          cp logo.png android/app/src/main/res/drawable-hdpi/splash.png || true
+          cp logo.png android/app/src/main/res/drawable-xhdpi/splash.png || true
+          cp logo.png android/app/src/main/res/drawable-xxhdpi/splash.png || true
+          cp logo.png android/app/src/main/res/drawable-xxxhdpi/splash.png || true
           fi
           
           # 7. Copy your custom AndroidManifest if it exists
