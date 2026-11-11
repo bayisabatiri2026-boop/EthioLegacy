@@ -247,14 +247,9 @@
       <button class="header-icon" aria-label="Settings" onclick="openSettings()">⚙️</button>
     </div>
   </div>
-  <button class="explore-front-banner" type="button" onclick="openExploreEthiopia()" aria-label="Explore Ethiopia">
-  <span class="explore-flag" role="img" aria-label="Ethiopian flag">
-    <svg viewBox="0 0 60 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <rect width="60" height="13.34" fill="#078930"/><rect y="13.33" width="60" height="13.34" fill="#FCDD09"/><rect y="26.66" width="60" height="13.34" fill="#DA121A"/>
-      <circle cx="30" cy="20" r="9.2" fill="#0F47AF"/><path d="M30 11.8 32 17.4 37.9 17.5 33.2 21 34.9 26.7 30 23.3 25.1 26.7 26.8 21 22.1 17.5 28 17.4Z" fill="#FCDD09"/>
-    </svg>
-  </span>
-  <span class="explore-front-copy"><strong>Explore Ethiopia</strong><small>Ethio Green Legacy · Digital Ethiopia</small></span>
+  <button class="explore-front-banner" type="button" onclick="openExploreEthiopia()" aria-label="Explore Worldwide">
+  <span class="explore-flag" role="img" aria-label="Globe" style="font-size:30px; display:flex; align-items:center; justify-content:center; background:#e8f5e9; width:58px; height:40px; border-radius:6px; box-shadow:0 1px 4px #0003;">🌍</span>
+  <span class="explore-front-copy"><strong>Explore Worldwide</strong><small>Global Knowledge · Deep Information</small></span>
   <span class="explore-front-arrow" aria-hidden="true">›</span>
 </button>
   <div class="main-tabs" role="tablist" aria-label="Main navigation">
@@ -2308,13 +2303,30 @@ if (!window.Capacitor?.isNativePlatform?.() && 'serviceWorker' in navigator && (
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(err => console.warn('Service worker registration failed:', err)));
 }
 </script>
-  <!-- EXPLORE ETHIOPIA POPUP -->
+  <!-- EXPLORE WORLDWIDE POPUP -->
 <div id="exploreEthiopia" style="display:none;position:fixed;inset:0;z-index:1200;background:#f6f8f7;flex-direction:column;color:#172b2b">
- <div style="display:flex;align-items:center;gap:12px;padding:15px;background:#008069;color:white;padding-top:max(15px,env(safe-area-inset-top))"><button onclick="closeExploreEthiopia()" style="border:0;background:transparent;color:white;font-size:25px;cursor:pointer;">←</button><div><b>Explore Ethiopia</b><div style="font-size:12px;opacity:.9">Green Legacy · Digital Ethiopia</div></div></div>
+ <div style="display:flex;align-items:center;gap:12px;padding:15px;background:#008069;color:white;padding-top:max(15px,env(safe-area-inset-top))">
+   <button onclick="closeExploreEthiopia()" style="border:0;background:transparent;color:white;font-size:25px;cursor:pointer;">←</button>
+   <div><b>Explore Worldwide</b><div style="font-size:12px;opacity:.9">Deep Global Knowledge</div></div>
+ </div>
  <div style="padding:14px;overflow:auto;flex:1">
-  <div style="background:white;border-radius:13px;padding:14px;margin:10px 0;box-shadow:0 1px 4px #0001"><h3>🌳 Ethio Green Legacy</h3><p style="font-size:14px;line-height:1.5;color:#526170">Explore Ethiopia's tree-planting, forest restoration, ecosystem protection and environmental programmes.</p><button class="contacts-button" style="margin-top:10px;border:0;border-radius:20px;padding:10px 14px;background:#008069;color:#fff;font-weight:700;cursor:pointer" onclick="searchExploreTopic('Ethiopia Green Legacy Initiative')">Search Green Legacy</button></div>
-  <div style="background:white;border-radius:13px;padding:14px;margin:10px 0;box-shadow:0 1px 4px #0001"><h3>💻 Digital Ethiopia</h3><p style="font-size:14px;line-height:1.5;color:#526170">Learn about Ethiopia's digital transformation strategy, digital public services, and technology.</p><button class="contacts-button" style="margin-top:10px;border:0;border-radius:20px;padding:10px 14px;background:#008069;color:#fff;font-weight:700;cursor:pointer" onclick="searchExploreTopic('Ethiopia Digital Ethiopia 2030 strategy')">Search Digital Ethiopia</button></div>
-  <div style="background:white;border-radius:13px;padding:14px;margin:10px 0;box-shadow:0 1px 4px #0001"><h3>🔎 Search online</h3><div style="display:flex;gap:7px;margin:12px 0"><input id="exploreSearchInput" style="min-width:0;flex:1;padding:12px;border:1px solid #d5dfdc;border-radius:10px;font-size:15px" placeholder="Search..."><button onclick="runExploreSearch()" style="border:0;border-radius:10px;padding:0 14px;background:#008069;color:white;font-weight:700;cursor:pointer">Search</button></div><div id="exploreResults" style="font-size:13px;color:#526170">Choose a topic above.</div></div>
+  
+  <div style="background:white;border-radius:13px;padding:14px;margin:10px 0;box-shadow:0 1px 4px #0001">
+    <h3>🌍 Global Discovery</h3>
+    <p style="font-size:14px;line-height:1.5;color:#526170">Search deeply into history, science, geography, and cultures from anywhere in the world.</p>
+    <button class="contacts-button" style="margin-top:10px;border:0;border-radius:20px;padding:10px 14px;background:#008069;color:#fff;font-weight:700;cursor:pointer" onclick="searchExploreTopic('World History')">Search World History</button>
+    <button class="contacts-button" style="margin-top:10px;border:0;border-radius:20px;padding:10px 14px;background:#008069;color:#fff;font-weight:700;cursor:pointer" onclick="searchExploreTopic('Science and Technology')">Search Science</button>
+  </div>
+
+  <div style="background:white;border-radius:13px;padding:14px;margin:10px 0;box-shadow:0 1px 4px #0001">
+    <h3>🔎 Deep Search</h3>
+    <div style="display:flex;gap:7px;margin:12px 0">
+      <input id="exploreSearchInput" style="min-width:0;flex:1;padding:12px;border:1px solid #d5dfdc;border-radius:10px;font-size:15px" placeholder="Search any topic worldwide...">
+      <button onclick="runExploreSearch()" style="border:0;border-radius:10px;padding:0 14px;background:#008069;color:white;font-weight:700;cursor:pointer">Search</button>
+    </div>
+    <div id="exploreResults" style="font-size:13px;color:#526170">Enter a topic above to read deeply.</div>
+  </div>
+  
  </div>
 </div>
 
@@ -2322,7 +2334,50 @@ if (!window.Capacitor?.isNativePlatform?.() && 'serviceWorker' in navigator && (
 window.openExploreEthiopia=()=>{document.getElementById('newChatModal')?.classList.remove('active');document.getElementById('exploreEthiopia').style.display='flex';};
 window.closeExploreEthiopia=()=>document.getElementById('exploreEthiopia').style.display='none';
 window.searchExploreTopic=(q)=>{document.getElementById('exploreSearchInput').value=q;runExploreSearch();};
-window.runExploreSearch=async()=>{const input=document.getElementById('exploreSearchInput'),box=document.getElementById('exploreResults'),q=(input.value||'').trim();if(!q)return;box.innerHTML='<p>Searching online…</p>';try{const url='https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch='+encodeURIComponent(q)+'&format=json&origin=*&srlimit=10';const res=await fetch(url);const data=await res.json();const rows=data.query?.search||[];if(!rows.length){box.innerHTML='<p>No results found.</p>';return;}box.innerHTML=rows.map((r,i)=>{const page='https://en.wikipedia.org/wiki/'+encodeURIComponent(r.title.replace(/ /g,'_'));const snippet=(r.snippet||'').replace(/<[^>]*>/g,' ');return `<div style="padding:10px 0;border-bottom:1px solid #eee"><h4 style="margin-bottom:5px"><a href="${page}" target="_blank" rel="noopener" style="color:#007b66;text-decoration:none">${r.title}</a></h4><p>${snippet}</p></div>`;}).join('');}catch(e){box.innerHTML='<p>Could not load results. Check internet connection.</p>';}};
+
+window.runExploreSearch=async()=>{
+  const input=document.getElementById('exploreSearchInput');
+  const box=document.getElementById('exploreResults');
+  const q=(input.value||'').trim();
+  if(!q)return;
+  
+  box.innerHTML='<p>Searching deep worldwide data...</p>';
+  
+  try{
+    const searchUrl='https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch='+encodeURIComponent(q)+'&format=json&origin=*&srlimit=1';
+    const searchRes=await fetch(searchUrl);
+    const searchData=await searchRes.json();
+    
+    if(!searchData.query?.search?.length){
+      box.innerHTML='<p>No results found. Try a different search.</p>';
+      return;
+    }
+    
+    const exactTitle = searchData.query.search[0].title;
+
+    const summaryUrl='https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exintro=1&explaintext=1&titles='+encodeURIComponent(exactTitle)+'&format=json&origin=*';
+    const summaryRes=await fetch(summaryUrl);
+    const summaryData=await summaryRes.json();
+    
+    const pages = summaryData.query.pages;
+    const pageId = Object.keys(pages)[0];
+    const extract = pages[pageId].extract || 'No detailed description available.';
+    
+    const pageLink = 'https://en.wikipedia.org/wiki/' + encodeURIComponent(exactTitle.replace(/ /g,'_'));
+    
+    box.innerHTML = `
+      <div style="padding:15px; border:1px solid #e2e8f0; border-radius:10px; background:#fff; box-shadow:0 2px 5px rgba(0,0,0,0.05);">
+        <h3 style="color:#007b66; margin-bottom:10px; font-size:18px;">${exactTitle}</h3>
+        <p style="line-height:1.6; color:#334155; font-size:14px; margin-bottom:15px;">${extract}</p>
+        <a href="${pageLink}" target="_blank" rel="noopener" style="display:inline-block; padding:10px 15px; background:#008069; color:#fff; text-decoration:none; border-radius:8px; font-weight:bold; font-size:14px;">Read Full Article ↗</a>
+      </div>
+    `;
+    
+  }catch(e){
+    console.error(e);
+    box.innerHTML='<p>Could not load data. Check your internet connection.</p>';
+  }
+};
 </script>
 </body>
 </html>
