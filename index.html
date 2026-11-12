@@ -2355,14 +2355,45 @@ if (!window.Capacitor?.isNativePlatform?.() && 'serviceWorker' in navigator && (
  </div>
 </div>
 
+<!-- LIVE SPORTS NEWS BROWSER LINKS -->
+<div id="sportsNewsScreen" style="display:none;position:fixed;inset:0;z-index:1300;background:#f4f7f6;flex-direction:column;color:#173b34">
+ <div style="display:flex;align-items:center;gap:12px;padding:15px;background:#008069;color:#fff;padding-top:max(15px,env(safe-area-inset-top))">
+  <button onclick="closeSportsNews()" aria-label="Back to Explore Worldwide" style="border:0;background:transparent;color:#fff;font-size:25px">←</button>
+  <div><b>⚽ Live Sports News</b><div style="font-size:12px;opacity:.9">Latest updates from sports websites</div></div>
+ </div>
+ <div style="padding:15px;overflow:auto;flex:1">
+  <div style="background:#e5f3ee;border-radius:12px;padding:13px;margin-bottom:13px;font-size:13px;line-height:1.5">
+   Choose a sports source below. EthioLegacy will open its live website in your device browser, where you can read the latest articles and updates.
+  </div>
+  <div style="display:grid;grid-template-columns:1fr;gap:10px">
+   <button onclick="openSportsSource('https://news.google.com/search?q=world%20sports%20news%20football%20athletics%20basketball')" style="text-align:left;background:#fff;border:1px solid #dce8e3;border-radius:12px;padding:15px;color:#173b34"><b>🌍 Google News – World Sports</b><small style="display:block;margin-top:5px;color:#60736e">Live news search across sports publishers</small></button>
+   <button onclick="openSportsSource('https://www.bbc.com/sport')" style="text-align:left;background:#fff;border:1px solid #dce8e3;border-radius:12px;padding:15px;color:#173b34"><b>📺 BBC Sport</b><small style="display:block;margin-top:5px;color:#60736e">Football and international sports</small></button>
+   <button onclick="openSportsSource('https://www.espn.com/')" style="text-align:left;background:#fff;border:1px solid #dce8e3;border-radius:12px;padding:15px;color:#173b34"><b>🏆 ESPN</b><small style="display:block;margin-top:5px;color:#60736e">Scores, results and sports coverage</small></button>
+   <button onclick="openSportsSource('https://www.fifa.com/')" style="text-align:left;background:#fff;border:1px solid #dce8e3;border-radius:12px;padding:15px;color:#173b34"><b>⚽ FIFA</b><small style="display:block;margin-top:5px;color:#60736e">International football news and competitions</small></button>
+   <button onclick="openSportsSource('https://www.cafonline.com/')" style="text-align:left;background:#fff;border:1px solid #dce8e3;border-radius:12px;padding:15px;color:#173b34"><b>🌍 CAF</b><small style="display:block;margin-top:5px;color:#60736e">African football news and competitions</small></button>
+  </div>
+  <p style="font-size:11px;color:#71817c;line-height:1.5;margin-top:14px">News and scores are provided by the linked publishers and may update at different times. Internet connection is required.</p>
+ </div>
+</div>
+
 <script>
 window.openExploreEthiopia=()=>{document.getElementById('newChatModal')?.classList.remove('active');document.getElementById('exploreEthiopia').style.display='flex';};
 window.closeExploreEthiopia=()=>document.getElementById('exploreEthiopia').style.display='none';
 window.searchExploreTopic=(q)=>{document.getElementById('exploreSearchInput').value=q;runExploreSearch();};
 window.openSportsNews=()=>{
+  const panel=document.getElementById('sportsNewsScreen');
+  if(panel){panel.style.display='flex';return;}
+  // Fallback for older cached versions: open the live Google News sports feed.
   const url='https://news.google.com/search?q='+encodeURIComponent('world sports news football athletics basketball');
-  const win=window.open(url,'_blank','noopener,noreferrer');
-  if(!win) window.location.href=url;
+  window.open(url,'_blank','noopener,noreferrer') || (window.location.href=url);
+};
+window.closeSportsNews=()=>{const panel=document.getElementById('sportsNewsScreen');if(panel)panel.style.display='none';};
+window.openSportsSource=(url)=>{
+  if(!url)return;
+ // Open the publisher's live page in the device browser. This avoids relying on
+  // third-party iframe embedding, which many news sites block for security.
+  const opened=window.open(url,'_blank','noopener,noreferrer');
+  if(!opened) window.location.href=url;
 };
 
 window.runExploreSearch=async()=>{
@@ -2393,7 +2424,6 @@ window.runExploreSearch=async()=>{
     const pageId = Object.keys(pages)[0];
     const extract = pages[pageId].extract || 'No detailed description available.';
     
-
     const pageLink = 'https://en.wikipedia.org/wiki/' + encodeURIComponent(exactTitle.replace(/ /g,'_'));
     
     box.innerHTML = `
