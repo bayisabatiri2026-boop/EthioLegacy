@@ -2310,7 +2310,32 @@ if (!window.Capacitor?.isNativePlatform?.() && 'serviceWorker' in navigator && (
    <div><b>Explore Worldwide</b><div style="font-size:12px;opacity:.9">Deep Global Knowledge</div></div>
  </div>
  <div style="padding:14px;overflow:auto;flex:1">
-  
+  <div style="margin:2px 0 14px">
+   <h2 style="font-size:21px;margin:0 0 6px;color:#123b34">Discover more. Connect globally.</h2>
+   <p style="font-size:13px;line-height:1.5;color:#60736e">Explore countries, knowledge, nature, culture and opportunities from one place.</p>
+  </div>
+  <div id="exploreCategoryGrid" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:14px">
+   <button class="explore-category" onclick="searchExploreTopic('Countries of the world: geography, culture and traditions')"><span>🌍</span><b>Explore Countries</b><small>Geography, cultures and traditions</small></button>
+   <button class="explore-category" onclick="searchExploreTopic('Ethiopia history tourism heritage and culture')"><span>🇪🇹</span><b>Explore Ethiopia</b><small>History, tourism and heritage</small></button>
+   <button class="explore-category" onclick="searchExploreTopic('World knowledge education science and technology')"><span>🧠</span><b>World Knowledge</b><small>Education, science and technology</small></button>
+   <button class="explore-category" onclick="searchExploreTopic('Nature wildlife forests biodiversity and conservation')"><span>🌿</span><b>Explore Nature</b><small>Wildlife, forests and protection</small></button>
+   <button class="explore-category" onclick="searchExploreTopic('Digital Ethiopia digital transformation innovation')"><span>💻</span><b>Digital Ethiopia</b><small>Digital growth and innovation</small></button>
+   <button class="explore-category" onclick="searchExploreTopic('International communities and global collaboration')"><span>🤝</span><b>Global Communities</b><small>People, interests and collaboration</small></button>
+   <button class="explore-category" onclick="searchExploreTopic('World languages language learning and cultures')"><span>🗣️</span><b>Language Discovery</b><small>Languages and cultural learning</small></button>
+   <button class="explore-category" onclick="searchExploreTopic('Environmental protection tree planting and climate action')"><span>🌱</span><b>Ethio Green Legacy</b><small>Environment and green projects</small></button>
+   <button class="explore-category" onclick="searchExploreTopic('Translation technology multilingual communication')"><span>🔤</span><b>Smart Language Bridge</b><small>Translation and communication</small></button>
+   <button class="explore-category" onclick="searchExploreTopic('Free learning digital skills careers and entrepreneurship')"><span>🎓</span><b>Knowledge & Learning</b><small>Skills, careers and education</small></button>
+   <button class="explore-category" onclick="searchExploreTopic('Global innovation inventions and entrepreneurship')"><span>💡</span><b>Innovation & Opportunities</b><small>Ideas, inventions and business</small></button>
+   <button class="explore-category" onclick="openSportsNews()"><span>⚽</span><b>Sports & Sports News</b><small>Football, athletics, basketball and worldwide sports updates</small></button>
+  </div>
+  <style>
+   #exploreEthiopia .explore-category{min-width:0;text-align:left;border:1px solid #e1ebe7;background:#fff;border-radius:13px;padding:13px 11px;display:flex;flex-direction:column;gap:6px;box-shadow:0 2px 7px #173c3010;color:#173b34;cursor:pointer}
+   #exploreEthiopia .explore-category:active{transform:scale(.98)}
+   #exploreEthiopia .explore-category span{font-size:25px}
+   #exploreEthiopia .explore-category b{font-size:14px}
+   #exploreEthiopia .explore-category small{font-size:11px;line-height:1.4;color:#63746f}
+   @media(min-width:600px){#exploreEthiopia #exploreCategoryGrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+  </style>
   <div style="background:white;border-radius:13px;padding:14px;margin:10px 0;box-shadow:0 1px 4px #0001">
     <h3>🌍 Global Discovery</h3>
     <p style="font-size:14px;line-height:1.5;color:#526170">Search deeply into history, science, geography, and cultures from anywhere in the world.</p>
@@ -2334,6 +2359,11 @@ if (!window.Capacitor?.isNativePlatform?.() && 'serviceWorker' in navigator && (
 window.openExploreEthiopia=()=>{document.getElementById('newChatModal')?.classList.remove('active');document.getElementById('exploreEthiopia').style.display='flex';};
 window.closeExploreEthiopia=()=>document.getElementById('exploreEthiopia').style.display='none';
 window.searchExploreTopic=(q)=>{document.getElementById('exploreSearchInput').value=q;runExploreSearch();};
+window.openSportsNews=()=>{
+  const url='https://news.google.com/search?q='+encodeURIComponent('world sports news football athletics basketball');
+  const win=window.open(url,'_blank','noopener,noreferrer');
+  if(!win) window.location.href=url;
+};
 
 window.runExploreSearch=async()=>{
   const input=document.getElementById('exploreSearchInput');
@@ -2363,6 +2393,7 @@ window.runExploreSearch=async()=>{
     const pageId = Object.keys(pages)[0];
     const extract = pages[pageId].extract || 'No detailed description available.';
     
+
     const pageLink = 'https://en.wikipedia.org/wiki/' + encodeURIComponent(exactTitle.replace(/ /g,'_'));
     
     box.innerHTML = `
