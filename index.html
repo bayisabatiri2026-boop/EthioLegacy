@@ -932,17 +932,35 @@ function updatePinDots() {
 window.authenticateBiometrics = async () => {
   if (window.Capacitor && window.Capacitor.isNativePlatform()) {
     try {
+      // 1. Check if biometrics are available on this device
       const { isAvailable } = await window.Capacitor.Plugins.BiometricAuth.checkBiometry();
-      if (!isAvailable) { toast('Fingerprint not set up on this device.'); return; }
-      await window.Capacitor.Plugins.BiometricAuth.authenticate({ reason: 'Unlock EthioLegacy', cancelTitle: 'Use PIN' });
+      
+      if (!isAvailable) { 
+        toast('Fingerprint not set up on this device.'); 
+        return; 
+      }
+
+      // 2. Show the fingerprint/face scanner
+      await window.Capacitor.Plugins.BiometricAuth.authenticate({ 
+        reason: 'Unlock EthioLegacy', 
+        cancelTitle: 'Use PIN',
+        allowDeviceCredential: true 
+      });
+      
+      // 3. Unlock the screen
       document.getElementById('appLockScreen').style.display = 'none';
       toast('Unlocked!');
+      
     } catch (e) {
-      if (e.code !== 'userCancel' && e.code !== 'appCancel') toast('Fingerprint failed. Use PIN.');
+      // If the user clicks "Cancel" on the fingerprint screen, don't show an error
+      if (e.code !== 'userCancel' && e.code !== 'appCancel') {
+        toast('Fingerprint failed. Use PIN.');
+      }
     }
-  } else { toast('Fingerprint only works in the APK.'); }
+  } else { 
+    toast('Fingerprint only works in the APK.'); 
+  }
 };
-
 window.toggleBiometrics = (isEnabled) => {
   if (isEnabled) { localStorage.setItem('ethiolegacy_use_biometrics', 'true'); toast('Biometrics enabled.'); }
   else { localStorage.removeItem('ethiolegacy_use_biometrics'); toast('Biometrics disabled.'); }
