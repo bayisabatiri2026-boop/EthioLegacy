@@ -35,7 +35,7 @@ jobs:
           # 3. Install Capacitor 7 and plugins
           npm init -y
           npm install --legacy-peer-deps @capacitor/core@7 @capacitor/android@7 @capacitor/cli@7
-          npm install --legacy-peer-deps @capacitor/camera@7 @capacitor-community/contacts@latest @capacitor/local-notifications@7 @capacitor/push-notifications@7 @capacitor-community/biometric-auth@latest
+          npm install --legacy-peer-deps @capacitor/camera@7 @capacitor-community/contacts@latest @capacitor/local-notifications@7 @capacitor/push-notifications@7 @aparajita/capacitor-biometric-auth@latest
           
           # 4. Create the JSON config (Splash screen settings added)
           cat > capacitor.config.json << 'EOF'
