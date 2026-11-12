@@ -2371,6 +2371,10 @@ if (!window.Capacitor?.isNativePlatform?.() && 'serviceWorker' in navigator && (
    <button onclick="openSportsSource('https://www.espn.com/')" style="text-align:left;background:#fff;border:1px solid #dce8e3;border-radius:12px;padding:15px;color:#173b34"><b>🏆 ESPN</b><small style="display:block;margin-top:5px;color:#60736e">Scores, results and sports coverage</small></button>
    <button onclick="openSportsSource('https://www.fifa.com/')" style="text-align:left;background:#fff;border:1px solid #dce8e3;border-radius:12px;padding:15px;color:#173b34"><b>⚽ FIFA</b><small style="display:block;margin-top:5px;color:#60736e">International football news and competitions</small></button>
    <button onclick="openSportsSource('https://www.cafonline.com/')" style="text-align:left;background:#fff;border:1px solid #dce8e3;border-radius:12px;padding:15px;color:#173b34"><b>🌍 CAF</b><small style="display:block;margin-top:5px;color:#60736e">African football news and competitions</small></button>
+   <button onclick="openSportsSource('https://www.premierleague.com/')" style="text-align:left;background:#fff;border:1px solid #dce8e3;border-radius:12px;padding:15px;color:#173b34"><b>🏴 Premier League (England)</b><small style="display:block;margin-top:5px;color:#60736e">Official league news, fixtures, tables and results</small></button>
+   <button onclick="openSportsSource('https://www.laliga.com/en-GB')" style="text-align:left;background:#fff;border:1px solid #dce8e3;border-radius:12px;padding:15px;color:#173b34"><b>🇪🇸 LaLiga (Spain)</b><small style="display:block;margin-top:5px;color:#60736e">Official Spanish league news, fixtures, tables and results</small></button>
+   <button onclick="openSportsSource('https://news.google.com/search?q='+encodeURIComponent('English Premier League latest news'))" style="text-align:left;background:#fff;border:1px solid #dce8e3;border-radius:12px;padding:15px;color:#173b34"><b>📰 Premier League – Live News</b><small style="display:block;margin-top:5px;color:#60736e">Latest reports from multiple publishers</small></button>
+   <button onclick="openSportsSource('https://news.google.com/search?q='+encodeURIComponent('LaLiga Spain latest news'))" style="text-align:left;background:#fff;border:1px solid #dce8e3;border-radius:12px;padding:15px;color:#173b34"><b>📰 LaLiga Spain – Live News</b><small style="display:block;margin-top:5px;color:#60736e">Latest Spanish league reports from multiple publishers</small></button>
   </div>
   <p style="font-size:11px;color:#71817c;line-height:1.5;margin-top:14px">News and scores are provided by the linked publishers and may update at different times. Internet connection is required.</p>
  </div>
@@ -2390,7 +2394,7 @@ window.openSportsNews=()=>{
 window.closeSportsNews=()=>{const panel=document.getElementById('sportsNewsScreen');if(panel)panel.style.display='none';};
 window.openSportsSource=(url)=>{
   if(!url)return;
- // Open the publisher's live page in the device browser. This avoids relying on
+  // Open the publisher's live page in the device browser. This avoids relying on
   // third-party iframe embedding, which many news sites block for security.
   const opened=window.open(url,'_blank','noopener,noreferrer');
   if(!opened) window.location.href=url;
