@@ -328,6 +328,20 @@
     <section class="setting-row" style="display:block;padding:14px 16px"><button type="button" class="setting-button" style="width:100%;border:0;background:transparent;padding:0;display:flex;justify-content:space-between" onclick="togglePasswordChangeForm()"><b>🔐 Change password</b><b id="passwordChangeChevron">＋</b></button><div id="passwordChangeForm" style="display:none;gap:8px;margin-top:12px"><input id="oldPasswordChange" class="home-search" type="password" autocomplete="current-password" placeholder="Old password"><input id="newPasswordChange" class="home-search" type="password" autocomplete="new-password" placeholder="New password"><input id="confirmNewPasswordChange" class="home-search" type="password" autocomplete="new-password" placeholder="Confirm new password"><button class="btn-primary" style="margin:0" onclick="changeAccountPassword()">Change password</button></div><small id="passwordChangeStatus" class="muted" aria-live="polite"></small></section>
     <button class="setting-row setting-button" onclick="showMessageSettings()"><span id="settingsMessageLabel">💬 Message settings</span><b>›</b></button>
     <button class="setting-row setting-button" onclick="showAbout()"><span id="settingsAboutLabel">ℹ️ About EthioLegacy</span><b>›</b></button>
+  <!-- APP LOCK SETTINGS -->
+<div class="setting-row" style="display:block; padding:15px 3px; border-bottom:1px solid #edf0f2;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+    <b>🔒 App Lock (PIN & Biometrics)</b>
+  </div>
+  <div style="display:flex; gap:10px;">
+    <input type="password" id="newAppPin" placeholder="Set 4-digit PIN" maxlength="4" inputmode="numeric" style="flex:1; padding:10px; border:1px solid #ccc; border-radius:8px;">
+    <button onclick="saveAppPin()" style="padding:10px 15px; border:0; border-radius:8px; background:#008069; color:white; font-weight:bold; cursor:pointer;">Save PIN</button>
+  </div>
+  <label class="setting-row" style="padding:10px 0 0 0; border:none;">
+    <span>🖐️ Enable Fingerprint / Face ID</span>
+    <input type="checkbox" id="biometricToggle" onchange="toggleBiometrics(this.checked)" style="width:20px; height:20px;">
+  </label>
+</div>
     <button id="settingsLogout" class="logout-button" onclick="logout()">Log out</button>
     <p class="muted settings-note">Camera, microphone and notifications are controlled by your browser/device. Background push notifications require Firebase Cloud Messaging setup.</p>
   </div>
@@ -838,11 +852,23 @@ const firebaseConfig = {
 
   onAuthStateChanged(auth, (user) => {
     if (user) {
-      currentUser = user;
-      restoreDeviceContacts();
-      showScreen('homeScreen');
-      loadUsers().catch(e => { console.error('Could not load private contacts:', e); toast('Could not load contacts. Check your connection and Firestore rules.'); });
-      if(user.displayName) toast('Welcome, '+user.displayName);
+  currentUser = user;
+  restoreDeviceContacts();
+  
+  // 1. Show the home screen in the background
+  showScreen('homeScreen');
+  loadUsers().catch(e => { console.error('Could not load contacts:', e); });
+  
+  // 2. Check if they have an App PIN set
+  const savedPin = localStorage.getItem('ethiolegacy_app_pin');
+  
+  if (savedPin) {
+    // If they have a PIN, lock the app instantly
+    showAppLock();
+  } else {
+    // If no PIN, let them in and say welcome
+    if(user.displayName) toast('Welcome, '+user.displayName);
+  }
       const savedLang=localStorage.getItem('ethiolegacy_language')||'en';const langSelect=document.getElementById('appLanguage');if(langSelect)langSelect.value=savedLang;const loginLang=document.querySelector('.language-row select');if(loginLang)loginLang.value=savedLang;changeLanguage(savedLang);
     } else {
       if (friendsLiveUnsub) { friendsLiveUnsub(); friendsLiveUnsub = null; }
@@ -854,6 +880,87 @@ const firebaseConfig = {
     }
   });
 
+  // ==========================================
+// --- APP LOCK LOGIC (PIN + FINGERPRINT) ---
+// ==========================================
+let enteredPin = '';
+
+window.saveAppPin = () => {
+  const pinInput = document.getElementById('newAppPin').value;
+  if (pinInput.length !== 4 || isNaN(pinInput)) {
+    return toast('Please enter exactly 4 numbers.');
+  }
+  localStorage.setItem('ethiolegacy_app_pin', pinInput);
+  document.getElementById('newAppPin').value = '';
+  toast('App PIN saved! The app will lock next time.');
+};
+
+window.showAppLock = () => {
+  document.getElementById('appLockScreen').style.display = 'flex';
+  enteredPin = '';
+  updatePinDots();
+  if (localStorage.getItem('ethiolegacy_use_biometrics') === 'true') {
+    setTimeout(() => { authenticateBiometrics(); }, 500);
+  }
+};
+
+window.enterPin = (num) => {
+  const savedPin = localStorage.getItem('ethiolegacy_app_pin');
+  if (!savedPin) return; // If no PIN is saved, do nothing
+
+  if (enteredPin.length < 4) { enteredPin += num; updatePinDots(); }
+  if (enteredPin.length === 4) {
+    setTimeout(() => {
+      if (enteredPin === savedPin) {
+        document.getElementById('appLockScreen').style.display = 'none';
+        enteredPin = ''; updatePinDots(); toast('Welcome back!');
+      } else {
+        toast('Incorrect PIN. Try again.'); enteredPin = ''; updatePinDots();
+      }
+    }, 200);
+  }
+};
+
+window.deletePin = () => { enteredPin = enteredPin.slice(0, -1); updatePinDots(); };
+
+function updatePinDots() {
+  document.querySelectorAll('.pin-dot').forEach((dot, index) => {
+    dot.classList.toggle('filled', index < enteredPin.length);
+  });
+}
+
+window.authenticateBiometrics = async () => {
+  if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+    try {
+      const { isAvailable } = await window.Capacitor.Plugins.BiometricAuth.checkBiometry();
+      if (!isAvailable) { toast('Fingerprint not set up on this device.'); return; }
+      await window.Capacitor.Plugins.BiometricAuth.authenticate({ reason: 'Unlock EthioLegacy', cancelTitle: 'Use PIN' });
+      document.getElementById('appLockScreen').style.display = 'none';
+      toast('Unlocked!');
+    } catch (e) {
+      if (e.code !== 'userCancel' && e.code !== 'appCancel') toast('Fingerprint failed. Use PIN.');
+    }
+  } else { toast('Fingerprint only works in the APK.'); }
+};
+
+window.toggleBiometrics = (isEnabled) => {
+  if (isEnabled) { localStorage.setItem('ethiolegacy_use_biometrics', 'true'); toast('Biometrics enabled.'); }
+  else { localStorage.removeItem('ethiolegacy_use_biometrics'); toast('Biometrics disabled.'); }
+};
+
+// Load state when Settings opens
+window.openSettings = ((originalOpenSettings) => {
+  return function() {
+    originalOpenSettings();
+    const savedPin = localStorage.getItem('ethiolegacy_app_pin');
+    const pinInput = document.getElementById('newAppPin');
+    if (savedPin && pinInput) pinInput.placeholder = "PIN is set (enter new to change)";
+    
+    const useBio = localStorage.getItem('ethiolegacy_use_biometrics') === 'true';
+    const bioToggle = document.getElementById('biometricToggle');
+    if (bioToggle) bioToggle.checked = useBio;
+  };
+})(window.openSettings);
   window.logout = () => signOut(auth);
   window.switchHomeTab = (paneId, button) => {
     document.querySelectorAll('.main-tab').forEach(b=>b.classList.toggle('active',b===button));
@@ -2444,5 +2551,38 @@ window.runExploreSearch=async()=>{
   }
 };
 </script>
+  <!-- APP LOCK SCREEN -->
+<div id="appLockScreen" style="display:none; position:fixed; inset:0; z-index:9999; background:#6f172c; flex-direction:column; align-items:center; justify-content:center; color:white;">
+  <img src="./logo.png" style="width:80px; height:80px; border-radius:50%; margin-bottom:20px;">
+  <h2 style="margin-bottom:15px;">Enter App PIN</h2>
+  
+  <button onclick="authenticateBiometrics()" style="background: transparent; border: none; cursor: pointer; color: white; margin-bottom: 20px;">
+    <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"></path><path d="M14 13.12c0 2.38 0 6.38-1 8.88"></path><path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"></path><path d="M2 12a10 10 0 0 1 18-6"></path><path d="M2 16h.01"></path><path d="M21.8 16c.2-2 .131-5.354 0-6"></path><path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2"></path><path d="M8.65 22c.21-.66.45-1.32.57-2"></path><path d="M9 6.8a6 6 0 0 1 9 5.2v2"></path></svg>
+    <div style="font-size:12px; margin-top:5px;">Touch to Unlock</div>
+  </button>
+
+  <div id="pinDots" style="display:flex; gap:15px; margin-bottom:30px;">
+    <div class="pin-dot" style="width:15px; height:15px; border-radius:50%; border:2px solid white;"></div>
+    <div class="pin-dot" style="width:15px; height:15px; border-radius:50%; border:2px solid white;"></div>
+    <div class="pin-dot" style="width:15px; height:15px; border-radius:50%; border:2px solid white;"></div>
+    <div class="pin-dot" style="width:15px; height:15px; border-radius:50%; border:2px solid white;"></div>
+  </div>
+
+  <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:15px;">
+    <button class="pin-btn" onclick="enterPin('1')">1</button>
+    <button class="pin-btn" onclick="enterPin('2')">2</button>
+    <button class="pin-btn" onclick="enterPin('3')">3</button>
+    <button class="pin-btn" onclick="enterPin('4')">4</button>
+    <button class="pin-btn" onclick="enterPin('5')">5</button>
+    <button class="pin-btn" onclick="enterPin('6')">6</button>
+    <button class="pin-btn" onclick="enterPin('7')">7</button>
+    <button class="pin-btn" onclick="enterPin('8')">8</button>
+    <button class="pin-btn" onclick="enterPin('9')">9</button>
+    <button class="pin-btn" onclick="logout()" style="font-size:14px; background:transparent; border:1px solid white;">Log Out</button>
+    <button class="pin-btn" onclick="enterPin('0')">0</button>
+    <button class="pin-btn" onclick="deletePin()" style="background:transparent; border:none;">⌫</button>
+  </div>
+  <style>.pin-btn { width:70px; height:70px; border-radius:50%; border:none; background:rgba(255,255,255,0.2); color:white; font-size:24px; cursor:pointer; } .pin-dot.filled { background:white; }</style>
+</div>
 </body>
 </html>
