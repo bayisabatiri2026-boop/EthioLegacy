@@ -187,12 +187,21 @@
   .updates-actions{display:flex;gap:10px;padding:10px 14px}.updates-actions button,.update-action{border:0;border-radius:20px;padding:10px 14px;background:#008069;color:#fff;font-weight:700;cursor:pointer}.update-row,.channel-row{display:flex;align-items:center;gap:12px;padding:12px 15px;border-bottom:1px solid #edf0f1}.status-ring{width:50px;height:50px;border-radius:50%;border:3px solid #00a884;display:grid;place-items:center;font-size:22px;flex-shrink:0}.update-meta{flex:1;min-width:0}.update-meta b{display:block;color:#172b2b}.update-meta small{color:#667781}.update-preview{max-width:100px;max-height:65px;border-radius:8px;object-fit:cover}
   .explore-front-banner{width:calc(100% - 24px);margin:10px 12px 8px;padding:10px 13px;display:flex;align-items:center;gap:12px;text-align:left;border:1px solid #d7e9dc;border-radius:14px;background:linear-gradient(105deg,#f0fff4 0%,#fff 58%,#fff8dc 100%);box-shadow:0 2px 7px #12351a12;color:#173c2b;cursor:pointer}
 .explore-front-banner:active{transform:scale(.99)}.explore-flag{width:58px;height:40px;flex:0 0 58px;overflow:hidden;border-radius:6px;box-shadow:0 1px 4px #0003}.explore-flag svg{display:block;width:100%;height:100%}.explore-front-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px}.explore-front-copy strong{font-size:16px;font-weight:800}.explore-front-copy small{font-size:12px;color:#5c7065}.explore-front-arrow{font-size:30px;line-height:1;color:#16834a}
+  .language-welcome{min-height:100%;height:100%;box-sizing:border-box;display:flex;align-items:center;justify-content:center;padding:24px;background:linear-gradient(145deg,#e9fff3,#f7fbff 55%,#fff8df);color:#173c2b}.language-welcome-card{width:min(440px,100%);box-sizing:border-box;background:#fff;padding:28px 22px;border-radius:24px;box-shadow:0 12px 38px #12351a20;text-align:center}.language-welcome-logo{width:82px;height:82px;object-fit:contain;margin-bottom:10px}.language-welcome h1{font-size:26px;margin:8px 0;color:#075e54}.language-welcome p{color:#64756c;line-height:1.5;margin:8px 0 20px}.language-welcome select{width:100%;padding:15px;border:1px solid #cbd8d0;border-radius:12px;background:#fff;font-size:16px;color:#20352b}.language-continue{width:100%;margin-top:18px;padding:15px;border:0;border-radius:12px;background:#008069;color:white;font-size:16px;font-weight:700;cursor:pointer}
 </style>
 </head>
 <body>
+<!-- FIRST-LAUNCH LANGUAGE SELECTION -->
+<div id="languageWelcomeScreen" class="screen active"><div class="language-welcome"><div class="language-welcome-card">
+<img class="language-welcome-logo" src="./logo.png" alt="EthioLegacy logo"><h1 id="languageWelcomeTitle">Welcome to EthioLegacy</h1>
+<p id="languageWelcomeText">Choose your language to continue. You can change it later in Settings.</p>
+<label for="firstLaunchLanguage" style="display:block;text-align:left;font-weight:700;margin-bottom:8px">Select language</label>
+<select id="firstLaunchLanguage" aria-label="Select your language"></select>
+<button type="button" class="language-continue" onclick="continueAfterLanguageSelection()">Continue</button>
+</div></div></div>
 
 <!-- SCREEN 1: LOGIN / SIGN UP -->
-<div id="loginScreen" class="screen active">
+<div id="loginScreen" class="screen">
   <div class="login-wrapper">
     <div class="card">
       <img class="brand-image login-logo" src="./logo.png" alt="EthioLegacy logo">
@@ -578,7 +587,13 @@ const firebaseConfig = {
   let unsubscribeMessages = null;
   let isSignupMode = true;
   let notifications = [];
-  const languageNames = {en:'English',om:'Afaan Oromoo',am:'አማርኛ',ti:'ትግርኛ',so:'Soomaali'};
+  const languageNames = {en:'English',om:'Afaan Oromoo',am:'አማርኛ',ti:'ትግርኛ',so:'Soomaali',aa:'Afar',sid:'Sidama',wal:'Wolaytta',sw:'Kiswahili',ha:'Hausa',yo:'Yorùbá',ig:'Igbo',zu:'isiZulu',af:'Afrikaans',fr:'Français',ar:'العربية',es:'Español',pt:'Português',hi:'हिन्दी',bn:'বাংলা',ur:'اردو',pa:'ਪੰਜਾਬੀ',ne:'नेपाली','zh-CN':'简体中文',ja:'日本語',ko:'한국어',id:'Bahasa Indonesia',ms:'Bahasa Melayu',th:'ไทย',vi:'Tiếng Việt',de:'Deutsch',it:'Italiano',ru:'Русский',tr:'Türkçe'};
+  const supportedLanguageCodes=Object.keys(languageNames);
+  function populateLanguageSelectors(){['firstLaunchLanguage','loginLanguage','appLanguage'].forEach(id=>{const el=document.getElementById(id);if(!el)return;const old=el.value||localStorage.getItem('ethiolegacy_language')||'en';el.replaceChildren();supportedLanguageCodes.forEach(code=>{const o=document.createElement('option');o.value=code;o.textContent=languageNames[code];el.appendChild(o);});el.value=languageNames[old]?old:'en';});}
+  populateLanguageSelectors();
+  const languageWasSelected=localStorage.getItem('ethiolegacy_language_selected')==='yes';
+  if(languageWasSelected){document.getElementById('languageWelcomeScreen').classList.remove('active');document.getElementById('loginScreen').classList.add('active');}else{document.getElementById('loginScreen').classList.remove('active');document.getElementById('languageWelcomeScreen').classList.add('active');}
+  window.continueAfterLanguageSelection=()=>{const chosen=document.getElementById('firstLaunchLanguage').value||'en';localStorage.setItem('ethiolegacy_language',chosen);localStorage.setItem('ethiolegacy_language_selected','yes');window.location.reload();};
   const translations = {
     en:{settings:'Settings',notifications:'Notifications',logout:'Log out',search:'Search users...',message:'Type a message...',signupTitle:'Create your EthioLegacy account',signinTitle:'Sign in to continue',fullName:'Full name',yourName:'Your name',emailPhone:'Email / phone number',emailPlaceholder:'Email or phone number',password:'Password',enterPassword:'Enter password',confirmPassword:'Confirm password',confirmPlaceholder:'Confirm password',signup:'Sign up',signin:'Sign in',already:'Already have an account?',noAccount:"Don't have an account?",newChat:'New Chat or Group',userEmail:'User Email (1-on-1)',groupName:'Group Name (for Group Chat)',cancel:'Cancel',start:'Start',profile:'Your profile',uploadPhoto:'📷 Upload profile photo',language:'🌐 Language',permissions:'🔐 Permissions (camera, microphone, notifications)',linkedDevices:'📱 Linked device / current session',callHistory:'📞 Call history',messageSettings:'💬 Message settings',about:'ℹ️ About EthioLegacy',profilePrivacy:'Profile, privacy and app preferences',incoming:'Incoming Call...',accept:'Accept',reject:'Reject',endCall:'End Call',emptyUsers:'No other users yet.',caughtUp:'You’re all caught up.'},
     om:{settings:'Qindaa’ina',notifications:'Beeksisa',logout:'Ba’i',search:'Fayyadamtoota barbaadi...',message:'Ergaa barreessi...',signupTitle:'Akkaawuntii EthioLegacy kee uumi',signinTitle:'Itti fufuuf seeni',fullName:'Maqaa guutuu',yourName:'Maqaa kee',emailPhone:'Imeelii / lakkoofsa bilbilaa',emailPlaceholder:'Imeelii ykn lakkoofsa bilbilaa',password:'Jecha icciitii',enterPassword:'Jecha icciitii galchi',confirmPassword:'Jecha icciitii mirkaneessi',confirmPlaceholder:'Jecha icciitii irra deebi’i',signup:'Galmaa’i',signin:'Seeni',already:'Akkaawuntii qabdaa?',noAccount:'Akkaawuntii hin qabduu?',newChat:'Haasa’a haaraa ykn garee',userEmail:'Imeelii fayyadamaa (nama tokko)',groupName:'Maqaa garee',cancel:'Dhiisi',start:'Jalqabi',profile:'Piroofaayilii kee',uploadPhoto:'📷 Suuraa piroofaayilii olkaa’i',language:'🌐 Afaan',permissions:'🔐 Hayyama (kaameraa, maayikiroofonii, beeksisa)',linkedDevices:'📱 Meeshaa walqabate / seensa ammaa',callHistory:'📞 Seenaa bilbilaa',messageSettings:'💬 Qindaa’ina ergaa',about:'ℹ️ Waa’ee EthioLegacy',profilePrivacy:'Piroofaayilii, iccitii fi filannoo appii',incoming:'Bilbilli siif dhufe...',accept:'Fudhu',reject:'Didi',endCall:'Bilbila cufi',emptyUsers:'Ammaaf fayyadamaan biraa hin jiru.',caughtUp:'Beeksisoota haaraa hin qabdu.'},
@@ -695,18 +710,18 @@ const firebaseConfig = {
 
   window.changeLanguage=(code)=>{
     const t=translations[code]||translations.en;localStorage.setItem('ethiolegacy_language',code);
-    document.documentElement.lang=({en:'en',om:'om',am:'am',ti:'ti',so:'so'})[code]||'en';document.documentElement.dir='ltr';
+    document.documentElement.lang=code;document.documentElement.dir=(code==='ar'||code==='ur')?'rtl':'ltr';
     const setText=(id,value)=>{const el=document.getElementById(id);if(el&&value)el.textContent=value;};
     const setPlaceholder=(id,value)=>{const el=document.getElementById(id);if(el&&value)el.placeholder=value;};
     setText('authSubtitle',isSignupMode?t.signupTitle:t.signinTitle);setText('authSubmit',isSignupMode?t.signup:t.signin);setText('switchPrompt',isSignupMode?t.already:t.noAccount);setText('switchAuth',isSignupMode?t.signin:t.signup);
     const labels=document.querySelectorAll('#loginScreen .auth-label');const labelKeys=['fullName','emailPhone','password','confirmPassword'];labels.forEach((el,i)=>{if(t[labelKeys[i]])el.textContent=t[labelKeys[i]];});
     setPlaceholder('nameInput',t.yourName);setPlaceholder('emailInput',t.emailPlaceholder);setPlaceholder('passwordInput',t.enterPassword);setPlaceholder('confirmPasswordInput',t.confirmPlaceholder);setPlaceholder('searchInput',t.search);setPlaceholder('msgInput',t.message);setPlaceholder('newChatEmail',t.userEmail);setPlaceholder('newGroupName',t.groupName);
     setText('settingsHeading',`EthioLegacy ${t.settings}`);setText('settingsDescription',t.profilePrivacy);setText('settingsLanguageLabel',t.language);setText('settingsUploadLabel',t.uploadPhoto);setText('settingsPermissionsLabel',t.permissions);setText('settingsLinkedLabel',t.linkedDevices);setText('settingsHistoryLabel',t.callHistory);setText('settingsMessageLabel',t.messageSettings);setText('settingsAboutLabel',t.about);setText('settingsLogout',t.logout);setText('notificationHeading',t.notifications);setText('incomingCallerStatus',t.incoming);
-    const loginSel=document.getElementById('loginLanguage');const appSel=document.getElementById('appLanguage');if(loginSel)loginSel.value=code;if(appSel)appSel.value=code;
+    const loginSel=document.getElementById('loginLanguage');const appSel=document.getElementById('appLanguage');const welcomeSel=document.getElementById('firstLaunchLanguage');if(loginSel)loginSel.value=code;if(appSel)appSel.value=code;if(welcomeSel)welcomeSel.value=code;
     document.querySelectorAll('#newChatModal .modal-btns button')[0]?.replaceChildren(document.createTextNode(t.cancel));document.querySelector('#newChatModal .modal-btns .btn-primary')?.replaceChildren(document.createTextNode(t.start));
     const noUsers=document.querySelector('#userList p');if(noUsers)noUsers.textContent=t.emptyUsers;
   };
-  const initialLanguage=localStorage.getItem('ethiolegacy_language')||'en';changeLanguage(initialLanguage);
+  const initialLanguage=localStorage.getItem('ethiolegacy_language')||'en';changeLanguage(initialLanguage);if(!languageWasSelected){const first=document.getElementById('firstLaunchLanguage');if(first)first.value=initialLanguage;}
 
   function saveCallHistory(type,status){try{const h=JSON.parse(localStorage.getItem('ethiolegacy_call_history')||'[]');h.unshift({type,name:document.getElementById('chatPartnerName').textContent||'Unknown',time:new Date().toLocaleString(),status});localStorage.setItem('ethiolegacy_call_history',JSON.stringify(h.slice(0,50)));}catch(e){}}
 
@@ -851,6 +866,7 @@ const firebaseConfig = {
   };
 
   onAuthStateChanged(auth, (user) => {
+    if(localStorage.getItem('ethiolegacy_language_selected')!=='yes') return;
     if (user) {
   currentUser = user;
   restoreDeviceContacts();
