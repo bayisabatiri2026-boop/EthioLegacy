@@ -188,6 +188,7 @@
   .explore-front-banner{width:calc(100% - 24px);margin:10px 12px 8px;padding:10px 13px;display:flex;align-items:center;gap:12px;text-align:left;border:1px solid #d7e9dc;border-radius:14px;background:linear-gradient(105deg,#f0fff4 0%,#fff 58%,#fff8dc 100%);box-shadow:0 2px 7px #12351a12;color:#173c2b;cursor:pointer}
 .explore-front-banner:active{transform:scale(.99)}.explore-flag{width:58px;height:40px;flex:0 0 58px;overflow:hidden;border-radius:6px;box-shadow:0 1px 4px #0003}.explore-flag svg{display:block;width:100%;height:100%}.explore-front-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px}.explore-front-copy strong{font-size:16px;font-weight:800}.explore-front-copy small{font-size:12px;color:#5c7065}.explore-front-arrow{font-size:30px;line-height:1;color:#16834a}
   .language-welcome{min-height:100%;height:100%;box-sizing:border-box;display:flex;align-items:center;justify-content:center;padding:24px;background:linear-gradient(145deg,#e9fff3,#f7fbff 55%,#fff8df);color:#173c2b}.language-welcome-card{width:min(440px,100%);box-sizing:border-box;background:#fff;padding:28px 22px;border-radius:24px;box-shadow:0 12px 38px #12351a20;text-align:center}.language-welcome-logo{width:82px;height:82px;object-fit:contain;margin-bottom:10px}.language-welcome h1{font-size:26px;margin:8px 0;color:#075e54}.language-welcome p{color:#64756c;line-height:1.5;margin:8px 0 20px}.language-welcome select{width:100%;padding:15px;border:1px solid #cbd8d0;border-radius:12px;background:#fff;font-size:16px;color:#20352b}.language-continue{width:100%;margin-top:18px;padding:15px;border:0;border-radius:12px;background:#008069;color:white;font-size:16px;font-weight:700;cursor:pointer}
+@keyframes ethioSpin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
@@ -592,7 +593,20 @@ const firebaseConfig = {
   function populateLanguageSelectors(){['firstLaunchLanguage','loginLanguage','appLanguage'].forEach(id=>{const el=document.getElementById(id);if(!el)return;const old=el.value||localStorage.getItem('ethiolegacy_language')||'en';el.replaceChildren();supportedLanguageCodes.forEach(code=>{const o=document.createElement('option');o.value=code;o.textContent=languageNames[code];el.appendChild(o);});el.value=languageNames[old]?old:'en';});}
   populateLanguageSelectors();
   const languageWasSelected=localStorage.getItem('ethiolegacy_language_selected')==='yes';
-  if(languageWasSelected){document.getElementById('languageWelcomeScreen').classList.remove('active');document.getElementById('loginScreen').classList.add('active');}else{document.getElementById('loginScreen').classList.remove('active');document.getElementById('languageWelcomeScreen').classList.add('active');}
+  // Returning users wait on a lightweight startup screen while Firebase restores
+  // the saved session. This prevents the language picker/login screen flashing.
+  if(languageWasSelected){
+    document.getElementById('languageWelcomeScreen').classList.remove('active');
+    document.getElementById('loginScreen').classList.remove('active');
+    const startup=document.createElement('div');
+    startup.id='sessionRestoreScreen';
+    startup.style.cssText='position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;background:#008069;color:#fff;font:600 17px system-ui;text-align:center;padding:24px';
+    startup.innerHTML='<img src="./logo.png" alt="EthioLegacy" style="width:88px;height:88px;object-fit:contain;border-radius:50%;background:#fff;padding:5px"><div style="font-size:25px;font-weight:800">EthioLegacy</div><div>Restoring your session…</div><div style="width:34px;height:34px;border:4px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:ethioSpin .8s linear infinite"></div>';
+    document.body.appendChild(startup);
+  }else{
+    document.getElementById('loginScreen').classList.remove('active');
+    document.getElementById('languageWelcomeScreen').classList.add('active');
+  }
   window.continueAfterLanguageSelection=()=>{const chosen=document.getElementById('firstLaunchLanguage').value||'en';localStorage.setItem('ethiolegacy_language',chosen);localStorage.setItem('ethiolegacy_language_selected','yes');window.location.reload();};
   const translations = {
     en:{settings:'Settings',notifications:'Notifications',logout:'Log out',search:'Search users...',message:'Type a message...',signupTitle:'Create your EthioLegacy account',signinTitle:'Sign in to continue',fullName:'Full name',yourName:'Your name',emailPhone:'Email / phone number',emailPlaceholder:'Email or phone number',password:'Password',enterPassword:'Enter password',confirmPassword:'Confirm password',confirmPlaceholder:'Confirm password',signup:'Sign up',signin:'Sign in',already:'Already have an account?',noAccount:"Don't have an account?",newChat:'New Chat or Group',userEmail:'User Email (1-on-1)',groupName:'Group Name (for Group Chat)',cancel:'Cancel',start:'Start',profile:'Your profile',uploadPhoto:'📷 Upload profile photo',language:'🌐 Language',permissions:'🔐 Permissions (camera, microphone, notifications)',linkedDevices:'📱 Linked device / current session',callHistory:'📞 Call history',messageSettings:'💬 Message settings',about:'ℹ️ About EthioLegacy',profilePrivacy:'Profile, privacy and app preferences',incoming:'Incoming Call...',accept:'Accept',reject:'Reject',endCall:'End Call',emptyUsers:'No other users yet.',caughtUp:'You’re all caught up.'},
@@ -931,8 +945,9 @@ const firebaseConfig = {
   currentUser = user;
   restoreDeviceContacts();
   
-  // 1. Show the home screen in the background
+  // Restore the signed-in user's screen immediately after Firebase confirms the session.
   showScreen('homeScreen');
+  document.getElementById('sessionRestoreScreen')?.remove();
   loadUsers().catch(e => { console.error('Could not load contacts:', e); });
   
   // 2. Check if they have an App PIN set
@@ -953,6 +968,7 @@ const firebaseConfig = {
       currentUser = null;
       myFriends = []; allUsers = [];
       showScreen('loginScreen');
+      document.getElementById('sessionRestoreScreen')?.remove();
     }
   });
 
