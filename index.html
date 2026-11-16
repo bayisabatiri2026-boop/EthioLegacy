@@ -189,6 +189,16 @@
 .explore-front-banner:active{transform:scale(.99)}.explore-flag{width:58px;height:40px;flex:0 0 58px;overflow:hidden;border-radius:6px;box-shadow:0 1px 4px #0003}.explore-flag svg{display:block;width:100%;height:100%}.explore-front-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px}.explore-front-copy strong{font-size:16px;font-weight:800}.explore-front-copy small{font-size:12px;color:#5c7065}.explore-front-arrow{font-size:30px;line-height:1;color:#16834a}
   .language-welcome{min-height:100%;height:100%;box-sizing:border-box;display:flex;align-items:center;justify-content:center;padding:24px;background:linear-gradient(145deg,#e9fff3,#f7fbff 55%,#fff8df);color:#173c2b}.language-welcome-card{width:min(440px,100%);box-sizing:border-box;background:#fff;padding:28px 22px;border-radius:24px;box-shadow:0 12px 38px #12351a20;text-align:center}.language-welcome-logo{width:82px;height:82px;object-fit:contain;margin-bottom:10px}.language-welcome h1{font-size:26px;margin:8px 0;color:#075e54}.language-welcome p{color:#64756c;line-height:1.5;margin:8px 0 20px}.language-welcome select{width:100%;padding:15px;border:1px solid #cbd8d0;border-radius:12px;background:#fff;font-size:16px;color:#20352b}.language-continue{width:100%;margin-top:18px;padding:15px;border:0;border-radius:12px;background:#008069;color:white;font-size:16px;font-weight:700;cursor:pointer}
 @keyframes ethioSpin{to{transform:rotate(360deg)}}
+
+.attachment-sheet{display:none;background:#fff;border-radius:26px 26px 0 0;padding:12px 12px 18px;box-shadow:0 -5px 22px #0001}
+.attachment-sheet.active{display:block}
+.attachment-sheet-handle{width:58px;height:5px;border-radius:8px;background:#aab0b4;margin:0 auto 16px}
+.attachment-options{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px 8px}
+.attachment-options button{border:0;background:transparent;color:#59636b;font-size:13px;display:flex;align-items:center;flex-direction:column;gap:7px;padding:4px 0}
+.att-icon{width:58px;height:48px;border:1px solid #e1e5e8;border-radius:28px;display:grid;place-items:center;font-size:23px;background:#fff}
+.att-icon.gallery{color:#1684d8}.att-icon.camera{color:#e83d83}.att-icon.location{color:#16b98d}.att-icon.contact{color:#159bd0}.att-icon.document{color:#8060e8}.att-icon.poll{color:#e6a72e}.att-icon.event{color:#e83d83}
+.input-area #msgInput{min-width:0;flex:1}
+@media(max-width:380px){.attachment-options{grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 4px}.att-icon{width:50px}}
 </style>
 </head>
 <body>
@@ -309,14 +319,28 @@
     <div id="messageSelectionBar" class="message-selection-bar"><span id="selectedMessageCount">0 selected</span><div style="display:flex;gap:8px;"><button type="button" onclick="deleteSelectedMessages()">Delete selected</button><button type="button" onclick="clearMessageSelection()" style="background:#64748b;">Cancel</button></div></div>
     <div id="chatBox"></div>
   <div class="input-area">
-    <button class="header-icon" onclick="document.getElementById('fileInput').click()" style="color:#54656f; font-size:20px;">📎</button>
-    <button class="header-icon" onclick="document.getElementById('cameraInput').click()" style="color:#54656f; font-size:20px;">📷</button>
-    <input id="msgInput" placeholder="Type a message..." onkeypress="if(event.key==='Enter') sendMessage()">
+    <button class="header-icon" aria-label="Attachments" onclick="toggleAttachmentSheet()" style="color:#54656f;font-size:25px;">＋</button>
+    <input id="msgInput" placeholder="Message" onkeypress="if(event.key==='Enter') sendMessage()">
+    <button class="header-icon" aria-label="Record voice message" id="voiceRecordBtn" onclick="toggleVoiceRecording()" style="color:#16a765;font-size:24px;">🎙️</button>
     <button onclick="sendMessage()">➤</button>
+  </div>
+  <div id="attachmentSheet" class="attachment-sheet" aria-label="Share content">
+    <div class="attachment-sheet-handle"></div>
+    <div class="attachment-options">
+      <button onclick="openGalleryPicker()"><span class="att-icon gallery">▣</span>Gallery</button>
+      <button onclick="openCameraPicker()"><span class="att-icon camera">📷</span>Camera</button>
+      <button onclick="shareCurrentLocation()"><span class="att-icon location">📍</span>Location</button>
+      <button onclick="shareContact()"><span class="att-icon contact">👤</span>Contact</button>
+      <button onclick="openDocumentPicker()"><span class="att-icon document">▤</span>Document</button>
+      <button onclick="createChatPoll()"><span class="att-icon poll">☷</span>Poll</button>
+      <button onclick="createChatEvent()"><span class="att-icon event">▣</span>Event</button>
+    </div>
   </div>
 </div>
 <!-- ADD THESE 2 LINES RIGHT BELOW THE CHAT SCREEN DIV -->
 <input type="file" id="fileInput" hidden onchange="handleFileAttach(event)">
+<input type="file" id="galleryInput" hidden accept="image/*,video/*" multiple onchange="handleFileAttach(event)">
+<input type="file" id="documentInput" hidden onchange="handleFileAttach(event)">
 <input type="file" id="cameraInput" hidden accept="image/*,video/*" capture="environment" onchange="handleFileAttach(event)">
 
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -1976,6 +2000,115 @@ window.saveNewContact = async () => {
   } catch (e) { console.error('Chat attachment upload failed:', e); toast('Upload failed. Check Firebase Storage rules and internet connection.'); }
   finally { event.target.value = ''; }
 };
+
+
+  // Chat attachment sheet and compact voice notes
+  window.toggleAttachmentSheet = () => document.getElementById('attachmentSheet')?.classList.toggle('active');
+  window.openGalleryPicker = () => { document.getElementById('attachmentSheet')?.classList.remove('active'); document.getElementById('galleryInput').click(); };
+  window.openCameraPicker = () => { document.getElementById('attachmentSheet')?.classList.remove('active'); document.getElementById('cameraInput').click(); };
+  window.openDocumentPicker = () => { document.getElementById('attachmentSheet')?.classList.remove('active'); document.getElementById('documentInput').click(); };
+
+  window.shareCurrentLocation = () => {
+    document.getElementById('attachmentSheet')?.classList.remove('active');
+    if (!navigator.geolocation) return toast('Location sharing is not supported on this device.');
+    toast('Getting your location…');
+    navigator.geolocation.getCurrentPosition(async pos => {
+      const lat=pos.coords.latitude, lon=pos.coords.longitude;
+      try {
+        await addDoc(collection(db,'chats',currentChatId,'messages'), {
+          senderId:currentUser.uid,senderName:currentUser.displayName||'Member',
+          text:`📍 Live location: https://www.google.com/maps?q=${lat},${lon}`,
+          attachmentKind:'location',timestamp:serverTimestamp()
+        });
+      } catch(e){console.error(e);toast('Could not share location.');}
+    }, e=>toast(e.code===1?'Allow location permission to share.':'Could not get location.'), {enableHighAccuracy:false,timeout:12000,maximumAge:60000});
+  };
+
+  window.shareContact = async () => {
+    document.getElementById('attachmentSheet')?.classList.remove('active');
+    if (!('contacts' in navigator && 'ContactsManager' in window)) {
+      const name=prompt('Contact name:'); if(!name)return;
+      const phone=prompt('Phone number (optional):')||'';
+      const email=prompt('Email (optional):')||'';
+      return sendContactCard(name,phone,email);
+    }
+    try {
+      const rows=await navigator.contacts.select(['name','tel','email'],{multiple:false});
+      if(rows?.length) await sendContactCard((rows[0].name||['Contact'])[0],(rows[0].tel||[])[0]||'',(rows[0].email||[])[0]||'');
+    } catch(e){ if(e.name!=='AbortError')toast('Contact picker unavailable. You can enter contact details manually.'); }
+  };
+  async function sendContactCard(name,phone,email){
+    if(!currentUser||!currentChatId)return toast('Open a chat first.');
+    await addDoc(collection(db,'chats',currentChatId,'messages'),{
+      senderId:currentUser.uid,senderName:currentUser.displayName||'Member',
+      text:`👤 Contact: ${name}${phone?'\\nPhone: '+phone:''}${email?'\\nEmail: '+email:''}`,
+      timestamp:serverTimestamp()
+    });
+  }
+
+  window.createChatPoll = async () => {
+    document.getElementById('attachmentSheet')?.classList.remove('active');
+    if(!currentUser||!currentChatId)return toast('Open a chat first.');
+    const question=prompt('Poll question:'); if(!question?.trim())return;
+    const raw=prompt('Enter options separated by commas (2–6):'); if(!raw)return;
+    const options=raw.split(',').map(x=>x.trim()).filter(Boolean).slice(0,6);
+    if(options.length<2)return toast('A poll needs at least two options.');
+    await addDoc(collection(db,'chats',currentChatId,'messages'),{
+      senderId:currentUser.uid,senderName:currentUser.displayName||'Member',
+      text:`📊 POLL: ${question.trim()}\\n${options.map((x,i)=>`${i+1}. ${x}`).join('\\n')}`,
+      type:'poll',pollOptions:options,pollVotes:{},timestamp:serverTimestamp()
+    });
+  };
+  window.createChatEvent = async () => {
+    document.getElementById('attachmentSheet')?.classList.remove('active');
+    if(!currentUser||!currentChatId)return toast('Open a chat first.');
+    const title=prompt('Event title:'); if(!title?.trim())return;
+    const date=prompt('Event date and time (e.g. 2026-12-01 14:00):'); if(!date?.trim())return;
+    const place=prompt('Event location (optional):')||'';
+    await addDoc(collection(db,'chats',currentChatId,'messages'),{
+      senderId:currentUser.uid,senderName:currentUser.displayName||'Member',
+      text:`📅 EVENT: ${title.trim()}\\nWhen: ${date.trim()}${place?'\\nWhere: '+place:''}`,
+      type:'event',eventTitle:title.trim(),eventDate:date.trim(),eventPlace:place,timestamp:serverTimestamp()
+    });
+  };
+
+  let voiceRecorder=null, voiceChunks=[], voiceStartedAt=0, voiceStopTimer=null;
+  window.toggleVoiceRecording = async () => {
+    if(voiceRecorder?.state==='recording'){voiceRecorder.stop();return;}
+    if(!currentUser||!currentChatId)return toast('Open a chat first.');
+    if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder)return toast('Voice recording is not supported in this app version.');
+    try{
+      const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+      const mime=['audio/webm;codecs=opus','audio/ogg;codecs=opus','audio/mp4'].find(t=>MediaRecorder.isTypeSupported(t))||'';
+      voiceChunks=[]; voiceRecorder=new MediaRecorder(stream,mime?{mimeType:mime}:undefined); voiceStartedAt=Date.now();
+      voiceRecorder.ondataavailable=e=>{if(e.data?.size)voiceChunks.push(e.data);};
+      voiceRecorder.onstop=async()=>{
+        clearTimeout(voiceStopTimer); stream.getTracks().forEach(t=>t.stop());
+        const blob=new Blob(voiceChunks,{type:voiceRecorder.mimeType||'audio/webm'});
+        if(!blob.size)return toast('No voice was recorded.');
+        if(blob.size>5*1024*1024)return toast('Voice note exceeds 5 MB. Please record a shorter message.');
+        try{
+          toast('Sending voice message…');
+          const ext=blob.type.includes('ogg')?'ogg':blob.type.includes('mp4')?'m4a':'webm';
+          const name=`voice-${Date.now()}.${ext}`;
+          const path=`chatFiles/${currentChatId}/${Date.now()}_${name}`;
+          const sr=ref(storage,path); await uploadBytes(sr,blob,{contentType:blob.type});
+          const url=await getDownloadURL(sr);
+          await addDoc(collection(db,'chats',currentChatId,'messages'),{
+            senderId:currentUser.uid,senderName:currentUser.displayName||'Member',text:'',
+            attachmentUrl:url,attachmentKind:'audio',attachmentName:name,attachmentSize:blob.size,storagePath:path,
+            durationSeconds:Math.round((Date.now()-voiceStartedAt)/1000),timestamp:serverTimestamp()
+          });
+          toast('Voice message sent.');
+        }catch(e){console.error('Voice upload failed',e);toast('Voice message failed to send. Check Storage rules and connection.');}
+        voiceRecorder=null; const b=document.getElementById('voiceRecordBtn');if(b)b.textContent='🎙️';
+      };
+      voiceRecorder.start(1000);
+      const b=document.getElementById('voiceRecordBtn');if(b)b.textContent='⏹️';
+      toast('Recording… Tap stop to send. Maximum 2 minutes.');
+      voiceStopTimer=setTimeout(()=>{if(voiceRecorder?.state==='recording')voiceRecorder.stop();},120000);
+    }catch(e){console.error(e);toast('Microphone permission is required to record voice messages.');}
+  };
 
   // ================= WEBRTC CALLING =================
   // TURN credentials must be valid and active at the TURN provider.
