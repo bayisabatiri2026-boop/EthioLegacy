@@ -721,6 +721,47 @@ const firebaseConfig = {
     document.querySelectorAll('#newChatModal .modal-btns button')[0]?.replaceChildren(document.createTextNode(t.cancel));document.querySelector('#newChatModal .modal-btns .btn-primary')?.replaceChildren(document.createTextNode(t.start));
     const noUsers=document.querySelector('#userList p');if(noUsers)noUsers.textContent=t.emptyUsers;
   };
+  // App-wide language pass: translate matching interface text on every screen,
+  // including elements created later by chat, calls, groups and settings.
+  const interfaceTextKeys={
+    'Chats':'chats','Calls':'calls','Special Groups':'specialGroups','Communities':'communities',
+    'Explore Worldwide':'exploreWorldwide','Global Knowledge · Deep Information':'globalKnowledge',
+    'Sync device contacts':'syncContacts','Invite':'invite','Search chats by name, email or phone...':'searchChats',
+    'Choose contacts to show here. Your browser will ask permission.':'contactsPermissionHint',
+    'DEVICE CONTACTS':'deviceContacts','Chat':'chat','Send':'send','Create':'create','Save':'save',
+    'Delete':'delete','Edit':'edit','Close':'close','Back':'back','Cancel':'cancel','Start':'start',
+    'Settings':'settings','Notifications':'notifications','Log out':'logout','Language':'language',
+    'Accept':'accept','Reject':'reject','End Call':'endCall','New Chat or Group':'newChat',
+    'No other users yet.':'emptyUsers','You’re all caught up.':'caughtUp'
+  };
+  const interfaceTranslations={
+    om:{chats:'Haasa’a',calls:'Bilbila',specialGroups:'Gareewwan Addaa',communities:'Hawaasota',exploreWorldwide:'Addunyaa Daawwadhu',globalKnowledge:'Beekumsa Addunyaa · Odeeffannoo Bal’aa',syncContacts:'Qunnamtii bilbilaa wal-simsiisi',invite:'Afeeri',searchChats:'Haasa’a maqaa, imeelii ykn bilbilaan barbaadi...',contactsPermissionHint:'Qunnamtii asitti agarsiisuuf filadhu. Browser kee hayyama si gaafata.',deviceContacts:'QUNNAMTII MEESHAA',chat:'Haasa’a',send:'Ergi',create:'Uumi',save:'Olkaa’i',delete:'Haqi',edit:'Gulaali',close:'Cufi',back:'Duubatti'},
+    am:{chats:'ውይይቶች',calls:'ጥሪዎች',specialGroups:'ልዩ ቡድኖች',communities:'ማህበረሰቦች',exploreWorldwide:'ዓለምን ያስሱ',globalKnowledge:'ዓለም አቀፍ እውቀት · ጥልቅ መረጃ',syncContacts:'የስልክ እውቂያዎችን ያመሳስሉ',invite:'ጋብዝ',searchChats:'ውይይቶችን በስም፣ ኢሜይል ወይም ስልክ ፈልግ...',contactsPermissionHint:'እዚህ ለማሳየት እውቂያዎችን ይምረጡ። አሳሹ ፈቃድ ይጠይቃል።',deviceContacts:'የመሣሪያ እውቂያዎች',chat:'ውይይት',send:'ላክ',create:'ፍጠር',save:'አስቀምጥ',delete:'ሰርዝ',edit:'አርትዕ',close:'ዝጋ',back:'ተመለስ'},
+    ti:{chats:'ዕላላት',calls:'ጻውዒታት',specialGroups:'ፍሉያት ጉጅለታት',communities:'ማሕበረሰባት',exploreWorldwide:'ዓለም ዳህስስ',globalKnowledge:'ዓለምለኻዊ ፍልጠት · ዓሚቕ ሓበሬታ',syncContacts:'ናይ ተሌፎን ኣድራሻታት ኣመሳስል',invite:'ዓድም',searchChats:'ዕላላት ብስም፣ ኢመይል ወይ ተሌፎን ድለ...',contactsPermissionHint:'ኣብዚ ንምርኣይ ኣድራሻታት ምረጽ። ብራውዘርካ ፍቓድ ክሓትት እዩ።',deviceContacts:'ናይ መሳርሒ ኣድራሻታት',chat:'ዕላል',send:'ስደድ',create:'ፍጠር',save:'ዓቅብ',delete:'ሰርዝ',edit:'ኣርትዕ',close:'ዕጸው',back:'ተመለስ'},
+    so:{chats:'Sheekooyin',calls:'Wicitaanno',specialGroups:'Kooxo Gaar ah',communities:'Bulshooyin',exploreWorldwide:'Baadh Adduunka',globalKnowledge:'Aqoon Caalami ah · Macluumaad Dhamaystiran',syncContacts:'Isku hagaaji xiriirrada telefoonka',invite:'Casuun',searchChats:'Raadi sheekooyinka magac, iimayl ama telefoon...',contactsPermissionHint:'Dooro xiriirrada halkan ka muuqanaya. Browser-kaagu wuxuu ku weydiin doonaa oggolaansho.',deviceContacts:'XIRIIRRADA QALABKA',chat:'Sheeko',send:'Dir',create:'Abuur',save:'Kaydi',delete:'Tirtir',edit:'Wax ka beddel',close:'Xir',back:'Dib u noqo'}
+  };
+  const englishTextToKey={};
+  Object.entries(interfaceTextKeys).forEach(([english,key])=>englishTextToKey[english]=key);
+  function translateInterfaceTree(root=document){
+    const code=localStorage.getItem('ethiolegacy_language')||'en';
+    if(code==='en')return;
+    const extra=interfaceTranslations[code]||{};
+    const dict=translations[code]||translations.en;
+    const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode(node){
+      const parent=node.parentElement;
+      if(!parent||!node.nodeValue.trim()||parent.closest('script,style,textarea,input,[contenteditable="true"],#chatMessages,#userList,.message-bubble,.chat-message,.contact-name,.group-name'))return NodeFilter.FILTER_REJECT;
+      return NodeFilter.FILTER_ACCEPT;
+    }});
+    const nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);
+    nodes.forEach(node=>{const original=node.nodeValue;const clean=original.trim();const key=englishTextToKey[clean];if(!key)return;const translated=extra[key]||dict[key];if(translated){const start=original.indexOf(clean);node.nodeValue=original.slice(0,start)+translated+original.slice(start+clean.length);}});
+    root.querySelectorAll?.('input[placeholder],textarea[placeholder],button[aria-label],select[aria-label]').forEach(el=>{
+      const source=el.getAttribute('placeholder')||el.getAttribute('aria-label');const key=englishTextToKey[source];const value=key&&(extra[key]||dict[key]);if(value){if(el.hasAttribute('placeholder'))el.setAttribute('placeholder',value);if(el.hasAttribute('aria-label'))el.setAttribute('aria-label',value);}
+    });
+  }
+  const languageObserver=new MutationObserver(records=>{for(const record of records){if(record.type==='childList'){record.addedNodes.forEach(node=>{if(node.nodeType===1)translateInterfaceTree(node);else if(node.nodeType===3)translateInterfaceTree(node.parentElement||document);});}}});
+  languageObserver.observe(document.body,{childList:true,subtree:true});
+  const originalChangeLanguage=window.changeLanguage;
+  window.changeLanguage=(code)=>{originalChangeLanguage(code);requestAnimationFrame(()=>translateInterfaceTree(document));};
   const initialLanguage=localStorage.getItem('ethiolegacy_language')||'en';changeLanguage(initialLanguage);if(!languageWasSelected){const first=document.getElementById('firstLaunchLanguage');if(first)first.value=initialLanguage;}
 
   function saveCallHistory(type,status){try{const h=JSON.parse(localStorage.getItem('ethiolegacy_call_history')||'[]');h.unshift({type,name:document.getElementById('chatPartnerName').textContent||'Unknown',time:new Date().toLocaleString(),status});localStorage.setItem('ethiolegacy_call_history',JSON.stringify(h.slice(0,50)));}catch(e){}}
@@ -736,6 +777,25 @@ const firebaseConfig = {
     document.getElementById('errorMsg').textContent = "";
     changeLanguage(localStorage.getItem('ethiolegacy_language')||'en');
   };
+
+  // A recipient opening an invitation link should land on the registration form.
+  // The inviter UID was saved before the language welcome screen, so it survives
+  // the first-launch language selection/reload.
+  if (localStorage.getItem('ethiolegacy_pending_inviter')) {
+    isSignupMode = true;
+    const nameGroup = document.getElementById('nameGroup');
+    const confirmGroup = document.getElementById('confirmGroup');
+    if (nameGroup) nameGroup.style.display = 'block';
+    if (confirmGroup) confirmGroup.style.display = 'block';
+    const subtitle = document.getElementById('authSubtitle');
+    const submit = document.getElementById('authSubmit');
+    const prompt = document.getElementById('switchPrompt');
+    const switchAuth = document.getElementById('switchAuth');
+    if (subtitle) subtitle.textContent = 'Create your EthioLegacy account';
+    if (submit) submit.textContent = 'Sign up';
+    if (prompt) prompt.textContent = 'Already have an account?';
+    if (switchAuth) switchAuth.textContent = 'Sign in';
+  }
 
   window.togglePassword = (btn) => {
     const input = document.getElementById('passwordInput');
@@ -1538,27 +1598,38 @@ function findEthioLegacyContact(contact) {
   }) || null;
 }
 
+// Always share the public GitHub Pages address. In an installed Capacitor APK,
+// location.origin can be https://localhost, which is reachable only on that phone.
+const ETHIOLEGACY_PUBLIC_URL = 'https://bayisabatiri2026-boop.github.io/EthioLegacy/';
+
+function buildEthioLegacyInviteUrl(inviterUid, group) {
+  if (!inviterUid) return '';
+  const url = new URL(ETHIOLEGACY_PUBLIC_URL);
+  url.searchParams.set('invite', inviterUid);
+  if (group && ['love','family','friend','classmate'].includes(group)) {
+    url.searchParams.set('group', group);
+  }
+  return url.toString();
+}
+
 function getEthioLegacyInviteUrl() {
   if (!currentUser) return '';
-  // Build exactly one invite parameter; never append an existing query string.
-  const url = new URL(location.pathname, location.origin);
-  url.searchParams.set('invite', currentUser.uid);
-  return url.toString();
+  return buildEthioLegacyInviteUrl(currentUser.uid);
 }
 
 async function inviteDeviceContact(contact) {
   if (!currentUser) return toast('Please sign in first.');
   const inviteUrl = getEthioLegacyInviteUrl();
   const displayName = contact.name || 'Friend';
-  // Keep the URL OUT of share text: the Share API's `url` field adds it once.
-  const messageText = `Hello ${displayName}! Join me on EthioLegacy for private chats, voice/video calls and communities. Register using my invitation:`;
-  const copyText = `${messageText}\n${inviteUrl}`;
+  // Put the complete public URL directly in the message so messaging apps
+  // recognize it as a tappable link (rather than relying on ShareData.url).
+  const copyText = `Hello ${displayName}! Join me on EthioLegacy for private chats, voice/video calls and communities. Register using my invitation:\n${inviteUrl}`;
   try {
     if (navigator.share) {
-      await navigator.share({ title: 'Join me on EthioLegacy', text: messageText, url: inviteUrl });
+      await navigator.share({ title: 'Join me on EthioLegacy', text: copyText });
     } else if (navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(copyText);
-      toast('One personal invitation link copied. Send it to your contact.');
+      toast('Clickable EthioLegacy invitation link copied. Send it to your contact.');
     } else {
       window.prompt('Copy this invitation and send it to your contact:', copyText);
     }
@@ -2309,7 +2380,7 @@ window.saveNewContact = async () => {
   window.inviteIntoSpecialGroup=contact=>{if(!currentUser)return toast('Sign in first.');pendingSpecialGroupInvite={...contact,group:activeSpecialGroup};renderPendingSpecialGroupInvite();};
   window.cancelSpecialGroupInvite=()=>{pendingSpecialGroupInvite=null;renderPendingSpecialGroupInvite();toast('Invitation selection cancelled.');};
   function renderPendingSpecialGroupInvite(){const box=document.getElementById('specialGroupPendingInvite');if(!box)return;if(!pendingSpecialGroupInvite){box.innerHTML='';return;}const c=pendingSpecialGroupInvite;box.innerHTML=`<div class="device-contact" style="margin:8px 12px;padding:12px;border:1px solid #d1d5db;border-radius:12px;background:#f8fafc"><div class="contact-details"><b>Selected: ${updateSafe(c.name||'Contact')}</b><small>${updateSafe(c.tel||c.email||'')} · ${updateSafe(specialGroupNames[c.group]||'Special Group')}</small></div><button class="contact-action" onclick="sendPendingSpecialGroupInvite()">Send invite</button><button class="mini-action" onclick="cancelSpecialGroupInvite()" title="Cancel invitation">✕ Cancel</button></div>`;}
-  window.sendPendingSpecialGroupInvite=async()=>{if(!pendingSpecialGroupInvite||!currentUser)return;const c=pendingSpecialGroupInvite,group=c.group;const link=new URL(location.pathname,location.origin);link.searchParams.set('invite',currentUser.uid);link.searchParams.set('group',group);const msg=`Join me on EthioLegacy. I am inviting you to my ${specialGroupNames[group]} group.`;try{if(navigator.share)await navigator.share({title:'EthioLegacy invitation',text:msg,url:link.toString()});else if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(msg+'\n'+link);toast('Group invitation link copied.');}else prompt('Copy invitation link',link.toString());pendingSpecialGroupInvite=null;renderPendingSpecialGroupInvite();}catch(e){if(e.name==='AbortError'){toast('Invitation cancelled.');}else prompt('Copy invitation link',link.toString());}};
+  window.sendPendingSpecialGroupInvite=async()=>{if(!pendingSpecialGroupInvite||!currentUser)return;const c=pendingSpecialGroupInvite,group=c.group;const inviteUrl=buildEthioLegacyInviteUrl(currentUser.uid,group);const msg=`Join me on EthioLegacy. I am inviting you to my ${specialGroupNames[group]} group.\n${inviteUrl}`;try{if(navigator.share)await navigator.share({title:'EthioLegacy invitation',text:msg});else if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(msg);toast('Clickable group invitation link copied.');}else prompt('Copy invitation link',msg);pendingSpecialGroupInvite=null;renderPendingSpecialGroupInvite();}catch(e){if(e.name==='AbortError'){toast('Invitation cancelled.');}else prompt('Copy invitation link',msg);}};
   window.renderSpecialGroup=async()=>{const box=document.getElementById('specialGroupMembers');if(!box||!currentUser)return;try{const snap=await getDocs(collection(db,'users',currentUser.uid,'specialGroups',activeSpecialGroup,'members'));specialGroupRows=snap.docs.map(d=>({id:d.id,...d.data()}));const q=(document.getElementById('specialGroupSearch')?.value||'').toLowerCase();const rows=specialGroupRows.filter(x=>[x.displayName,x.email,x.phone].some(v=>(v||'').toLowerCase().includes(q)));box.innerHTML=`<div class="pane-heading">${specialGroupNames[activeSpecialGroup]} · ${rows.length} saved</div>`+(rows.length?rows.map(x=>`<div class="chat-item"><div class="avatar">${updateSafe((x.displayName||'M').slice(0,1).toUpperCase())}</div><div class="chat-info" onclick="openChat('${x.uid}','${updateSafe(x.displayName||'Member')}')"><div class="chat-name">🌳 ${updateSafe(x.displayName||'Member')}</div><small>${updateSafe(x.email||x.phone||'EthioLegacy member')}</small></div><button class="mini-action" title="Remove from this group" onclick="removeSpecialGroupMember('${x.uid}')">✕</button></div>`).join(''):'<div class="empty-state">No members saved here yet. Search your device contacts or add people from Chats.</div>');}catch(e){console.error(e);box.innerHTML='<div class="empty-state">Could not load this group. Check Firestore rules.</div>';}};
   window.renderSpecialGroupDeviceContacts=()=>{
     const box=document.getElementById('specialGroupDeviceContacts');if(!box)return;
