@@ -220,7 +220,8 @@
     <img class="invite-logo" src="./logo.png" alt="EthioLegacy logo" onerror="this.style.display='none'">
     <h1>EthioLegacy</h1>
     <p>Install EthioLegacy to join your friend for private chats, voice and video calls, and communities.</p>
-    <a id="ethioInviteInstallButton" href="https://github.com/bayisabatiri2026-boop/EthioLegacy/releases/latest/download/EthioLegacy.apk">Install EthioLegacy</a>
+    <a id="ethioInviteInstallButton" href="https://github.com/bayisabatiri2026-boop/EthioLegacy/releases" role="button">Install EthioLegacy</a>
+    <p id="ethioInviteInstallStatus" class="small" aria-live="polite">Tap Install EthioLegacy to download the Android app.</p>
     <p class="small">After installation, open EthioLegacy to create your account.</p>
   </div>
 </div>
@@ -232,6 +233,37 @@
     // Keep the invitation token in the address bar for the next app-link handoff.
     try{sessionStorage.setItem('ethiolegacy_install_invite',q.get('invite')||'');if(q.get('group'))sessionStorage.setItem('ethiolegacy_install_group',q.get('group'));}catch(e){}
   }
+})();
+</script>
+<script>
+(function(){
+  const button = document.getElementById('ethioInviteInstallButton');
+  const status = document.getElementById('ethioInviteInstallStatus');
+  if (!button) return;
+  const api = 'https://api.github.com/repos/bayisabatiri2026-boop/EthioLegacy/releases/latest';
+  const releasesPage = 'https://github.com/bayisabatiri2026-boop/EthioLegacy/releases';
+  button.addEventListener('click', async function(event){
+    event.preventDefault();
+    const original = button.textContent;
+    button.textContent = 'Checking download…';
+    button.setAttribute('aria-busy','true');
+    if (status) status.textContent = 'Checking for the latest EthioLegacy Android installer.';
+    try {
+      const response = await fetch(api, {headers:{'Accept':'application/vnd.github+json'}});
+      if (!response.ok) throw new Error('No published release');
+      const release = await response.json();
+      const apk = (release.assets || []).find(asset => /\.apk$/i.test(asset.name));
+      if (!apk || !apk.browser_download_url) throw new Error('No APK asset in the latest release');
+      if (status) status.textContent = 'Your download is starting…';
+      window.location.href = apk.browser_download_url;
+    } catch (error) {
+      if (status) status.textContent = 'The EthioLegacy APK has not been published to GitHub Releases yet. Opening the releases page so you can check the installer.';
+      window.location.href = releasesPage;
+    } finally {
+      button.textContent = original;
+      button.removeAttribute('aria-busy');
+    }
+  });
 })();
 </script>
 
