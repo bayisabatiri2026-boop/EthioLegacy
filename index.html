@@ -200,8 +200,41 @@
 .input-area #msgInput{min-width:0;flex:1}
 @media(max-width:380px){.attachment-options{grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 4px}.att-icon{width:50px}}
 </style>
+
+<style>
+  body.ethio-invite-landing{background:#f7f3ef!important;display:block!important;min-height:100vh!important;height:auto!important;overflow:auto!important}
+  body.ethio-invite-landing>*:not(#ethioInviteInstallLanding){display:none!important}
+  #ethioInviteInstallLanding{display:none;min-height:100vh;box-sizing:border-box;padding:28px 22px;align-items:center;justify-content:center;background:#f7f3ef;color:#263238;text-align:center;font-family:Arial,sans-serif}
+  body.ethio-invite-landing #ethioInviteInstallLanding{display:flex!important}
+  #ethioInviteInstallLanding .invite-card{width:100%;max-width:390px;background:#fff;border-radius:22px;padding:32px 24px;box-shadow:0 8px 28px #00000012}
+  #ethioInviteInstallLanding .invite-logo{width:76px;height:76px;border-radius:50%;object-fit:cover;margin:0 auto 16px}
+  #ethioInviteInstallLanding h1{font-size:25px;margin:0 0 10px;color:#6f172c}
+  #ethioInviteInstallLanding p{font-size:15px;line-height:1.55;margin:0 0 24px;color:#53616a}
+  #ethioInviteInstallLanding a{display:block;text-decoration:none;background:#6f172c;color:white;border-radius:12px;padding:16px 18px;font-size:17px;font-weight:700}
+  #ethioInviteInstallLanding .small{font-size:12px;margin-top:16px;margin-bottom:0}
+</style>
 </head>
 <body>
+<div id="ethioInviteInstallLanding" aria-label="Install EthioLegacy">
+  <div class="invite-card">
+    <img class="invite-logo" src="./logo.png" alt="EthioLegacy logo" onerror="this.style.display='none'">
+    <h1>EthioLegacy</h1>
+    <p>Install EthioLegacy to join your friend for private chats, voice and video calls, and communities.</p>
+    <a id="ethioInviteInstallButton" href="https://github.com/bayisabatiri2026-boop/EthioLegacy/releases/latest/download/EthioLegacy.apk">Install EthioLegacy</a>
+    <p class="small">After installation, open EthioLegacy to create your account.</p>
+  </div>
+</div>
+<script>
+(function(){
+  var q=new URLSearchParams(window.location.search);
+  if(q.has('invite')){
+    document.body.classList.add('ethio-invite-landing');
+    // Keep the invitation token in the address bar for the next app-link handoff.
+    try{sessionStorage.setItem('ethiolegacy_install_invite',q.get('invite')||'');if(q.get('group'))sessionStorage.setItem('ethiolegacy_install_group',q.get('group'));}catch(e){}
+  }
+})();
+</script>
+
 <!-- FIRST-LAUNCH LANGUAGE SELECTION -->
 <div id="languageWelcomeScreen" class="screen active"><div class="language-welcome"><div class="language-welcome-card">
 <img class="language-welcome-logo" src="./logo.png" alt="EthioLegacy logo"><h1 id="languageWelcomeTitle">Welcome to EthioLegacy</h1>
@@ -1664,7 +1697,7 @@ async function inviteDeviceContact(contact) {
   // Put the complete public URL directly in the message so messaging apps
   // recognize it as a tappable link (rather than relying on ShareData.url).
   const apkDownloadUrl = 'https://github.com/bayisabatiri2026-boop/EthioLegacy/releases/latest/download/EthioLegacy.apk';
-  const copyText = `Hello ${displayName}! Join me on EthioLegacy for private chats, voice/video calls and communities.\n\n1. Download and install the EthioLegacy Android app: ${apkDownloadUrl}\n2. Open EthioLegacy and register using my invitation link: ${inviteUrl}`;
+  const copyText = `Hello ${displayName}! Install EthioLegacy and join me for private chats, voice/video calls and communities:\n${inviteUrl}`;
   try {
     if (navigator.share) {
       await navigator.share({ title: 'Join me on EthioLegacy', text: copyText });
@@ -2530,7 +2563,7 @@ window.saveNewContact = async () => {
   window.inviteIntoSpecialGroup=contact=>{if(!currentUser)return toast('Sign in first.');pendingSpecialGroupInvite={...contact,group:activeSpecialGroup};renderPendingSpecialGroupInvite();};
   window.cancelSpecialGroupInvite=()=>{pendingSpecialGroupInvite=null;renderPendingSpecialGroupInvite();toast('Invitation selection cancelled.');};
   function renderPendingSpecialGroupInvite(){const box=document.getElementById('specialGroupPendingInvite');if(!box)return;if(!pendingSpecialGroupInvite){box.innerHTML='';return;}const c=pendingSpecialGroupInvite;box.innerHTML=`<div class="device-contact" style="margin:8px 12px;padding:12px;border:1px solid #d1d5db;border-radius:12px;background:#f8fafc"><div class="contact-details"><b>Selected: ${updateSafe(c.name||'Contact')}</b><small>${updateSafe(c.tel||c.email||'')} · ${updateSafe(specialGroupNames[c.group]||'Special Group')}</small></div><button class="contact-action" onclick="sendPendingSpecialGroupInvite()">Send invite</button><button class="mini-action" onclick="cancelSpecialGroupInvite()" title="Cancel invitation">✕ Cancel</button></div>`;}
-  window.sendPendingSpecialGroupInvite=async()=>{if(!pendingSpecialGroupInvite||!currentUser)return;const c=pendingSpecialGroupInvite,group=c.group;const inviteUrl=buildEthioLegacyInviteUrl(currentUser.uid,group);const apkDownloadUrl='https://github.com/bayisabatiri2026-boop/EthioLegacy/releases/latest/download/EthioLegacy.apk';const msg=`Join me on EthioLegacy. I am inviting you to my ${specialGroupNames[group]} group.\n\nDownload and install the Android app: ${apkDownloadUrl}\nThen open it and register using this invitation link: ${inviteUrl}`;try{if(navigator.share)await navigator.share({title:'EthioLegacy invitation',text:msg});else if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(msg);toast('Clickable group invitation link copied.');}else prompt('Copy invitation link',msg);pendingSpecialGroupInvite=null;renderPendingSpecialGroupInvite();}catch(e){if(e.name==='AbortError'){toast('Invitation cancelled.');}else prompt('Copy invitation link',msg);}};
+  window.sendPendingSpecialGroupInvite=async()=>{if(!pendingSpecialGroupInvite||!currentUser)return;const c=pendingSpecialGroupInvite,group=c.group;const inviteUrl=buildEthioLegacyInviteUrl(currentUser.uid,group);const apkDownloadUrl='https://github.com/bayisabatiri2026-boop/EthioLegacy/releases/latest/download/EthioLegacy.apk';const msg=`Install EthioLegacy and join my ${specialGroupNames[group]} group:\n${inviteUrl}`;try{if(navigator.share)await navigator.share({title:'EthioLegacy invitation',text:msg});else if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(msg);toast('Clickable group invitation link copied.');}else prompt('Copy invitation link',msg);pendingSpecialGroupInvite=null;renderPendingSpecialGroupInvite();}catch(e){if(e.name==='AbortError'){toast('Invitation cancelled.');}else prompt('Copy invitation link',msg);}};
   window.renderSpecialGroup=async()=>{const box=document.getElementById('specialGroupMembers');if(!box||!currentUser)return;try{const snap=await getDocs(collection(db,'users',currentUser.uid,'specialGroups',activeSpecialGroup,'members'));specialGroupRows=snap.docs.map(d=>({id:d.id,...d.data()}));const q=(document.getElementById('specialGroupSearch')?.value||'').toLowerCase();const rows=specialGroupRows.filter(x=>[x.displayName,x.email,x.phone].some(v=>(v||'').toLowerCase().includes(q)));box.innerHTML=`<div class="pane-heading">${specialGroupNames[activeSpecialGroup]} · ${rows.length} saved</div>`+(rows.length?rows.map(x=>`<div class="chat-item"><div class="avatar">${updateSafe((x.displayName||'M').slice(0,1).toUpperCase())}</div><div class="chat-info" onclick="openChat('${x.uid}','${updateSafe(x.displayName||'Member')}')"><div class="chat-name">🌳 ${updateSafe(x.displayName||'Member')}</div><small>${updateSafe(x.email||x.phone||'EthioLegacy member')}</small></div><button class="mini-action" title="Remove from this group" onclick="removeSpecialGroupMember('${x.uid}')">✕</button></div>`).join(''):'<div class="empty-state">No members saved here yet. Search your device contacts or add people from Chats.</div>');}catch(e){console.error(e);box.innerHTML='<div class="empty-state">Could not load this group. Check Firestore rules.</div>';}};
   window.renderSpecialGroupDeviceContacts=()=>{
     const box=document.getElementById('specialGroupDeviceContacts');if(!box)return;
