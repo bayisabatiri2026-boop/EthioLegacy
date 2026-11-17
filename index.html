@@ -45,7 +45,8 @@
 
   /* --- APP CHAT STYLES --- */
   .header { background-color: #008069; color: white; padding: 15px 20px; font-size: 18px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
-  .header-actions { display: flex; gap: 15px; }
+  .header-actions { display: flex; gap: 12px; align-items:center; }
+  .header-more-wrap{position:relative}.header-more-menu{display:none;position:absolute;right:0;top:42px;min-width:190px;background:#fff;color:#243746;border-radius:12px;box-shadow:0 8px 28px #0003;z-index:1600;padding:6px}.header-more-menu.open{display:block}.header-more-menu button{display:block;width:100%;padding:12px;border:0;background:#fff;text-align:left;color:#243746;font-size:14px;border-radius:8px}.header-more-menu button:active{background:#e7f6f1}.header-more-trigger{width:42px;height:42px;min-width:42px;border:2px solid rgba(255,255,255,.92);border-radius:50%;background:rgba(255,255,255,.14);color:#fff;display:grid;place-items:center;font-size:25px;line-height:1;cursor:pointer;padding:0}.header-more-trigger:active{transform:scale(.96)}
   .header-icon { border:0; background:transparent; color:#fff; font-size:24px; cursor:pointer; }
   .header-tree-button{width:44px;height:44px;min-width:44px;border:2px solid rgba(255,255,255,.9);border-radius:50%;background:#fff;color:#008069;display:grid;place-items:center;font-size:23px;line-height:1;cursor:pointer;box-shadow:0 2px 6px #003b3028;padding:0}.header-tree-button:active{transform:scale(.96)}
   .home-search-wrap { padding: 10px 14px; background: #fff; border-bottom: 1px solid #e6e9eb; }
@@ -333,8 +334,15 @@
   <div class="header">
     <div class="brand"><img class="brand-image" src="./logo.png" alt="EthioLegacy logo"><span>EthioLegacy</span></div>
     <div class="header-actions">
-      <button class="header-tree-button" aria-label="Open create menu" title="Create group, contact, community or event" onclick="openNewChatModal()">🌳</button>
-      <button class="header-icon" aria-label="Settings" onclick="openSettings()">⚙️</button>
+      <div class="header-more-wrap">
+        <button class="header-more-trigger" aria-label="More options" title="More options" aria-haspopup="true" aria-expanded="false" onclick="toggleHeaderMoreMenu()">⋮</button>
+        <div id="headerMoreMenu" class="header-more-menu">
+          <button onclick="openNewChatModal();closeHeaderMoreMenu()">🌳 Tree / Create</button>
+          <button onclick="openSettings();closeHeaderMoreMenu()">⚙️ Settings</button>
+          <button onclick="showNotifications();closeHeaderMoreMenu()">🔔 Notifications</button>
+          <button onclick="importDeviceContacts();closeHeaderMoreMenu()">📱 Sync contacts</button>
+        </div>
+      </div>
     </div>
   </div>
   <button class="explore-front-banner" type="button" onclick="openExploreEthiopia()" aria-label="Explore Worldwide">
@@ -2725,7 +2733,30 @@ window.saveNewContact = async () => {
     },e=>{console.error(e);box.innerHTML='<div class="empty-state">Channels could not load. Check Firestore rules.</div>';});
   }
   function loadUpdates(){loadStatuses();loadChannels();}
-  window.switchHomeTab = ((original)=>function(paneId,button){original(paneId,button);if(paneId==='updatesPane'){openSpecialGroup(activeSpecialGroup);renderSpecialGroupDeviceContacts();}})(window.switchHomeTab);
+  window.toggleHeaderMoreMenu=()=>document.getElementById('headerMoreMenu')?.classList.toggle('open');
+  window.closeHeaderMoreMenu=()=>document.getElementById('headerMoreMenu')?.classList.remove('open');
+  document.addEventListener('click',e=>{if(!e.target.closest('.header-more-wrap'))closeHeaderMoreMenu();});
+  // Ask for contact access on the first main-tab interaction after sign-in.
+  // Native APKs can read contacts after Android permission; browsers show their
+  // supported contact picker and require the user to select contacts.
+  let autoContactSyncInProgress=false;
+  window.switchHomeTab = ((original)=>async function(paneId,button){
+    original(paneId,button);
+    if(paneId==='updatesPane'){openSpecialGroup(activeSpecialGroup);renderSpecialGroupDeviceContacts();}
+    if(!currentUser || autoContactSyncInProgress) return;
+    const syncKey='ethiolegacy_contacts_permission_prompted_'+currentUser.uid;
+    const hasSaved=Array.isArray(importedDeviceContacts)&&importedDeviceContacts.length>0;
+    if(!hasSaved && localStorage.getItem(syncKey)!=='yes'){
+      autoContactSyncInProgress=true;
+      try{
+        await window.importDeviceContacts();
+        if(importedDeviceContacts.length) localStorage.setItem(syncKey,'yes');
+      }finally{autoContactSyncInProgress=false;}
+    }
+    // Refresh all tab-specific contact views from the same saved contact list.
+    renderDeviceContacts();renderCommunityPicker();renderSpecialGroupDeviceContacts();renderWaContacts();
+    if(paneId==='callsPane')renderCallList(filterUserRecords(document.getElementById('searchInput')?.value||''));
+  })(window.switchHomeTab);
   // Refresh update listeners for each signed-in session and stop them at sign-out.
   const originalAuthUpdateHook = onAuthStateChanged;
   document.addEventListener('visibilitychange',()=>{if(!document.hidden&&currentUser&&document.getElementById('updatesPane')?.classList.contains('active'))loadUpdates();});
