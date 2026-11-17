@@ -50,10 +50,16 @@
   .header-tree-button{width:44px;height:44px;min-width:44px;border:2px solid rgba(255,255,255,.9);border-radius:50%;background:#fff;color:#008069;display:grid;place-items:center;font-size:23px;line-height:1;cursor:pointer;box-shadow:0 2px 6px #003b3028;padding:0}.header-tree-button:active{transform:scale(.96)}
   .home-search-wrap { padding: 10px 14px; background: #fff; border-bottom: 1px solid #e6e9eb; }
   .contacts-toolbar{display:flex;gap:8px;margin-top:9px;align-items:center}.contacts-button{border:0;border-radius:20px;padding:10px 13px;background:#e7f6f1;color:#006b58;font-weight:700;cursor:pointer}.contacts-hint{font-size:11px;color:#667781;line-height:1.35}.device-contact{display:flex;align-items:center;gap:12px;padding:12px 15px;border-bottom:1px solid #f0f2f5}.device-contact .contact-details{flex:1;min-width:0}.device-contact b{display:block;color:#172b2b}.device-contact small{color:#667781;overflow-wrap:anywhere}.contact-action{border:0;border-radius:18px;padding:8px 11px;background:#008069;color:#fff;font-weight:700;cursor:pointer;white-space:nowrap}
-  .main-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:#008069;padding:0 8px 8px}
-  .main-tab{border:0;border-radius:10px;padding:11px 5px;background:transparent;color:#d7f3ec;font-weight:700;font-size:14px;cursor:pointer}
-  .main-tab.active{background:#fff;color:#006b58;box-shadow:0 2px 7px #003b3020}
-  .home-pane{display:none;flex:1;min-height:0;overflow:auto;background:#fff}.home-pane.active{display:block}
+  .main-tabs{position:fixed;left:0;right:0;bottom:0;z-index:1200;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2px;background:#fff;padding:7px 8px max(8px,env(safe-area-inset-bottom));border-top:1px solid #e7e9eb;box-shadow:0 -2px 10px #0000000d}
+  .main-tab{position:relative;min-width:0;border:0;border-radius:12px;padding:8px 2px 6px;background:transparent;color:#263238;font-weight:600;font-size:12px;line-height:1.25;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+  .main-tab.active{background:#dcf8c6;color:#075e54}
+  .main-tab .tab-icon{font-size:22px;line-height:1.1}.tab-badge{position:absolute;top:1px;left:calc(50% + 8px);min-width:18px;height:18px;padding:0 5px;border-radius:12px;background:#20a66a;color:#fff;font-size:11px;font-weight:700;display:none;align-items:center;justify-content:center}
+  .home-pane{display:none;flex:1;min-height:0;overflow:auto;background:#fff;padding-bottom:82px}.home-pane.active{display:block}
+  #homeScreen{position:relative;background:#fff}
+  #homeScreen .header{flex-shrink:0}
+  #homeScreen .explore-front-banner{flex-shrink:0}
+  #homeScreen .home-search-wrap{flex-shrink:0}
+  #homeScreen .main-tabs{flex-shrink:0}
   .pane-heading{padding:14px 16px 8px;color:#667781;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em}
   .row-actions{display:flex;gap:8px;margin-left:8px}.mini-action{border:0;border-radius:50%;width:36px;height:36px;background:#e7f6f1;color:#008069;font-size:17px;cursor:pointer}
   .community-card{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid #f0f2f5;cursor:pointer}.community-icon{width:48px;height:48px;border-radius:16px;display:grid;place-items:center;background:#e7f6f1;font-size:23px}.community-meta{flex:1;min-width:0}.community-meta b{display:block;color:#172b2b}.community-meta small{color:#667781}
@@ -327,7 +333,6 @@
   <div class="header">
     <div class="brand"><img class="brand-image" src="./logo.png" alt="EthioLegacy logo"><span>EthioLegacy</span></div>
     <div class="header-actions">
-      <button class="header-icon" aria-label="Notifications" onclick="showNotifications()">🔔<span id="notificationBadge" class="notification-badge" style="display:none">0</span></button>
       <button class="header-tree-button" aria-label="Open create menu" title="Create group, contact, community or event" onclick="openNewChatModal()">🌳</button>
       <button class="header-icon" aria-label="Settings" onclick="openSettings()">⚙️</button>
     </div>
@@ -338,10 +343,10 @@
   <span class="explore-front-arrow" aria-hidden="true">›</span>
 </button>
   <div class="main-tabs" role="tablist" aria-label="Main navigation">
-    <button class="main-tab active" data-pane="chatsPane" onclick="switchHomeTab('chatsPane',this)">💬 Chats</button>
-    <button class="main-tab" data-pane="callsPane" onclick="switchHomeTab('callsPane',this)">📞 Calls</button>
-    <button class="main-tab" data-pane="updatesPane" onclick="switchHomeTab('updatesPane',this)">💗 Special Groups</button>
-    <button class="main-tab" data-pane="communitiesPane" onclick="switchHomeTab('communitiesPane',this)">👥 Communities</button>
+    <button class="main-tab active" data-pane="chatsPane" onclick="switchHomeTab('chatsPane',this)"><span class="tab-icon">💬</span><span>Chats</span><span id="chatsTabBadge" class="tab-badge"></span></button>
+    <button class="main-tab" data-pane="callsPane" onclick="switchHomeTab('callsPane',this)"><span class="tab-icon">📞</span><span>Calls</span><span id="callsTabBadge" class="tab-badge"></span></button>
+    <button class="main-tab" data-pane="updatesPane" onclick="switchHomeTab('updatesPane',this)"><span class="tab-icon">💗</span><span>Special Groups</span><span id="specialTabBadge" class="tab-badge"></span></button>
+    <button class="main-tab" data-pane="communitiesPane" onclick="switchHomeTab('communitiesPane',this)"><span class="tab-icon">👥</span><span>Communities</span><span id="communitiesTabBadge" class="tab-badge"></span></button>
   </div>
   <div class="home-search-wrap" id="homeSearchWrap">
     <input id="searchInput" class="home-search" type="text" placeholder="Search users..." oninput="filterUsers(this.value)">
@@ -705,7 +710,9 @@ const firebaseConfig = {
     so:{settings:'Dejinta',notifications:'Ogeysiisyada',logout:'Ka bax',search:'Raadi isticmaaleyaasha...',message:'Qor fariin...',signupTitle:'Samee akoonkaaga EthioLegacy',signinTitle:'Soo gal si aad u sii wadato',fullName:'Magaca oo buuxa',yourName:'Magacaaga',emailPhone:'Iimayl / lambarka telefoonka',emailPlaceholder:'Iimayl ama lambarka telefoonka',password:'Furaha sirta ah',enterPassword:'Geli furaha sirta ah',confirmPassword:'Xaqiiji furaha sirta ah',confirmPlaceholder:'Mar kale geli furaha sirta ah',signup:'Is diiwaangeli',signin:'Soo gal',already:'Akoon ma leedahay?',noAccount:'Akoon ma lihid?',newChat:'Sheeko cusub ama koox',userEmail:'Iimaylka isticmaalaha',groupName:'Magaca kooxda',cancel:'Jooji',start:'Bilow',profile:'Astaantaada',uploadPhoto:'📷 Soo geli sawirka astaanta',language:'🌐 Luqad',permissions:'🔐 Oggolaanshaha (kamarad, makarafoon, ogeysiisyo)',linkedDevices:'📱 Qalab ku xiran / gelitaanka hadda',callHistory:'📞 Taariikhda wicitaannada',messageSettings:'💬 Dejinta fariimaha',about:'ℹ️ Ku saabsan EthioLegacy',profilePrivacy:'Astaan, asturnaan iyo doorashooyinka app-ka',incoming:'Wicitaan soo socda...',accept:'Aqbal',reject:'Diid',endCall:'Dhammee wicitaanka',emptyUsers:'Weli ma jiraan isticmaaleyaal kale.',caughtUp:'Wax ogeysiis cusub ah ma jiro.'}
   };
   function toast(message){const el=document.getElementById('toast');if(!el)return;el.textContent=message;el.classList.add('show');clearTimeout(window.__toastTimer);window.__toastTimer=setTimeout(()=>el.classList.remove('show'),3200);}
-  function pushNotice(title,body){notifications.unshift({title,body,time:new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})});notifications=notifications.slice(0,40);const badge=document.getElementById('notificationBadge');badge.textContent=notifications.length;badge.style.display=notifications.length?'inline-flex':'none';renderNotifications();toast(title+(body?': '+body:''));if('Notification' in window && Notification.permission==='granted' && document.visibilityState!=='visible'){try{new Notification(title,{body,icon:'./logo.png'});}catch(e){}}}
+  const tabNoticeCounts={chats:0,calls:0,special:0,communities:0};
+  function updateTabNoticeBadges(){const ids={chats:'chatsTabBadge',calls:'callsTabBadge',special:'specialTabBadge',communities:'communitiesTabBadge'};Object.entries(ids).forEach(([key,id])=>{const el=document.getElementById(id);if(!el)return;const count=tabNoticeCounts[key]||0;el.textContent=count>99?'99+':String(count);el.style.display=count?'inline-flex':'none';});}
+  function pushNotice(title,body){notifications.unshift({title,body,time:new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})});notifications=notifications.slice(0,40);const text=(String(title)+' '+String(body||'')).toLowerCase();const bucket=/call|ring|missed|voice|video/.test(text)?'calls':/communit|community/.test(text)?'communities':/special group|love group|family group|friend group|classmate/.test(text)?'special':'chats';tabNoticeCounts[bucket]=(tabNoticeCounts[bucket]||0)+1;updateTabNoticeBadges();renderNotifications();toast(title+(body?': '+body:''));if('Notification' in window && Notification.permission==='granted' && document.visibilityState!=='visible'){try{new Notification(title,{body,icon:'./logo.png'});}catch(e){}}}
   window.showNotifications=()=>{document.getElementById('notificationPanel').classList.toggle('open');renderNotifications();};
   window.closeNotifications=()=>document.getElementById('notificationPanel').classList.remove('open');
   function renderNotifications(){const box=document.getElementById('notificationList');if(!box)return;box.innerHTML=notifications.length?notifications.map(n=>`<div class="notification-entry"><b>${escapeHTML(n.title)}</b><div>${escapeHTML(n.body||'')}</div><small class="muted">${n.time}</small></div>`).join(''):'<p class="muted">You’re all caught up.</p>';}
@@ -1162,6 +1169,7 @@ window.openSettings = ((originalOpenSettings) => {
 })(window.openSettings);
   window.logout = () => signOut(auth);
   window.switchHomeTab = (paneId, button) => {
+    const noticeKey={chatsPane:'chats',callsPane:'calls',updatesPane:'special',communitiesPane:'communities'}[paneId];if(noticeKey){tabNoticeCounts[noticeKey]=0;updateTabNoticeBadges();}
     document.querySelectorAll('.main-tab').forEach(b=>b.classList.toggle('active',b===button));
     document.querySelectorAll('.home-pane').forEach(p=>p.classList.toggle('active',p.id===paneId));
     document.getElementById('homeSearchWrap').style.display = (paneId==='chatsPane' || paneId==='callsPane') ? 'block' : 'none';
