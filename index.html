@@ -336,11 +336,14 @@
     <div class="header-actions">
       <div class="header-more-wrap">
         <button class="header-more-trigger" aria-label="More options" title="More options" aria-haspopup="true" aria-expanded="false" onclick="toggleHeaderMoreMenu()">⋮</button>
-        <div id="headerMoreMenu" class="header-more-menu">
-          <button onclick="openNewChatModal();closeHeaderMoreMenu()">🌳 Tree / Create</button>
-          <button onclick="openSettings();closeHeaderMoreMenu()">⚙️ Settings</button>
-          <button onclick="showNotifications();closeHeaderMoreMenu()">🔔 Notifications</button>
-          <button onclick="importDeviceContacts();closeHeaderMoreMenu()">📱 Sync contacts</button>
+        <div id="headerMoreMenu" class="header-more-menu" role="menu" aria-label="More options">
+          <button role="menuitem" onclick="menuNewGroup()">👥 New group</button>
+          <button role="menuitem" onclick="menuNewBroadcast()">📣 New broadcast</button>
+          <button role="menuitem" onclick="menuLinkedDevices()">📱 Linked devices</button>
+          <button role="menuitem" onclick="menuStarred()">⭐ Starred</button>
+          <button role="menuitem" onclick="menuReadAll()">✓ Read all</button>
+          <button role="menuitem" onclick="menuSettings()">⚙️ Settings</button>
+          <button role="menuitem" onclick="menuSwitchAccount()">⇄ Switch account</button>
         </div>
       </div>
     </div>
@@ -1977,7 +1980,7 @@ window.saveNewContact = async () => {
     ${!isMine ? `<div class="msg-name">${escapeHTML(m.senderName||'Member')}</div>` : ''}
     ${m.text ? `<div>${escapeHTML(m.text)}</div>` : ''}
     ${attachmentHtml}
-    <div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;font-size:10px;color:#999;margin-top:4px;"><span>${time}</span></div>
+    <div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;font-size:10px;color:#999;margin-top:4px;"><button type="button" title="Save to Starred" aria-label="Save message to Starred" onclick="event.stopPropagation();toggleStarredMessage('${d.id}', ${JSON.stringify(m.text||'')}, ${JSON.stringify(m.attachmentName||'')}, '${escapeHTML(currentChatId)}')" style="border:0;background:transparent;color:#b58b00;padding:2px 5px;font-size:15px;cursor:pointer">☆</button><span>${time}</span></div>
   </div>`;
 });
       updateMessageSelectionBar();
@@ -2735,6 +2738,58 @@ window.saveNewContact = async () => {
   function loadUpdates(){loadStatuses();loadChannels();}
   window.toggleHeaderMoreMenu=()=>document.getElementById('headerMoreMenu')?.classList.toggle('open');
   window.closeHeaderMoreMenu=()=>document.getElementById('headerMoreMenu')?.classList.remove('open');
+  window.menuNewGroup=()=>{
+    closeHeaderMoreMenu();
+    if(!currentUser)return toast('Please sign in first.');
+    openNewChatModal();
+    setTimeout(()=>{ if(typeof window.showGroupInput==='function') window.showGroupInput(); },80);
+  };
+  window.menuNewBroadcast=async()=>{
+    closeHeaderMoreMenu();
+    if(!currentUser)return toast('Please sign in first.');
+    const message=prompt('New broadcast\n\nEnter the message you want to share:');
+    if(message===null)return;
+    const clean=message.trim(); if(!clean)return toast('Please enter a message.');
+    const shareText='EthioLegacy broadcast from '+(currentUser.displayName||'a contact')+':\n\n'+clean;
+    try{
+      if(navigator.share) await navigator.share({title:'EthioLegacy broadcast',text:shareText});
+      else if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(shareText);toast('Broadcast text copied. Paste it into the app or share it with your contacts.');}
+      else prompt('Copy this broadcast message:',shareText);
+    }catch(e){if(e.name!=='AbortError')toast('Could not open the share sheet.');}
+  };
+  window.menuLinkedDevices=()=>{closeHeaderMoreMenu();if(!currentUser)return toast('Please sign in first.');showLinkedDevices();};
+  window.menuStarred=()=>{
+    closeHeaderMoreMenu();
+    if(!currentUser)return toast('Please sign in first.');
+    const key='ethiolegacy_starred_'+currentUser.uid;
+    let items=[];try{items=JSON.parse(localStorage.getItem(key)||'[]');}catch(e){}
+    if(!items.length)return alert('Starred messages\n\nNo starred messages yet. In a chat, tap ☆ beside a message to save it here.');
+    const summary=items.map((x,i)=>(i+1)+'. '+(x.text||x.attachmentName||'Attachment')+'\n'+(x.savedAt||'')).join('\n\n');
+    alert('Starred messages\n\n'+summary);
+  };
+  window.toggleStarredMessage=(messageId,messageText,attachmentName,chatId)=>{
+    if(!currentUser)return toast('Please sign in first.');
+    const key='ethiolegacy_starred_'+currentUser.uid;let items=[];
+    try{items=JSON.parse(localStorage.getItem(key)||'[]');}catch(e){}
+    const index=items.findIndex(x=>x.messageId===messageId&&x.chatId===chatId);
+    if(index>=0){items.splice(index,1);toast('Removed from Starred.');}
+    else{items.unshift({messageId,chatId,text:String(messageText||''),attachmentName:String(attachmentName||''),savedAt:new Date().toLocaleString()});toast('Saved to Starred.');}
+    localStorage.setItem(key,JSON.stringify(items));
+  };
+  window.menuReadAll=()=>{
+    closeHeaderMoreMenu();
+    if(!currentUser)return toast('Please sign in first.');
+    notifications=[];
+    Object.keys(tabNoticeCounts).forEach(k=>tabNoticeCounts[k]=0);
+    updateTabNoticeBadges();renderNotifications();closeNotifications();
+    toast('All EthioLegacy notifications marked as read.');
+  };
+  window.menuSettings=()=>{closeHeaderMoreMenu();openSettings();};
+  window.menuSwitchAccount=async()=>{
+    closeHeaderMoreMenu();
+    if(!currentUser)return toast('Please sign in first.');
+    if(confirm('Switch account? You will be signed out of this EthioLegacy account.')) await signOut(auth);
+  };
   document.addEventListener('click',e=>{if(!e.target.closest('.header-more-wrap'))closeHeaderMoreMenu();});
   // Ask for contact access on the first main-tab interaction after sign-in.
   // Native APKs can read contacts after Android permission; browsers show their
