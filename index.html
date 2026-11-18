@@ -2883,7 +2883,7 @@ if (!window.Capacitor?.isNativePlatform?.() && 'serviceWorker' in navigator && (
       <input id="exploreSearchInput" style="min-width:0;flex:1;padding:12px;border:1px solid #d5dfdc;border-radius:10px;font-size:15px" placeholder="Search any topic worldwide...">
       <button onclick="runExploreSearch()" style="border:0;border-radius:10px;padding:0 14px;background:#008069;color:white;font-weight:700;cursor:pointer">Search</button>
     </div>
-    <div id="exploreResults" style="font-size:13px;color:#526170">All Explore Worldwide sections load automatically when you open this page. Use search for another topic.</div>
+    <div id="exploreResults" style="font-size:13px;color:#526170">Tap any topic above to load its full information, or search for another topic.</div>
   </div>
   
  </div>
@@ -2932,7 +2932,7 @@ const exploreAllTopics = [
 window.openExploreEthiopia=()=>{
   document.getElementById('newChatModal')?.classList.remove('active');
   document.getElementById('exploreEthiopia').style.display='flex';
-  loadExploreAllTopics();
+  // Keep the original Explore Worldwide layout; load details only after a topic is tapped.
 };
 window.closeExploreEthiopia=()=>document.getElementById('exploreEthiopia').style.display='none';
 window.loadExploreAllTopics=async(force=false)=>{
@@ -2965,7 +2965,11 @@ window.loadExploreAllTopics=async(force=false)=>{
   grid.dataset.loaded='yes';
   if(box)box.innerHTML='<button type="button" onclick="loadExploreAllTopics(true)" style="border:0;border-radius:9px;padding:10px 14px;background:#008069;color:#fff;font-weight:700">↻ Reload all information</button>';
 };
-window.searchExploreTopic=(q)=>{document.getElementById('exploreSearchInput').value=q;runExploreSearch();};
+window.searchExploreTopic=(q)=>{
+  const input=document.getElementById('exploreSearchInput');
+  if(input) input.value=q;
+  runExploreSearch();
+};
 window.openSportsNews=()=>{
   const panel=document.getElementById('sportsNewsScreen');
   if(panel){panel.style.display='flex';return;}
@@ -2985,44 +2989,36 @@ window.openSportsSource=(url)=>{
 window.runExploreSearch=async()=>{
   const input=document.getElementById('exploreSearchInput');
   const box=document.getElementById('exploreResults');
-  const q=(input.value||'').trim();
-  if(!q)return;
-  
-  box.innerHTML='<p>Searching deep worldwide data...</p>';
-  
+  const q=(input?.value||'').trim();
+  if(!q||!box)return;
+  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  box.innerHTML='<div style="padding:16px;text-align:center;color:#176b52"><div style="font-size:26px">⏳</div><b>Loading full information…</b><p>Please wait. Internet connection is required.</p></div>';
+  box.scrollIntoView({behavior:'smooth',block:'start'});
   try{
     const searchUrl='https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch='+encodeURIComponent(q)+'&format=json&origin=*&srlimit=1';
     const searchRes=await fetch(searchUrl);
+    if(!searchRes.ok)throw new Error('Search request failed');
     const searchData=await searchRes.json();
-    
-    if(!searchData.query?.search?.length){
-      box.innerHTML='<p>No results found. Try a different search.</p>';
-      return;
-    }
-    
-    const exactTitle = searchData.query.search[0].title;
-
-    const summaryUrl='https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exintro=1&explaintext=1&titles='+encodeURIComponent(exactTitle)+'&format=json&origin=*';
-    const summaryRes=await fetch(summaryUrl);
-    const summaryData=await summaryRes.json();
-    
-    const pages = summaryData.query.pages;
-    const pageId = Object.keys(pages)[0];
-    const extract = pages[pageId].extract || 'No detailed description available.';
-    
-    const pageLink = 'https://en.wikipedia.org/wiki/' + encodeURIComponent(exactTitle.replace(/ /g,'_'));
-    
-    box.innerHTML = `
-      <div style="padding:15px; border:1px solid #e2e8f0; border-radius:10px; background:#fff; box-shadow:0 2px 5px rgba(0,0,0,0.05);">
-        <h3 style="color:#007b66; margin-bottom:10px; font-size:18px;">${exactTitle}</h3>
-        <p style="line-height:1.6; color:#334155; font-size:14px; margin-bottom:15px;">${extract}</p>
-        <a href="${pageLink}" target="_blank" rel="noopener" style="display:inline-block; padding:10px 15px; background:#008069; color:#fff; text-decoration:none; border-radius:8px; font-weight:bold; font-size:14px;">Read Full Article ↗</a>
-      </div>
-    `;
-    
+    if(!searchData.query?.search?.length){box.innerHTML='<p>No results found. Try another topic.</p>';return;}
+    const exactTitle=searchData.query.search[0].title;
+    const detailUrl='https://en.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&exsectionformat=plain&titles='+encodeURIComponent(exactTitle)+'&format=json&origin=*';
+    const detailRes=await fetch(detailUrl);
+    if(!detailRes.ok)throw new Error('Article request failed');
+    const detailData=await detailRes.json();
+    const pages=detailData.query?.pages||{};
+    const page=Object.values(pages)[0];
+    const extract=page?.extract||'No detailed information is available for this topic.';
+    const pageTitle=page?.title||exactTitle;
+    const pageLink='https://en.wikipedia.org/wiki/'+encodeURIComponent(pageTitle.replace(/ /g,'_'));
+    box.innerHTML=`<article style="padding:16px;border:1px solid #e2e8f0;border-radius:12px;background:#fff;box-shadow:0 2px 5px #0000000d">\
+      <button type="button" onclick="document.getElementById('exploreResults').innerHTML='Tap a topic above to load its full information.';document.getElementById('exploreCategoryGrid').scrollIntoView({behavior:'smooth',block:'start'});" style="border:0;background:transparent;color:#087b60;font-weight:700;padding:4px 0 12px">← Back to topics</button>\
+      <h3 style="color:#007b66;margin:0 0 12px;font-size:19px">${esc(pageTitle)}</h3>\
+      <div style="white-space:pre-line;overflow-wrap:anywhere;line-height:1.7;color:#334155;font-size:14px">${esc(extract)}</div>\
+      <a href="${pageLink}" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin-top:16px;padding:10px 15px;background:#008069;color:#fff;text-decoration:none;border-radius:8px;font-weight:bold;font-size:14px">Read source article ↗</a>\
+    </article>`;
   }catch(e){
-    console.error(e);
-    box.innerHTML='<p>Could not load data. Check your internet connection.</p>';
+    console.error('Explore Worldwide load failed:',e);
+    box.innerHTML='<p style="padding:14px;background:#fff;border-radius:10px;color:#8b2638">Could not load information. Check your internet connection and try again.</p>';
   }
 };
 </script>
