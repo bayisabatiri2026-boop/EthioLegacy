@@ -429,7 +429,7 @@
 
 <div id="settingsModal" class="modal settings-overlay">
   <div class="modal-content settings-content">
-    <div class="settings-title"><img class="brand-image large" src="./logo.png" alt="EthioLegacy logo"><div><h2 id="settingsHeading">EthioLegacy Settings</h2><p id="settingsDescription">Profile, privacy and app preferences</p></div><button class="close-settings" onclick="closeSettings()">✕</button></div>
+    <div class="settings-title"><img class="brand-image large" src="./logo.png" alt="EthioLegacy logo"><div><h2 id="settingsHeading">EthioLegacy Settings</h2><p id="settingsDescription">Profile, privacy and app preferences</p></div><button class="close-settings" aria-label="Back to three-dot menu" title="Back" onclick="closeSettings()">←</button></div>
     <div class="profile-upload">
       <img id="profilePreview" alt="Profile photo" src="" style="display:none;width:64px;height:64px;border-radius:50%;object-fit:cover;">
       <div id="profileInitial" class="profile-initial">EL</div>
@@ -468,7 +468,7 @@
     
     <!-- Header -->
     <div style="display: flex; align-items: center; padding: 15px; border-bottom: 1px solid #e0e0e0; background: #fff; position: sticky; top: 0; z-index: 10;">
-      <button onclick="document.getElementById('newChatModal').classList.remove('active')" style="border: none; background: transparent; font-size: 24px; margin-right: 15px; cursor: pointer; color: #111;">←</button>
+      <button onclick="backFromMoreMenuContent()" aria-label="Back to three-dot menu" title="Back" style="border: none; background: transparent; font-size: 24px; margin-right: 15px; cursor: pointer; color: #111;">←</button>
       <div>
         <h3 style="margin: 0; font-size: 18px; color: #111;">Select contact</h3>
         <p style="margin: 0; font-size: 13px; color: #666;" id="contactCount">0 contacts</p>
@@ -765,7 +765,14 @@ const firebaseConfig = {
     try{await reauthenticateWithCredential(user,EmailAuthProvider.credential(user.email,oldPass));await updatePassword(user,newPass);['oldPasswordChange','newPasswordChange','confirmNewPasswordChange'].forEach(id=>document.getElementById(id).value='');status.textContent='Password changed successfully.';toast('Your password was changed.');}
     catch(e){console.error('Password change:',e);status.textContent=e.code==='auth/wrong-password'||e.code==='auth/invalid-credential'?'Old password is incorrect.':e.code==='auth/requires-recent-login'?'Please sign out and sign in again, then retry.':'Could not change password: '+(e.message||e.code);}
   };
-  window.closeSettings=()=>document.getElementById('settingsModal').classList.remove('active');
+  window.__returnToMoreMenu=false;
+  window.backFromMoreMenuContent=()=>{
+    document.getElementById('newChatModal')?.classList.remove('active');
+    document.getElementById('settingsModal')?.classList.remove('active');
+    document.getElementById('headerMoreMenu')?.classList.add('open');
+    const trigger=document.querySelector('.header-more-trigger');if(trigger)trigger.setAttribute('aria-expanded','true');
+  };
+  window.closeSettings=()=>{document.getElementById('settingsModal').classList.remove('active');if(window.__returnToMoreMenu){window.__returnToMoreMenu=false;document.getElementById('headerMoreMenu')?.classList.add('open');const trigger=document.querySelector('.header-more-trigger');if(trigger)trigger.setAttribute('aria-expanded','true');}};
 
   window.openAndroidAppSettings=async()=>{
     const isNative=!!(window.Capacitor && typeof window.Capacitor.isNativePlatform==='function' && window.Capacitor.isNativePlatform());
@@ -2739,6 +2746,7 @@ window.saveNewContact = async () => {
   window.toggleHeaderMoreMenu=()=>document.getElementById('headerMoreMenu')?.classList.toggle('open');
   window.closeHeaderMoreMenu=()=>document.getElementById('headerMoreMenu')?.classList.remove('open');
   window.menuNewGroup=()=>{
+    window.__returnToMoreMenu=true;
     closeHeaderMoreMenu();
     if(!currentUser)return toast('Please sign in first.');
     openNewChatModal();
@@ -2784,7 +2792,7 @@ window.saveNewContact = async () => {
     updateTabNoticeBadges();renderNotifications();closeNotifications();
     toast('All EthioLegacy notifications marked as read.');
   };
-  window.menuSettings=()=>{closeHeaderMoreMenu();openSettings();};
+  window.menuSettings=()=>{window.__returnToMoreMenu=true;closeHeaderMoreMenu();openSettings();};
   window.menuSwitchAccount=async()=>{
     closeHeaderMoreMenu();
     if(!currentUser)return toast('Please sign in first.');
