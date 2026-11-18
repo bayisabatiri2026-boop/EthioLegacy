@@ -2858,6 +2858,11 @@ if (!window.Capacitor?.isNativePlatform?.() && 'serviceWorker' in navigator && (
    <button class="explore-category" onclick="openSportsNews()"><span>⚽</span><b>Sports & Sports News</b><small>Football, athletics, basketball and worldwide sports updates</small></button>
   </div>
   <style>
+   #exploreEthiopia .explore-full-card{grid-column:1/-1;min-width:0;background:#fff;border:1px solid #e1ebe7;border-radius:14px;padding:15px;margin:0 0 2px;box-shadow:0 2px 7px #173c3010;overflow-wrap:anywhere}
+   #exploreEthiopia .explore-full-card h3{margin:0 0 9px;color:#087b60;font-size:17px}
+   #exploreEthiopia .explore-full-card h4{margin:0 0 8px;color:#173b34;font-size:15px}
+   #exploreEthiopia .explore-full-card p{white-space:pre-line;margin:0 0 12px;font-size:13px;line-height:1.65;color:#40534d}
+   #exploreEthiopia .explore-full-card a{display:inline-block;color:#007b60;font-weight:700;text-decoration:none;font-size:13px}
    #exploreEthiopia .explore-category{min-width:0;text-align:left;border:1px solid #e1ebe7;background:#fff;border-radius:13px;padding:13px 11px;display:flex;flex-direction:column;gap:6px;box-shadow:0 2px 7px #173c3010;color:#173b34;cursor:pointer}
    #exploreEthiopia .explore-category:active{transform:scale(.98)}
    #exploreEthiopia .explore-category span{font-size:25px}
@@ -2878,7 +2883,7 @@ if (!window.Capacitor?.isNativePlatform?.() && 'serviceWorker' in navigator && (
       <input id="exploreSearchInput" style="min-width:0;flex:1;padding:12px;border:1px solid #d5dfdc;border-radius:10px;font-size:15px" placeholder="Search any topic worldwide...">
       <button onclick="runExploreSearch()" style="border:0;border-radius:10px;padding:0 14px;background:#008069;color:white;font-weight:700;cursor:pointer">Search</button>
     </div>
-    <div id="exploreResults" style="font-size:13px;color:#526170">Enter a topic above to read deeply.</div>
+    <div id="exploreResults" style="font-size:13px;color:#526170">All Explore Worldwide sections load automatically when you open this page. Use search for another topic.</div>
   </div>
   
  </div>
@@ -2910,8 +2915,56 @@ if (!window.Capacitor?.isNativePlatform?.() && 'serviceWorker' in navigator && (
 </div>
 
 <script>
-window.openExploreEthiopia=()=>{document.getElementById('newChatModal')?.classList.remove('active');document.getElementById('exploreEthiopia').style.display='flex';};
+const exploreAllTopics = [
+  {icon:'🌍',title:'Explore Countries',query:'Countries of the world geography countries culture'},
+  {icon:'🇪🇹',title:'Explore Ethiopia',query:'Ethiopia history geography culture tourism'},
+  {icon:'🧠',title:'World Knowledge',query:'Science technology education knowledge'},
+  {icon:'🌿',title:'Explore Nature',query:'Biodiversity ecosystems wildlife conservation'},
+  {icon:'💻',title:'Digital Ethiopia',query:'Digital transformation in Ethiopia'},
+  {icon:'🤝',title:'Global Communities',query:'International cooperation global communities'},
+  {icon:'🗣️',title:'Language Discovery',query:'Languages of the world linguistics'},
+  {icon:'🌱',title:'Ethio Green Legacy',query:'Reforestation climate change environmental conservation Ethiopia'},
+  {icon:'🔤',title:'Smart Language Bridge',query:'Machine translation language technology'},
+  {icon:'🎓',title:'Knowledge & Learning',query:'Open education digital learning skills'},
+  {icon:'💡',title:'Innovation & Opportunities',query:'Innovation entrepreneurship technology'},
+  {icon:'⚽',title:'Sports & Sports News',query:'Sports worldwide football athletics basketball'}
+];
+window.openExploreEthiopia=()=>{
+  document.getElementById('newChatModal')?.classList.remove('active');
+  document.getElementById('exploreEthiopia').style.display='flex';
+  loadExploreAllTopics();
+};
 window.closeExploreEthiopia=()=>document.getElementById('exploreEthiopia').style.display='none';
+window.loadExploreAllTopics=async(force=false)=>{
+  const grid=document.getElementById('exploreCategoryGrid');
+  const box=document.getElementById('exploreResults');
+  if(!grid)return;
+  if(grid.dataset.loaded==='yes'&&!force)return;
+  grid.dataset.loaded='loading';
+  grid.innerHTML='<div id="exploreLoading" style="grid-column:1/-1;padding:24px;text-align:center;background:#fff;border-radius:14px;color:#176b52"><div style="font-size:30px">⏳</div><b>Loading worldwide information…</b><p style="font-size:12px;color:#65756f">Please wait while all Explore sections are collected.</p></div>';
+  if(box)box.innerHTML='Search any topic above to find more information.';
+  const escapeHTML=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const getArticle=async(topic)=>{
+    const u='https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch='+encodeURIComponent(topic.query)+'&format=json&origin=*&srlimit=1';
+    const sr=await fetch(u); if(!sr.ok)throw new Error('Search unavailable');
+    const sd=await sr.json(); const title=sd.query?.search?.[0]?.title;
+    if(!title)return {title:'Information not found',extract:'No matching article was found. Try the search box below.'};
+    const eu='https://en.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&exsectionformat=plain&titles='+encodeURIComponent(title)+'&format=json&origin=*';
+    const er=await fetch(eu); if(!er.ok)throw new Error('Article unavailable');
+    const ed=await er.json(); const pg=Object.values(ed.query?.pages||{})[0];
+    return {title:pg?.title||title,extract:pg?.extract||'No article text is available.'};
+  };
+  const results=await Promise.allSettled(exploreAllTopics.map(async t=>({topic:t,article:await getArticle(t)})));
+  const html=results.map((r,i)=>{
+    const t=exploreAllTopics[i];
+    if(r.status!=='fulfilled')return `<article class="explore-full-card"><h3>${t.icon} ${escapeHTML(t.title)}</h3><p>Could not load this section. Check your internet connection and tap Reload information.</p></article>`;
+    const a=r.value.article; const link='https://en.wikipedia.org/wiki/'+encodeURIComponent(a.title.replace(/ /g,'_'));
+    return `<article class="explore-full-card"><h3>${t.icon} ${escapeHTML(t.title)}</h3><h4>${escapeHTML(a.title)}</h4><p>${escapeHTML(a.extract)}</p><a href="${link}" target="_blank" rel="noopener noreferrer">Open full source article ↗</a></article>`;
+  }).join('');
+  grid.innerHTML=html;
+  grid.dataset.loaded='yes';
+  if(box)box.innerHTML='<button type="button" onclick="loadExploreAllTopics(true)" style="border:0;border-radius:9px;padding:10px 14px;background:#008069;color:#fff;font-weight:700">↻ Reload all information</button>';
+};
 window.searchExploreTopic=(q)=>{document.getElementById('exploreSearchInput').value=q;runExploreSearch();};
 window.openSportsNews=()=>{
   const panel=document.getElementById('sportsNewsScreen');
