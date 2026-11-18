@@ -2843,6 +2843,21 @@ if (!window.Capacitor?.isNativePlatform?.() && 'serviceWorker' in navigator && (
    <h2 style="font-size:21px;margin:0 0 6px;color:#123b34">Discover more. Connect globally.</h2>
    <p style="font-size:13px;line-height:1.5;color:#60736e">Explore countries, knowledge, nature, culture and opportunities from one place.</p>
   </div>
+  <div style="background:white;border-radius:13px;padding:14px;margin:10px 0;box-shadow:0 1px 4px #0001">
+    <h3>🌍 Global Discovery</h3>
+    <p style="font-size:14px;line-height:1.5;color:#526170">Search deeply into history, science, geography, and cultures from anywhere in the world.</p>
+    <button class="contacts-button" style="margin-top:10px;border:0;border-radius:20px;padding:10px 14px;background:#008069;color:#fff;font-weight:700;cursor:pointer" onclick="searchExploreTopic('World History')">Search World History</button>
+    <button class="contacts-button" style="margin-top:10px;border:0;border-radius:20px;padding:10px 14px;background:#008069;color:#fff;font-weight:700;cursor:pointer" onclick="searchExploreTopic('Science and Technology')">Search Science</button>
+  </div>
+
+  <div style="background:white;border-radius:13px;padding:14px;margin:10px 0;box-shadow:0 1px 4px #0001">
+    <h3>🔎 Deep Search</h3>
+    <div style="display:flex;flex-direction:column;gap:9px;margin:12px 0">
+      <input id="exploreSearchInput" style="display:block;box-sizing:border-box;width:100%;min-width:0;padding:14px 12px;border:1.5px solid #9aaca6;border-radius:4px;font-size:16px;background:#fff" placeholder="Search any topic worldwide...">
+      <button onclick="runExploreSearch()" style="align-self:flex-start;min-height:44px;border:0;border-radius:4px;padding:0 22px;background:#008069;color:white;font-weight:700;cursor:pointer">Search</button>
+    </div>
+    <div id="exploreResults" style="font-size:13px;color:#526170">Tap any topic above to load its full information, or search for another topic.</div>
+  </div>
   <div id="exploreCategoryGrid" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:14px">
    <button class="explore-category" onclick="searchExploreTopic('Countries of the world: geography, culture and traditions')"><span>🌍</span><b>Explore Countries</b><small>Geography, cultures and traditions</small></button>
    <button class="explore-category" onclick="searchExploreTopic('Ethiopia history tourism heritage and culture')"><span>🇪🇹</span><b>Explore Ethiopia</b><small>History, tourism and heritage</small></button>
@@ -2870,21 +2885,7 @@ if (!window.Capacitor?.isNativePlatform?.() && 'serviceWorker' in navigator && (
    #exploreEthiopia .explore-category small{font-size:11px;line-height:1.4;color:#63746f}
    @media(min-width:600px){#exploreEthiopia #exploreCategoryGrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
   </style>
-  <div style="background:white;border-radius:13px;padding:14px;margin:10px 0;box-shadow:0 1px 4px #0001">
-    <h3>🌍 Global Discovery</h3>
-    <p style="font-size:14px;line-height:1.5;color:#526170">Search deeply into history, science, geography, and cultures from anywhere in the world.</p>
-    <button class="contacts-button" style="margin-top:10px;border:0;border-radius:20px;padding:10px 14px;background:#008069;color:#fff;font-weight:700;cursor:pointer" onclick="searchExploreTopic('World History')">Search World History</button>
-    <button class="contacts-button" style="margin-top:10px;border:0;border-radius:20px;padding:10px 14px;background:#008069;color:#fff;font-weight:700;cursor:pointer" onclick="searchExploreTopic('Science and Technology')">Search Science</button>
-  </div>
 
-  <div style="background:white;border-radius:13px;padding:14px;margin:10px 0;box-shadow:0 1px 4px #0001">
-    <h3>🔎 Deep Search</h3>
-    <div style="display:flex;gap:7px;margin:12px 0">
-      <input id="exploreSearchInput" style="min-width:0;flex:1;padding:12px;border:1px solid #d5dfdc;border-radius:10px;font-size:15px" placeholder="Search any topic worldwide...">
-      <button onclick="runExploreSearch()" style="border:0;border-radius:10px;padding:0 14px;background:#008069;color:white;font-weight:700;cursor:pointer">Search</button>
-    </div>
-    <div id="exploreResults" style="font-size:13px;color:#526170">Tap any topic above to load its full information, or search for another topic.</div>
-  </div>
   
  </div>
 </div>
