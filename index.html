@@ -2869,6 +2869,7 @@ if (!window.Capacitor?.isNativePlatform?.() && 'serviceWorker' in navigator && (
    <button class="explore-category" onclick="searchExploreTopic('Environmental protection tree planting and climate action')"><span>🌱</span><b>Ethio Green Legacy</b><small>Environment and green projects</small></button>
    <button class="explore-category" onclick="searchExploreTopic('Translation technology multilingual communication')"><span>🔤</span><b>Smart Language Bridge</b><small>Translation and communication</small></button>
    <button class="explore-category" onclick="searchExploreTopic('Free learning digital skills careers and entrepreneurship')"><span>🎓</span><b>Knowledge & Learning</b><small>Skills, careers and education</small></button>
+   <button class="explore-category" onclick="openEducationalBooks()"><span>📚</span><b>Educational Books</b><small>Search books worldwide · Read online · Legal downloads</small></button>
    <button class="explore-category" onclick="searchExploreTopic('Global innovation inventions and entrepreneurship')"><span>💡</span><b>Innovation & Opportunities</b><small>Ideas, inventions and business</small></button>
    <button class="explore-category" onclick="openSportsNews()"><span>⚽</span><b>Sports & Sports News</b><small>Football, athletics, basketball and worldwide sports updates</small></button>
   </div>
@@ -2887,6 +2888,32 @@ if (!window.Capacitor?.isNativePlatform?.() && 'serviceWorker' in navigator && (
   </style>
 
   
+ </div>
+</div>
+
+<!-- EDUCATIONAL BOOKS SEARCH -->
+<div id="educationalBooksScreen" style="display:none;position:fixed;inset:0;z-index:1350;background:#f4f8f6;flex-direction:column;color:#173b34">
+ <div style="display:flex;align-items:center;gap:12px;padding:15px;background:#008069;color:#fff;padding-top:max(15px,env(safe-area-inset-top))">
+  <button onclick="closeEducationalBooks()" aria-label="Back to Explore Worldwide" style="border:0;background:transparent;color:#fff;font-size:27px;cursor:pointer">←</button>
+  <div><b>📚 Educational Books</b><div style="font-size:12px;opacity:.9">Search books · Read online · Legal downloads</div></div>
+ </div>
+ <div style="padding:15px;overflow:auto;flex:1">
+  <div style="background:#fff;border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 2px 7px #173c3010">
+   <b style="font-size:16px">Find educational books worldwide</b>
+   <p style="font-size:13px;line-height:1.5;color:#60736e;margin:7px 0 12px">Search by book title, author, subject, school level or language. Reading and download options depend on the book's legal availability.</p>
+   <form onsubmit="searchEducationalBooks(event)" style="display:flex;flex-direction:column;gap:9px">
+    <input id="educationalBooksQuery" type="search" autocomplete="off" placeholder="e.g. Biology, Algebra, Ethiopian history…" style="box-sizing:border-box;width:100%;padding:14px;border:1.5px solid #9aaca6;border-radius:8px;font-size:16px;background:#fff;color:#173b34">
+    <button type="submit" style="min-height:46px;border:0;border-radius:8px;background:#008069;color:#fff;font-weight:700;font-size:15px">🔎 Search books</button>
+   </form>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px">
+   <button type="button" onclick="searchEducationalBooks(null,'mathematics')" style="border:0;border-radius:18px;padding:9px 12px;background:#dff2eb;color:#075c49">📐 Mathematics</button>
+   <button type="button" onclick="searchEducationalBooks(null,'biology')" style="border:0;border-radius:18px;padding:9px 12px;background:#dff2eb;color:#075c49">🧬 Biology</button>
+   <button type="button" onclick="searchEducationalBooks(null,'computer science')" style="border:0;border-radius:18px;padding:9px 12px;background:#dff2eb;color:#075c49">💻 Computer science</button>
+   <button type="button" onclick="searchEducationalBooks(null,'Ethiopian history')" style="border:0;border-radius:18px;padding:9px 12px;background:#dff2eb;color:#075c49">🇪🇹 Ethiopian history</button>
+  </div>
+  <div id="educationalBooksResults" aria-live="polite" style="display:grid;gap:10px"><div style="background:#fff;border-radius:12px;padding:14px;color:#60736e">Search for a book or choose a subject above.</div></div>
+  <div style="margin-top:14px;background:#e6f3ee;border-radius:12px;padding:13px;font-size:12px;line-height:1.5;color:#385b50">📌 EthioLegacy links to book platforms and publishers. Only use download options explicitly offered by the rights holder or a recognized public-domain library. Some books may be preview-only, borrow-only or unavailable in your country.</div>
  </div>
 </div>
 
@@ -2985,6 +3012,50 @@ window.openSportsSource=(url)=>{
   // third-party iframe embedding, which many news sites block for security.
   const opened=window.open(url,'_blank','noopener,noreferrer');
   if(!opened) window.location.href=url;
+};
+
+window.openEducationalBooks=()=>{
+ const panel=document.getElementById('educationalBooksScreen');
+ if(panel) panel.style.display='flex';
+};
+window.closeEducationalBooks=()=>{
+ const panel=document.getElementById('educationalBooksScreen');
+ if(panel) panel.style.display='none';
+};
+window.searchEducationalBooks=async(event, preset)=>{
+ if(event?.preventDefault) event.preventDefault();
+ const input=document.getElementById('educationalBooksQuery');
+ const box=document.getElementById('educationalBooksResults');
+ const query=(preset || input?.value || '').trim();
+ if(!query || !box) return;
+ if(input) input.value=query;
+ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ box.innerHTML='<div style="background:#fff;border-radius:12px;padding:18px;text-align:center;color:#087b60">⏳ Searching legal book catalogues…</div>';
+ try{
+  const url='https://openlibrary.org/search.json?q='+encodeURIComponent(query)+'&fields=key,title,author_name,first_publish_year,cover_i,ebook_access,ia,id_gutenberg,language,subject&limit=20';
+  const response=await fetch(url,{headers:{'Accept':'application/json'}});
+  if(!response.ok) throw new Error('Book catalogue unavailable');
+  const data=await response.json();
+  const docs=data.docs||[];
+  if(!docs.length){box.innerHTML='<div style="background:#fff;border-radius:12px;padding:15px">No matching books found. Try a shorter title, author name or subject.</div>';return;}
+  box.innerHTML=docs.map(book=>{
+   const title=esc(book.title||'Untitled');
+   const authors=esc((book.author_name||['Author not listed']).slice(0,3).join(', '));
+   const year=book.first_publish_year?` · ${esc(book.first_publish_year)}`:'';
+   const key=String(book.key||'');
+   const readUrl=key.startsWith('/works/')?'https://openlibrary.org'+key:'https://openlibrary.org/search?q='+encodeURIComponent(book.title||query);
+   const cover=book.cover_i?`https://covers.openlibrary.org/b/id/${Number(book.cover_i)}-M.jpg` : '';
+   const access=book.ebook_access||'no_ebook';
+   const canRead=['public','borrowable','printdisabled'].includes(access);
+   const gutenberg=(book.id_gutenberg||[]).find(id=>/^\d+$/.test(String(id)));
+   const accessLabel=access==='public'?'Free digital copy listed':access==='borrowable'?'Borrowing may be available':access==='printdisabled'?'Digital access may be restricted':'No online copy listed';
+   const downloadLink=gutenberg?`<a href="https://www.gutenberg.org/ebooks/${gutenberg}" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin:5px 5px 0 0;padding:9px 11px;background:#e8f4ed;color:#075c49;border-radius:7px;text-decoration:none;font-weight:700;font-size:12px">Legal download options ↗</a>`:(access==='public'?`<a href="${readUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin:5px 5px 0 0;padding:9px 11px;background:#e8f4ed;color:#075c49;border-radius:7px;text-decoration:none;font-weight:700;font-size:12px">Open free-copy options ↗</a>`:'');
+   return `<article style="display:flex;gap:12px;background:#fff;border:1px solid #e1ebe7;border-radius:12px;padding:12px;box-shadow:0 2px 6px #173c300c">${cover?`<img src="${cover}" alt="Book cover" loading="lazy" style="width:76px;height:108px;object-fit:cover;border-radius:5px;background:#eef2ef">`:'<div aria-hidden="true" style="width:76px;height:108px;display:grid;place-items:center;background:#e8f4ed;border-radius:5px;font-size:34px">📘</div>'}<div style="min-width:0;flex:1"><b style="display:block;font-size:14px;line-height:1.4;color:#173b34">${title}</b><div style="font-size:12px;color:#65756f;margin:4px 0">${authors}${year}</div><div style="font-size:11px;color:#087b60;margin:5px 0">${esc(accessLabel)}</div><a href="${readUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin:5px 5px 0 0;padding:9px 11px;background:#008069;color:#fff;border-radius:7px;text-decoration:none;font-weight:700;font-size:12px">${canRead?'Read / borrow online ↗':'View book details ↗'}</a>${downloadLink}</div></article>`;
+  }).join('');
+ }catch(error){
+  console.error('Educational book search failed:',error);
+  box.innerHTML='<div style="background:#fff;border-radius:12px;padding:15px;color:#8b2638">Could not search the book catalogue. Check your internet connection and try again.</div>';
+ }
 };
 
 window.runExploreSearch=async()=>{
