@@ -213,7 +213,6 @@
   #ethioInviteInstallLanding a{display:block;text-decoration:none;background:#6f172c;color:white;border-radius:12px;padding:16px 18px;font-size:17px;font-weight:700}
   #ethioInviteInstallLanding .small{font-size:12px;margin-top:16px;margin-bottom:0}
 </style>
-<style id="message-actions-style">.message-action-sheet button:active{background:#e8f5e9}.message.pinned-message{border:1px solid #ffc107}</style>
 </head>
 <body>
 <div id="ethioInviteInstallLanding" aria-label="Install EthioLegacy">
@@ -680,7 +679,7 @@ const firebaseConfig = {
   let notifications = [];
   const languageNames = {en:'English',om:'Afaan Oromoo',am:'አማርኛ',ti:'ትግርኛ',so:'Soomaali',aa:'Afar',sid:'Sidama',wal:'Wolaytta',sw:'Kiswahili',ha:'Hausa',yo:'Yorùbá',ig:'Igbo',zu:'isiZulu',af:'Afrikaans',fr:'Français',ar:'العربية',es:'Español',pt:'Português',hi:'हिन्दी',bn:'বাংলা',ur:'اردو',pa:'ਪੰਜਾਬੀ',ne:'नेपाली','zh-CN':'简体中文',ja:'日本語',ko:'한국어',id:'Bahasa Indonesia',ms:'Bahasa Melayu',th:'ไทย',vi:'Tiếng Việt',de:'Deutsch',it:'Italiano',ru:'Русский',tr:'Türkçe'};
   const supportedLanguageCodes=Object.keys(languageNames);
-  function populateLanguageSelectors(){['firstLaunchLanguage','loginLanguage','appLanguage'].forEach(id=>{const el=document.getElementById(id);if(!el)return;const saved=localStorage.getItem('ethiolegacy_language')||'en';const old=(el.value && languageNames[el.value])?el.value:saved;el.replaceChildren();supportedLanguageCodes.forEach(code=>{const o=document.createElement('option');o.value=code;o.textContent=languageNames[code];el.appendChild(o);});el.value=languageNames[old]?old:'en';if(!el.value)el.value='en';});}
+  function populateLanguageSelectors(){['firstLaunchLanguage','loginLanguage','appLanguage'].forEach(id=>{const el=document.getElementById(id);if(!el)return;const old=el.value||localStorage.getItem('ethiolegacy_language')||'en';el.replaceChildren();supportedLanguageCodes.forEach(code=>{const o=document.createElement('option');o.value=code;o.textContent=languageNames[code];el.appendChild(o);});el.value=languageNames[old]?old:'en';});}
   populateLanguageSelectors();
   const languageWasSelected=localStorage.getItem('ethiolegacy_language_selected')==='yes';
   // Returning users wait on a lightweight startup screen while Firebase restores
@@ -697,7 +696,7 @@ const firebaseConfig = {
     document.getElementById('loginScreen').classList.remove('active');
     document.getElementById('languageWelcomeScreen').classList.add('active');
   }
-  window.continueAfterLanguageSelection=()=>{const selector=document.getElementById('firstLaunchLanguage');const chosen=(selector&&languageNames[selector.value])?selector.value:'en';localStorage.setItem('ethiolegacy_language',chosen);localStorage.setItem('ethiolegacy_language_selected','yes');changeLanguage(chosen);const welcome=document.getElementById('languageWelcomeScreen');if(welcome)welcome.classList.remove('active');const login=document.getElementById('loginScreen');if(login)login.classList.add('active');if(typeof showScreen==='function')showScreen('loginScreen');};
+  window.continueAfterLanguageSelection=()=>{const selector=document.getElementById('firstLaunchLanguage');const chosen=(selector&&selector.value)||localStorage.getItem('ethiolegacy_language')||'en';localStorage.setItem('ethiolegacy_language',chosen);localStorage.setItem('ethiolegacy_language_selected','yes');try{changeLanguage(chosen);}catch(e){console.warn('Language apply error:',e);}const loginSelector=document.getElementById('loginLanguage');if(loginSelector)loginSelector.value=chosen;const welcome=document.getElementById('languageWelcomeScreen');if(welcome)welcome.classList.remove('active');if(typeof window.showScreen==='function')window.showScreen('loginScreen');else{const login=document.getElementById('loginScreen');if(login)login.classList.add('active');}};
   const translations = {
     en:{settings:'Settings',notifications:'Notifications',logout:'Log out',search:'Search users...',message:'Type a message...',signupTitle:'Create your EthioLegacy account',signinTitle:'Sign in to continue',fullName:'Full name',yourName:'Your name',emailPhone:'Email / phone number',emailPlaceholder:'Email or phone number',password:'Password',enterPassword:'Enter password',confirmPassword:'Confirm password',confirmPlaceholder:'Confirm password',signup:'Sign up',signin:'Sign in',already:'Already have an account?',noAccount:"Don't have an account?",newChat:'New Chat or Group',userEmail:'User Email (1-on-1)',groupName:'Group Name (for Group Chat)',cancel:'Cancel',start:'Start',profile:'Your profile',uploadPhoto:'📷 Upload profile photo',language:'🌐 Language',permissions:'🔐 Permissions (camera, microphone, notifications)',linkedDevices:'📱 Linked device / current session',callHistory:'📞 Call history',messageSettings:'💬 Message settings',about:'ℹ️ About EthioLegacy',profilePrivacy:'Profile, privacy and app preferences',incoming:'Incoming Call...',accept:'Accept',reject:'Reject',endCall:'End Call',emptyUsers:'No other users yet.',caughtUp:'You’re all caught up.'},
     om:{settings:'Qindaa’ina',notifications:'Beeksisa',logout:'Ba’i',search:'Fayyadamtoota barbaadi...',message:'Ergaa barreessi...',signupTitle:'Akkaawuntii EthioLegacy kee uumi',signinTitle:'Itti fufuuf seeni',fullName:'Maqaa guutuu',yourName:'Maqaa kee',emailPhone:'Imeelii / lakkoofsa bilbilaa',emailPlaceholder:'Imeelii ykn lakkoofsa bilbilaa',password:'Jecha icciitii',enterPassword:'Jecha icciitii galchi',confirmPassword:'Jecha icciitii mirkaneessi',confirmPlaceholder:'Jecha icciitii irra deebi’i',signup:'Galmaa’i',signin:'Seeni',already:'Akkaawuntii qabdaa?',noAccount:'Akkaawuntii hin qabduu?',newChat:'Haasa’a haaraa ykn garee',userEmail:'Imeelii fayyadamaa (nama tokko)',groupName:'Maqaa garee',cancel:'Dhiisi',start:'Jalqabi',profile:'Piroofaayilii kee',uploadPhoto:'📷 Suuraa piroofaayilii olkaa’i',language:'🌐 Afaan',permissions:'🔐 Hayyama (kaameraa, maayikiroofonii, beeksisa)',linkedDevices:'📱 Meeshaa walqabate / seensa ammaa',callHistory:'📞 Seenaa bilbilaa',messageSettings:'💬 Qindaa’ina ergaa',about:'ℹ️ Waa’ee EthioLegacy',profilePrivacy:'Piroofaayilii, iccitii fi filannoo appii',incoming:'Bilbilli siif dhufe...',accept:'Fudhu',reject:'Didi',endCall:'Bilbila cufi',emptyUsers:'Ammaaf fayyadamaan biraa hin jiru.',caughtUp:'Beeksisoota haaraa hin qabdu.'},
@@ -1958,7 +1957,7 @@ window.saveNewContact = async () => {
   }
 
   box.innerHTML += `
-  <div class="message ${isMine ? 'mine' : ''} ${selectedMessageIds.has(d.id) ? 'selected-message' : ''}" data-message-id="${escapeHTML(d.id)}" onclick="(function(ev,el,id){if(ev.target.closest('button,input,textarea,select'))return;const mediaControl=ev.target.closest('audio,video');if(mediaControl)return;const attachmentLink=ev.target.closest('.attachment-card a');if(attachmentLink){ev.preventDefault();ev.stopPropagation();}openMessageActions(el,id);})(event,this,'${d.id}')">
+  <div class="message ${isMine ? 'mine' : ''} ${selectedMessageIds.has(d.id) ? 'selected-message' : ''}" data-message-id="${escapeHTML(d.id)}" onclick="selectMessage(this, '${d.id}')">
     ${!isMine ? `<div class="msg-name">${escapeHTML(m.senderName||'Member')}</div>` : ''}
     ${m.text ? `<div>${escapeHTML(m.text)}</div>` : ''}
     ${attachmentHtml}
@@ -2019,31 +2018,6 @@ window.saveNewContact = async () => {
     }
   };
 
-  // WhatsApp-style message action sheet (tap a message to open actions).
-  window.openMessageActions = async (element, messageId) => {
-    const msgRef = doc(db, 'chats', currentChatId, 'messages', messageId);
-    const snap = await getDoc(msgRef); if (!snap.exists()) return;
-    const m = snap.data(); const isMine = m.senderId === currentUser.uid;
-    const actions = [
-      ['↩️ Reply', () => { window.replyTargetMessage = {id:messageId, text:m.text||m.attachmentName||'Attachment', sender:m.senderName||'Member'}; toast('Reply selected. Type your reply and send.'); document.getElementById('msgInput')?.focus(); }],
-      ['😊 React', async () => { const reaction=prompt('Enter reaction emoji (e.g. 👍 ❤️ 😂):'); if(!reaction)return; try{await updateDoc(msgRef,{reactions:arrayUnion({uid:currentUser.uid,emoji:reaction.trim(),at:Date.now()})});toast('Reaction added.');}catch(e){console.error(e);toast('Could not add reaction.');} }],
-      ...(m.attachmentUrl ? [['⬇️ Download', () => { const a=document.createElement('a');a.href=m.attachmentUrl;a.download=m.attachmentName||'attachment';a.target='_blank';document.body.appendChild(a);a.click();a.remove(); }] : []),
-      ['↗️ Forward', async () => { const eligible=myFriends.filter(u=>u.uid!==currentPartner); if(!eligible.length)return toast('Add a friend first.'); const names=eligible.map((u,i)=>`${i+1}. ${u.displayName||u.name||u.email||u.uid}`).join('\n'); const choice=prompt('Forward to contact (enter number):\n'+names); const idx=Number(choice)-1; if(!Number.isInteger(idx)||idx<0||idx>=eligible.length)return; const target=eligible[idx]; const cid=currentUser.uid<target.uid?currentUser.uid+'_'+target.uid:target.uid+'_'+currentUser.uid; try{await addDoc(collection(db,'chats',cid,'messages'),{senderId:currentUser.uid,senderName:currentUser.displayName||'Member',text:m.text||'',attachmentUrl:m.attachmentUrl||'',attachmentKind:m.attachmentKind||'',attachmentName:m.attachmentName||'',storagePath:m.storagePath||'',attachmentSize:m.attachmentSize||0,forwarded:true,forwardedFrom:messageId,timestamp:serverTimestamp()});toast('Message forwarded.');}catch(e){console.error(e);toast('Forward failed.');} }],
-      ['📌 Pin', async () => { try{await updateDoc(msgRef,{pinned:!m.pinned,pinnedBy:m.pinned?null:currentUser.uid});toast(m.pinned?'Unpinned.':'Pinned.');}catch(e){console.error(e);toast('Could not pin message.');} }],
-      ['⭐ Star', async () => { try{await updateDoc(msgRef,{starred:!m.starred,starredBy:m.starred?null:currentUser.uid});toast(m.starred?'Star removed.':'Message starred.');}catch(e){console.error(e);toast('Could not star message.');} }],
-      ...(isMine ? [['🗑️ Delete', async () => { if(confirm('Delete this message for everyone?')) await window.deleteMessage(messageId); }] : [])
-    ];
-    const old=document.getElementById('messageActionSheet');old?.remove();
-    const sheet=document.createElement('div');sheet.id='messageActionSheet';sheet.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.28);z-index:9999;display:flex;align-items:flex-end;justify-content:center;';
-    sheet.innerHTML=`<div style="background:#fff;width:min(100%,520px);border-radius:18px 18px 0 0;padding:10px 16px max(20px,env(safe-area-inset-bottom));box-shadow:0 -4px 25px #0002;max-height:78vh;overflow:auto;color:#263238"><div style="width:42px;height:4px;border-radius:4px;background:#ddd;margin:0 auto 14px"></div><div id="msgReactionBar" style="display:flex;justify-content:space-around;align-items:center;gap:4px;background:#f5f5f5;border-radius:24px;padding:8px 5px;margin-bottom:12px"></div><div id="msgActionList"></div><button id="msgActionCancel" style="width:100%;padding:12px;border:0;background:#f1f1f1;border-radius:10px;margin-top:10px;font-size:15px">Cancel</button></div>`;
-    sheet.addEventListener('click',e=>{if(e.target===sheet)sheet.remove();});document.body.appendChild(sheet);
-    sheet.querySelector('#msgActionCancel').onclick=()=>sheet.remove();
-    const reactionBar=sheet.querySelector('#msgReactionBar');
-    ['👍','❤️','😂','😮','😢','🙏'].forEach(emoji=>{const rb=document.createElement('button');rb.textContent=emoji;rb.style.cssText='border:0;background:transparent;font-size:23px;padding:4px;cursor:pointer';rb.onclick=async()=>{try{await updateDoc(msgRef,{reactions:arrayUnion({uid:currentUser.uid,emoji,at:Date.now()})});toast('Reaction added.');}catch(e){console.error(e);toast('Could not add reaction.');}sheet.remove();};reactionBar.appendChild(rb);});
-    const plus=document.createElement('button');plus.textContent='＋';plus.title='More reactions';plus.style.cssText='border:0;background:transparent;font-size:22px;padding:4px;cursor:pointer';plus.onclick=async()=>{const reaction=prompt('Enter an emoji reaction:');if(!reaction)return;try{await updateDoc(msgRef,{reactions:arrayUnion({uid:currentUser.uid,emoji:reaction.trim(),at:Date.now()})});toast('Reaction added.');}catch(e){console.error(e);toast('Could not add reaction.');}sheet.remove();};reactionBar.appendChild(plus);
-    const list=sheet.querySelector('#msgActionList'); actions.forEach(([label,fn])=>{const b=document.createElement('button');b.textContent=label;b.style.cssText='display:flex;align-items:center;width:100%;text-align:left;padding:14px 10px;border:0;border-bottom:1px solid #eee;background:#fff;font-size:16px;color:#263238;cursor:pointer;min-height:48px';if(label.includes('Delete'))b.style.color='#c62828';b.onclick=async()=>{sheet.remove();await fn();};list.appendChild(b);});
-  };
-
   window.removeUserFromLists = async (uid, name) => {
     if (!currentUser || !confirm(`Remove ${name} from your private Chats and Calls lists? This will not remove them from another user's list.`)) return;
     try {
@@ -2061,15 +2035,12 @@ window.saveNewContact = async () => {
     if (!currentUser || !currentChatId) return toast('Open a chat first.');
     if (!text) return;
     input.value = '';
-    const replyMeta = window.replyTargetMessage || null;
     await addDoc(collection(db, "chats", currentChatId, "messages"), {
       senderId: currentUser.uid,
       senderName: currentUser.displayName,
       text: text,
-      ...(replyMeta ? {replyTo:{id:replyMeta.id,text:replyMeta.text,sender:replyMeta.sender}} : {}),
       timestamp: serverTimestamp()
     });
-    window.replyTargetMessage = null;
   };
   window.handleFileAttach = async (event) => {
   const file = event.target.files?.[0];
