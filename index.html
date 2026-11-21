@@ -45,15 +45,22 @@
 
   /* --- APP CHAT STYLES --- */
   .header { background-color: #008069; color: white; padding: 15px 20px; font-size: 18px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
-  .header-actions { display: flex; gap: 15px; }
+  .header-actions { display: flex; gap: 12px; align-items:center; }
+  .header-more-wrap{position:relative}.header-more-menu{display:none;position:absolute;right:0;top:42px;min-width:190px;background:#fff;color:#243746;border-radius:12px;box-shadow:0 8px 28px #0003;z-index:1600;padding:6px}.header-more-menu.open{display:block}.header-more-menu button{display:block;width:100%;padding:12px;border:0;background:#fff;text-align:left;color:#243746;font-size:14px;border-radius:8px}.header-more-menu button:active{background:#e7f6f1}.header-more-trigger{width:42px;height:42px;min-width:42px;border:2px solid rgba(255,255,255,.92);border-radius:50%;background:rgba(255,255,255,.14);color:#fff;display:grid;place-items:center;font-size:25px;line-height:1;cursor:pointer;padding:0}.header-more-trigger:active{transform:scale(.96)}
   .header-icon { border:0; background:transparent; color:#fff; font-size:24px; cursor:pointer; }
   .header-tree-button{width:44px;height:44px;min-width:44px;border:2px solid rgba(255,255,255,.9);border-radius:50%;background:#fff;color:#008069;display:grid;place-items:center;font-size:23px;line-height:1;cursor:pointer;box-shadow:0 2px 6px #003b3028;padding:0}.header-tree-button:active{transform:scale(.96)}
   .home-search-wrap { padding: 10px 14px; background: #fff; border-bottom: 1px solid #e6e9eb; }
   .contacts-toolbar{display:flex;gap:8px;margin-top:9px;align-items:center}.contacts-button{border:0;border-radius:20px;padding:10px 13px;background:#e7f6f1;color:#006b58;font-weight:700;cursor:pointer}.contacts-hint{font-size:11px;color:#667781;line-height:1.35}.device-contact{display:flex;align-items:center;gap:12px;padding:12px 15px;border-bottom:1px solid #f0f2f5}.device-contact .contact-details{flex:1;min-width:0}.device-contact b{display:block;color:#172b2b}.device-contact small{color:#667781;overflow-wrap:anywhere}.contact-action{border:0;border-radius:18px;padding:8px 11px;background:#008069;color:#fff;font-weight:700;cursor:pointer;white-space:nowrap}
-  .main-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:#008069;padding:0 8px 8px}
-  .main-tab{border:0;border-radius:10px;padding:11px 5px;background:transparent;color:#d7f3ec;font-weight:700;font-size:14px;cursor:pointer}
-  .main-tab.active{background:#fff;color:#006b58;box-shadow:0 2px 7px #003b3020}
-  .home-pane{display:none;flex:1;min-height:0;overflow:auto;background:#fff}.home-pane.active{display:block}
+  .main-tabs{position:fixed;left:0;right:0;bottom:0;z-index:1200;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2px;background:#fff;padding:7px 8px max(8px,env(safe-area-inset-bottom));border-top:1px solid #e7e9eb;box-shadow:0 -2px 10px #0000000d}
+  .main-tab{position:relative;min-width:0;border:0;border-radius:12px;padding:8px 2px 6px;background:transparent;color:#263238;font-weight:600;font-size:12px;line-height:1.25;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+  .main-tab.active{background:#dcf8c6;color:#075e54}
+  .main-tab .tab-icon{font-size:22px;line-height:1.1}.tab-badge{position:absolute;top:1px;left:calc(50% + 8px);min-width:18px;height:18px;padding:0 5px;border-radius:12px;background:#20a66a;color:#fff;font-size:11px;font-weight:700;display:none;align-items:center;justify-content:center}
+  .home-pane{display:none;flex:1;min-height:0;overflow:auto;background:#fff;padding-bottom:82px}.home-pane.active{display:block}
+  #homeScreen{position:relative;background:#fff}
+  #homeScreen .header{flex-shrink:0}
+  #homeScreen .explore-front-banner{flex-shrink:0}
+  #homeScreen .home-search-wrap{flex-shrink:0}
+  #homeScreen .main-tabs{flex-shrink:0}
   .pane-heading{padding:14px 16px 8px;color:#667781;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em}
   .row-actions{display:flex;gap:8px;margin-left:8px}.mini-action{border:0;border-radius:50%;width:36px;height:36px;background:#e7f6f1;color:#008069;font-size:17px;cursor:pointer}
   .community-card{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid #f0f2f5;cursor:pointer}.community-icon{width:48px;height:48px;border-radius:16px;display:grid;place-items:center;background:#e7f6f1;font-size:23px}.community-meta{flex:1;min-width:0}.community-meta b{display:block;color:#172b2b}.community-meta small{color:#667781}
@@ -199,6 +206,16 @@
 .att-icon.gallery{color:#1684d8}.att-icon.camera{color:#e83d83}.att-icon.location{color:#16b98d}.att-icon.contact{color:#159bd0}.att-icon.document{color:#8060e8}.att-icon.poll{color:#e6a72e}.att-icon.event{color:#e83d83}
 .input-area #msgInput{min-width:0;flex:1}
 @media(max-width:380px){.attachment-options{grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 4px}.att-icon{width:50px}}
+
+  /* WhatsApp-style message action menu: isolated addition */
+  #ethioMessageActionOverlay{position:fixed;inset:0;z-index:2200;background:rgba(0,0,0,.22);display:none;align-items:flex-end;justify-content:center;padding:12px 12px calc(12px + env(safe-area-inset-bottom));}
+  #ethioMessageActionOverlay.active{display:flex}
+  #ethioMessageActionPanel{width:min(420px,100%);background:#fff;border-radius:18px;box-shadow:0 8px 30px #0003;overflow:hidden;color:#273b36}
+  #ethioMessageQuickReactions{display:flex;justify-content:space-around;padding:12px 8px;border-bottom:1px solid #e9eeec;font-size:25px}
+  #ethioMessageQuickReactions button,#ethioMessageActionPanel button{border:0;background:transparent;cursor:pointer}
+  #ethioMessageActionList button{display:flex;width:100%;align-items:center;gap:14px;text-align:left;padding:13px 18px;font-size:16px;color:#263c37}
+  #ethioMessageActionList button:active{background:#edf5f2}
+  #ethioMessageActionList button.danger{color:#b42323}
 </style>
 
 <style>
@@ -215,6 +232,8 @@
 </style>
 </head>
 <body>
+<div id="ethioMessageActionOverlay" onclick="closeMessageActionMenu(event)"><div id="ethioMessageActionPanel" onclick="event.stopPropagation()"><div id="ethioMessageQuickReactions"><button onclick="messageReact('👍')">👍</button><button onclick="messageReact('❤️')">❤️</button><button onclick="messageReact('😂')">😂</button><button onclick="messageReact('😮')">😮</button><button onclick="messageReact('🙏')">🙏</button><button onclick="messageReact('➕')">➕</button></div><div id="ethioMessageActionList"><button onclick="messageReply()">↩️ Reply</button><button onclick="messageReactPrompt()">☺️ React</button><button onclick="messageDownload()">⬇️ Download</button><button onclick="messageForward()">↪️ Forward</button><button onclick="messagePin()">📌 Pin</button><button onclick="messageStar()">⭐ Star</button><button onclick="messageSelect()">☑️ Select</button><button class="danger" onclick="messageDelete()">🗑️ Delete</button></div></div></div>
+
 <div id="ethioInviteInstallLanding" aria-label="Install EthioLegacy">
   <div class="invite-card">
     <img class="invite-logo" src="./logo.png" alt="EthioLegacy logo" onerror="this.style.display='none'">
@@ -327,9 +346,18 @@
   <div class="header">
     <div class="brand"><img class="brand-image" src="./logo.png" alt="EthioLegacy logo"><span>EthioLegacy</span></div>
     <div class="header-actions">
-      <button class="header-icon" aria-label="Notifications" onclick="showNotifications()">🔔<span id="notificationBadge" class="notification-badge" style="display:none">0</span></button>
-      <button class="header-tree-button" aria-label="Open create menu" title="Create group, contact, community or event" onclick="openNewChatModal()">🌳</button>
-      <button class="header-icon" aria-label="Settings" onclick="openSettings()">⚙️</button>
+      <div class="header-more-wrap">
+        <button class="header-more-trigger" aria-label="More options" title="More options" aria-haspopup="true" aria-expanded="false" onclick="toggleHeaderMoreMenu()">⋮</button>
+        <div id="headerMoreMenu" class="header-more-menu" role="menu" aria-label="More options">
+          <button role="menuitem" onclick="menuNewGroup()">👥 New group</button>
+          <button role="menuitem" onclick="menuNewBroadcast()">📣 New broadcast</button>
+          <button role="menuitem" onclick="menuLinkedDevices()">📱 Linked devices</button>
+          <button role="menuitem" onclick="menuStarred()">⭐ Starred</button>
+          <button role="menuitem" onclick="menuReadAll()">✓ Read all</button>
+          <button role="menuitem" onclick="menuSettings()">⚙️ Settings</button>
+          <button role="menuitem" onclick="menuSwitchAccount()">⇄ Switch account</button>
+        </div>
+      </div>
     </div>
   </div>
   <button class="explore-front-banner" type="button" onclick="openExploreEthiopia()" aria-label="Explore Worldwide">
@@ -338,10 +366,10 @@
   <span class="explore-front-arrow" aria-hidden="true">›</span>
 </button>
   <div class="main-tabs" role="tablist" aria-label="Main navigation">
-    <button class="main-tab active" data-pane="chatsPane" onclick="switchHomeTab('chatsPane',this)">💬 Chats</button>
-    <button class="main-tab" data-pane="callsPane" onclick="switchHomeTab('callsPane',this)">📞 Calls</button>
-    <button class="main-tab" data-pane="updatesPane" onclick="switchHomeTab('updatesPane',this)">💗 Special Groups</button>
-    <button class="main-tab" data-pane="communitiesPane" onclick="switchHomeTab('communitiesPane',this)">👥 Communities</button>
+    <button class="main-tab active" data-pane="chatsPane" onclick="switchHomeTab('chatsPane',this)"><span class="tab-icon">💬</span><span>Chats</span><span id="chatsTabBadge" class="tab-badge"></span></button>
+    <button class="main-tab" data-pane="callsPane" onclick="switchHomeTab('callsPane',this)"><span class="tab-icon">📞</span><span>Calls</span><span id="callsTabBadge" class="tab-badge"></span></button>
+    <button class="main-tab" data-pane="updatesPane" onclick="switchHomeTab('updatesPane',this)"><span class="tab-icon">💗</span><span>Special Groups</span><span id="specialTabBadge" class="tab-badge"></span></button>
+    <button class="main-tab" data-pane="communitiesPane" onclick="switchHomeTab('communitiesPane',this)"><span class="tab-icon">👥</span><span>Communities</span><span id="communitiesTabBadge" class="tab-badge"></span></button>
   </div>
   <div class="home-search-wrap" id="homeSearchWrap">
     <input id="searchInput" class="home-search" type="text" placeholder="Search users..." oninput="filterUsers(this.value)">
@@ -413,7 +441,7 @@
 
 <div id="settingsModal" class="modal settings-overlay">
   <div class="modal-content settings-content">
-    <div class="settings-title"><img class="brand-image large" src="./logo.png" alt="EthioLegacy logo"><div><h2 id="settingsHeading">EthioLegacy Settings</h2><p id="settingsDescription">Profile, privacy and app preferences</p></div><button class="close-settings" onclick="closeSettings()">✕</button></div>
+    <div class="settings-title"><img class="brand-image large" src="./logo.png" alt="EthioLegacy logo"><div><h2 id="settingsHeading">EthioLegacy Settings</h2><p id="settingsDescription">Profile, privacy and app preferences</p></div><button class="close-settings" aria-label="Back to three-dot menu" title="Back" onclick="closeSettings()">←</button></div>
     <div class="profile-upload">
       <img id="profilePreview" alt="Profile photo" src="" style="display:none;width:64px;height:64px;border-radius:50%;object-fit:cover;">
       <div id="profileInitial" class="profile-initial">EL</div>
@@ -452,7 +480,7 @@
     
     <!-- Header -->
     <div style="display: flex; align-items: center; padding: 15px; border-bottom: 1px solid #e0e0e0; background: #fff; position: sticky; top: 0; z-index: 10;">
-      <button onclick="document.getElementById('newChatModal').classList.remove('active')" style="border: none; background: transparent; font-size: 24px; margin-right: 15px; cursor: pointer; color: #111;">←</button>
+      <button onclick="backFromMoreMenuContent()" aria-label="Back to three-dot menu" title="Back" style="border: none; background: transparent; font-size: 24px; margin-right: 15px; cursor: pointer; color: #111;">←</button>
       <div>
         <h3 style="margin: 0; font-size: 18px; color: #111;">Select contact</h3>
         <p style="margin: 0; font-size: 13px; color: #666;" id="contactCount">0 contacts</p>
@@ -696,7 +724,7 @@ const firebaseConfig = {
     document.getElementById('loginScreen').classList.remove('active');
     document.getElementById('languageWelcomeScreen').classList.add('active');
   }
-  window.continueAfterLanguageSelection=()=>{const selector=document.getElementById('firstLaunchLanguage');const chosen=(selector&&selector.value)||localStorage.getItem('ethiolegacy_language')||'en';localStorage.setItem('ethiolegacy_language',chosen);localStorage.setItem('ethiolegacy_language_selected','yes');try{changeLanguage(chosen);}catch(e){console.warn('Language apply error:',e);}const loginSelector=document.getElementById('loginLanguage');if(loginSelector)loginSelector.value=chosen;const welcome=document.getElementById('languageWelcomeScreen');if(welcome)welcome.classList.remove('active');if(typeof window.showScreen==='function')window.showScreen('loginScreen');else{const login=document.getElementById('loginScreen');if(login)login.classList.add('active');}};
+  window.continueAfterLanguageSelection=()=>{const chosen=document.getElementById('firstLaunchLanguage').value||'en';localStorage.setItem('ethiolegacy_language',chosen);localStorage.setItem('ethiolegacy_language_selected','yes');window.location.reload();};
   const translations = {
     en:{settings:'Settings',notifications:'Notifications',logout:'Log out',search:'Search users...',message:'Type a message...',signupTitle:'Create your EthioLegacy account',signinTitle:'Sign in to continue',fullName:'Full name',yourName:'Your name',emailPhone:'Email / phone number',emailPlaceholder:'Email or phone number',password:'Password',enterPassword:'Enter password',confirmPassword:'Confirm password',confirmPlaceholder:'Confirm password',signup:'Sign up',signin:'Sign in',already:'Already have an account?',noAccount:"Don't have an account?",newChat:'New Chat or Group',userEmail:'User Email (1-on-1)',groupName:'Group Name (for Group Chat)',cancel:'Cancel',start:'Start',profile:'Your profile',uploadPhoto:'📷 Upload profile photo',language:'🌐 Language',permissions:'🔐 Permissions (camera, microphone, notifications)',linkedDevices:'📱 Linked device / current session',callHistory:'📞 Call history',messageSettings:'💬 Message settings',about:'ℹ️ About EthioLegacy',profilePrivacy:'Profile, privacy and app preferences',incoming:'Incoming Call...',accept:'Accept',reject:'Reject',endCall:'End Call',emptyUsers:'No other users yet.',caughtUp:'You’re all caught up.'},
     om:{settings:'Qindaa’ina',notifications:'Beeksisa',logout:'Ba’i',search:'Fayyadamtoota barbaadi...',message:'Ergaa barreessi...',signupTitle:'Akkaawuntii EthioLegacy kee uumi',signinTitle:'Itti fufuuf seeni',fullName:'Maqaa guutuu',yourName:'Maqaa kee',emailPhone:'Imeelii / lakkoofsa bilbilaa',emailPlaceholder:'Imeelii ykn lakkoofsa bilbilaa',password:'Jecha icciitii',enterPassword:'Jecha icciitii galchi',confirmPassword:'Jecha icciitii mirkaneessi',confirmPlaceholder:'Jecha icciitii irra deebi’i',signup:'Galmaa’i',signin:'Seeni',already:'Akkaawuntii qabdaa?',noAccount:'Akkaawuntii hin qabduu?',newChat:'Haasa’a haaraa ykn garee',userEmail:'Imeelii fayyadamaa (nama tokko)',groupName:'Maqaa garee',cancel:'Dhiisi',start:'Jalqabi',profile:'Piroofaayilii kee',uploadPhoto:'📷 Suuraa piroofaayilii olkaa’i',language:'🌐 Afaan',permissions:'🔐 Hayyama (kaameraa, maayikiroofonii, beeksisa)',linkedDevices:'📱 Meeshaa walqabate / seensa ammaa',callHistory:'📞 Seenaa bilbilaa',messageSettings:'💬 Qindaa’ina ergaa',about:'ℹ️ Waa’ee EthioLegacy',profilePrivacy:'Piroofaayilii, iccitii fi filannoo appii',incoming:'Bilbilli siif dhufe...',accept:'Fudhu',reject:'Didi',endCall:'Bilbila cufi',emptyUsers:'Ammaaf fayyadamaan biraa hin jiru.',caughtUp:'Beeksisoota haaraa hin qabdu.'},
@@ -705,7 +733,9 @@ const firebaseConfig = {
     so:{settings:'Dejinta',notifications:'Ogeysiisyada',logout:'Ka bax',search:'Raadi isticmaaleyaasha...',message:'Qor fariin...',signupTitle:'Samee akoonkaaga EthioLegacy',signinTitle:'Soo gal si aad u sii wadato',fullName:'Magaca oo buuxa',yourName:'Magacaaga',emailPhone:'Iimayl / lambarka telefoonka',emailPlaceholder:'Iimayl ama lambarka telefoonka',password:'Furaha sirta ah',enterPassword:'Geli furaha sirta ah',confirmPassword:'Xaqiiji furaha sirta ah',confirmPlaceholder:'Mar kale geli furaha sirta ah',signup:'Is diiwaangeli',signin:'Soo gal',already:'Akoon ma leedahay?',noAccount:'Akoon ma lihid?',newChat:'Sheeko cusub ama koox',userEmail:'Iimaylka isticmaalaha',groupName:'Magaca kooxda',cancel:'Jooji',start:'Bilow',profile:'Astaantaada',uploadPhoto:'📷 Soo geli sawirka astaanta',language:'🌐 Luqad',permissions:'🔐 Oggolaanshaha (kamarad, makarafoon, ogeysiisyo)',linkedDevices:'📱 Qalab ku xiran / gelitaanka hadda',callHistory:'📞 Taariikhda wicitaannada',messageSettings:'💬 Dejinta fariimaha',about:'ℹ️ Ku saabsan EthioLegacy',profilePrivacy:'Astaan, asturnaan iyo doorashooyinka app-ka',incoming:'Wicitaan soo socda...',accept:'Aqbal',reject:'Diid',endCall:'Dhammee wicitaanka',emptyUsers:'Weli ma jiraan isticmaaleyaal kale.',caughtUp:'Wax ogeysiis cusub ah ma jiro.'}
   };
   function toast(message){const el=document.getElementById('toast');if(!el)return;el.textContent=message;el.classList.add('show');clearTimeout(window.__toastTimer);window.__toastTimer=setTimeout(()=>el.classList.remove('show'),3200);}
-  function pushNotice(title,body){notifications.unshift({title,body,time:new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})});notifications=notifications.slice(0,40);const badge=document.getElementById('notificationBadge');badge.textContent=notifications.length;badge.style.display=notifications.length?'inline-flex':'none';renderNotifications();toast(title+(body?': '+body:''));if('Notification' in window && Notification.permission==='granted' && document.visibilityState!=='visible'){try{new Notification(title,{body,icon:'./logo.png'});}catch(e){}}}
+  const tabNoticeCounts={chats:0,calls:0,special:0,communities:0};
+  function updateTabNoticeBadges(){const ids={chats:'chatsTabBadge',calls:'callsTabBadge',special:'specialTabBadge',communities:'communitiesTabBadge'};Object.entries(ids).forEach(([key,id])=>{const el=document.getElementById(id);if(!el)return;const count=tabNoticeCounts[key]||0;el.textContent=count>99?'99+':String(count);el.style.display=count?'inline-flex':'none';});}
+  function pushNotice(title,body){notifications.unshift({title,body,time:new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})});notifications=notifications.slice(0,40);const text=(String(title)+' '+String(body||'')).toLowerCase();const bucket=/call|ring|missed|voice|video/.test(text)?'calls':/communit|community/.test(text)?'communities':/special group|love group|family group|friend group|classmate/.test(text)?'special':'chats';tabNoticeCounts[bucket]=(tabNoticeCounts[bucket]||0)+1;updateTabNoticeBadges();renderNotifications();toast(title+(body?': '+body:''));if('Notification' in window && Notification.permission==='granted' && document.visibilityState!=='visible'){try{new Notification(title,{body,icon:'./logo.png'});}catch(e){}}}
   window.showNotifications=()=>{document.getElementById('notificationPanel').classList.toggle('open');renderNotifications();};
   window.closeNotifications=()=>document.getElementById('notificationPanel').classList.remove('open');
   function renderNotifications(){const box=document.getElementById('notificationList');if(!box)return;box.innerHTML=notifications.length?notifications.map(n=>`<div class="notification-entry"><b>${escapeHTML(n.title)}</b><div>${escapeHTML(n.body||'')}</div><small class="muted">${n.time}</small></div>`).join(''):'<p class="muted">You’re all caught up.</p>';}
@@ -747,7 +777,14 @@ const firebaseConfig = {
     try{await reauthenticateWithCredential(user,EmailAuthProvider.credential(user.email,oldPass));await updatePassword(user,newPass);['oldPasswordChange','newPasswordChange','confirmNewPasswordChange'].forEach(id=>document.getElementById(id).value='');status.textContent='Password changed successfully.';toast('Your password was changed.');}
     catch(e){console.error('Password change:',e);status.textContent=e.code==='auth/wrong-password'||e.code==='auth/invalid-credential'?'Old password is incorrect.':e.code==='auth/requires-recent-login'?'Please sign out and sign in again, then retry.':'Could not change password: '+(e.message||e.code);}
   };
-  window.closeSettings=()=>document.getElementById('settingsModal').classList.remove('active');
+  window.__returnToMoreMenu=false;
+  window.backFromMoreMenuContent=()=>{
+    document.getElementById('newChatModal')?.classList.remove('active');
+    document.getElementById('settingsModal')?.classList.remove('active');
+    document.getElementById('headerMoreMenu')?.classList.add('open');
+    const trigger=document.querySelector('.header-more-trigger');if(trigger)trigger.setAttribute('aria-expanded','true');
+  };
+  window.closeSettings=()=>{document.getElementById('settingsModal').classList.remove('active');if(window.__returnToMoreMenu){window.__returnToMoreMenu=false;document.getElementById('headerMoreMenu')?.classList.add('open');const trigger=document.querySelector('.header-more-trigger');if(trigger)trigger.setAttribute('aria-expanded','true');}};
 
   window.openAndroidAppSettings=async()=>{
     const isNative=!!(window.Capacitor && typeof window.Capacitor.isNativePlatform==='function' && window.Capacitor.isNativePlatform());
@@ -1162,6 +1199,7 @@ window.openSettings = ((originalOpenSettings) => {
 })(window.openSettings);
   window.logout = () => signOut(auth);
   window.switchHomeTab = (paneId, button) => {
+    const noticeKey={chatsPane:'chats',callsPane:'calls',updatesPane:'special',communitiesPane:'communities'}[paneId];if(noticeKey){tabNoticeCounts[noticeKey]=0;updateTabNoticeBadges();}
     document.querySelectorAll('.main-tab').forEach(b=>b.classList.toggle('active',b===button));
     document.querySelectorAll('.home-pane').forEach(p=>p.classList.toggle('active',p.id===paneId));
     document.getElementById('homeSearchWrap').style.display = (paneId==='chatsPane' || paneId==='callsPane') ? 'block' : 'none';
@@ -1957,11 +1995,11 @@ window.saveNewContact = async () => {
   }
 
   box.innerHTML += `
-  <div class="message ${isMine ? 'mine' : ''} ${selectedMessageIds.has(d.id) ? 'selected-message' : ''}" data-message-id="${escapeHTML(d.id)}" onclick="selectMessage(this, '${d.id}')">
+  <div class="message ${isMine ? 'mine' : ''} ${selectedMessageIds.has(d.id) ? 'selected-message' : ''}" data-message-id="${escapeHTML(d.id)}" onclick="openMessageActionMenu(event, '${d.id}')">
     ${!isMine ? `<div class="msg-name">${escapeHTML(m.senderName||'Member')}</div>` : ''}
     ${m.text ? `<div>${escapeHTML(m.text)}</div>` : ''}
     ${attachmentHtml}
-    <div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;font-size:10px;color:#999;margin-top:4px;"><span>${time}</span></div>
+    <div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;font-size:10px;color:#999;margin-top:4px;"><button type="button" title="Save to Starred" aria-label="Save message to Starred" onclick="event.stopPropagation();toggleStarredMessage('${d.id}', ${JSON.stringify(m.text||'')}, ${JSON.stringify(m.attachmentName||'')}, '${escapeHTML(currentChatId)}')" style="border:0;background:transparent;color:#b58b00;padding:2px 5px;font-size:15px;cursor:pointer">☆</button><span>${time}</span></div>
   </div>`;
 });
       updateMessageSelectionBar();
@@ -1970,6 +2008,30 @@ window.saveNewContact = async () => {
   };
 
   const selectedMessageIds = new Set();
+  let ethioActionMessageId=null, ethioActionMessageData=null, ethioActionMessageElement=null, ethioLongPressTimer=null;
+  window.openMessageActionMenu=(event,messageId)=>{
+    if(event){event.preventDefault();event.stopPropagation();}
+    const el=document.querySelector(`#chatBox .message[data-message-id="${CSS.escape(messageId)}"]`);
+    if(!el)return;
+    ethioActionMessageId=messageId;ethioActionMessageElement=el;
+    const snapDataText=el.querySelector(':scope > div')?.textContent||'';
+    // Load the authoritative message data from the current chat's message document.
+    getDoc(doc(db,'chats',currentChatId,'messages',messageId)).then(snap=>{
+      ethioActionMessageData=snap.exists()?snap.data():{text:snapDataText};
+      document.getElementById('ethioMessageActionOverlay')?.classList.add('active');
+    }).catch(()=>{ethioActionMessageData={text:snapDataText};document.getElementById('ethioMessageActionOverlay')?.classList.add('active');});
+  };
+  window.closeMessageActionMenu=(event)=>{if(event&&event.target!==event.currentTarget&&event.currentTarget.id==='ethioMessageActionOverlay')return;document.getElementById('ethioMessageActionOverlay')?.classList.remove('active');};
+  function actionMessageRef(){return ethioActionMessageId&&currentChatId?doc(db,'chats',currentChatId,'messages',ethioActionMessageId):null;}
+  window.messageReply=()=>{const m=ethioActionMessageData||{};const preview=(m.text||m.attachmentName||'Message').toString().slice(0,120);const input=document.getElementById('msgInput');input.value=`↩ Reply to: ${preview}\n`+input.value;input.focus();closeMessageActionMenu();toast('Reply text added. Finish and send your reply.');};
+  window.messageReact=async emoji=>{const r=actionMessageRef();if(!r||!currentUser)return;try{await updateDoc(r,{reactions:{[currentUser.uid]:emoji}});toast('Reaction saved.');}catch(e){console.error(e);toast('Could not save reaction. Check Firestore rules.');}closeMessageActionMenu();};
+  window.messageReactPrompt=()=>{const emoji=prompt('Enter a reaction emoji (e.g. 👍 ❤️ 😂):');if(emoji?.trim())messageReact(emoji.trim());else closeMessageActionMenu();};
+  window.messageDownload=()=>{const m=ethioActionMessageData||{};if(!m.attachmentUrl){toast('This message has no attached file to download.');closeMessageActionMenu();return;}const a=document.createElement('a');a.href=m.attachmentUrl;a.download=m.attachmentName||'EthioLegacy-file';a.target='_blank';document.body.appendChild(a);a.click();a.remove();closeMessageActionMenu();};
+  window.messageForward=async()=>{const m=ethioActionMessageData||{};const target=prompt('Enter destination chat ID to forward this message to:');if(!target?.trim()){closeMessageActionMenu();return;}try{const payload={senderId:currentUser.uid,senderName:currentUser.displayName||'Member',text:m.text||'',timestamp:serverTimestamp(),forwarded:true};['attachmentUrl','attachmentKind','attachmentName','storagePath','attachmentSize','type','pollOptions','pollVotes','eventTitle','eventDate','eventPlace'].forEach(k=>{if(m[k]!==undefined)payload[k]=m[k];});await addDoc(collection(db,'chats',target.trim(),'messages'),payload);toast('Message forwarded.');}catch(e){console.error(e);toast('Forward failed. Check destination chat ID and Firebase rules.');}closeMessageActionMenu();};
+  window.messagePin=async()=>{const m=ethioActionMessageData||{};if(!currentChatId||!ethioActionMessageId)return;try{await updateDoc(doc(db,'chats',currentChatId),{pinnedMessage:{messageId:ethioActionMessageId,text:(m.text||m.attachmentName||'Attachment').slice(0,180),pinnedBy:currentUser.uid,pinnedAt:serverTimestamp()}});toast('Message pinned in this chat.');}catch(e){console.error(e);toast('Pin failed. Check chat permissions.');}closeMessageActionMenu();};
+  window.messageStar=()=>{const m=ethioActionMessageData||{};toggleStarredMessage(ethioActionMessageId,m.text||'',m.attachmentName||'',currentChatId);closeMessageActionMenu();};
+  window.messageSelect=()=>{if(ethioActionMessageElement)selectMessage(ethioActionMessageElement,ethioActionMessageId);closeMessageActionMenu();};
+  window.messageDelete=async()=>{if(!ethioActionMessageId)return;if(!confirm('Delete this message for everyone in this chat?')){closeMessageActionMenu();return;}try{await deleteMessage(ethioActionMessageId);closeMessageActionMenu();}catch(e){closeMessageActionMenu();}};
   function updateMessageSelectionBar() {
     const bar = document.getElementById('messageSelectionBar');
     const count = document.getElementById('selectedMessageCount');
@@ -2717,7 +2779,83 @@ window.saveNewContact = async () => {
     },e=>{console.error(e);box.innerHTML='<div class="empty-state">Channels could not load. Check Firestore rules.</div>';});
   }
   function loadUpdates(){loadStatuses();loadChannels();}
-  window.switchHomeTab = ((original)=>function(paneId,button){original(paneId,button);if(paneId==='updatesPane'){openSpecialGroup(activeSpecialGroup);renderSpecialGroupDeviceContacts();}})(window.switchHomeTab);
+  window.toggleHeaderMoreMenu=()=>document.getElementById('headerMoreMenu')?.classList.toggle('open');
+  window.closeHeaderMoreMenu=()=>document.getElementById('headerMoreMenu')?.classList.remove('open');
+  window.menuNewGroup=()=>{
+    window.__returnToMoreMenu=true;
+    closeHeaderMoreMenu();
+    if(!currentUser)return toast('Please sign in first.');
+    openNewChatModal();
+    setTimeout(()=>{ if(typeof window.showGroupInput==='function') window.showGroupInput(); },80);
+  };
+  window.menuNewBroadcast=async()=>{
+    closeHeaderMoreMenu();
+    if(!currentUser)return toast('Please sign in first.');
+    const message=prompt('New broadcast\n\nEnter the message you want to share:');
+    if(message===null)return;
+    const clean=message.trim(); if(!clean)return toast('Please enter a message.');
+    const shareText='EthioLegacy broadcast from '+(currentUser.displayName||'a contact')+':\n\n'+clean;
+    try{
+      if(navigator.share) await navigator.share({title:'EthioLegacy broadcast',text:shareText});
+      else if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(shareText);toast('Broadcast text copied. Paste it into the app or share it with your contacts.');}
+      else prompt('Copy this broadcast message:',shareText);
+    }catch(e){if(e.name!=='AbortError')toast('Could not open the share sheet.');}
+  };
+  window.menuLinkedDevices=()=>{closeHeaderMoreMenu();if(!currentUser)return toast('Please sign in first.');showLinkedDevices();};
+  window.menuStarred=()=>{
+    closeHeaderMoreMenu();
+    if(!currentUser)return toast('Please sign in first.');
+    const key='ethiolegacy_starred_'+currentUser.uid;
+    let items=[];try{items=JSON.parse(localStorage.getItem(key)||'[]');}catch(e){}
+    if(!items.length)return alert('Starred messages\n\nNo starred messages yet. In a chat, tap ☆ beside a message to save it here.');
+    const summary=items.map((x,i)=>(i+1)+'. '+(x.text||x.attachmentName||'Attachment')+'\n'+(x.savedAt||'')).join('\n\n');
+    alert('Starred messages\n\n'+summary);
+  };
+  window.toggleStarredMessage=(messageId,messageText,attachmentName,chatId)=>{
+    if(!currentUser)return toast('Please sign in first.');
+    const key='ethiolegacy_starred_'+currentUser.uid;let items=[];
+    try{items=JSON.parse(localStorage.getItem(key)||'[]');}catch(e){}
+    const index=items.findIndex(x=>x.messageId===messageId&&x.chatId===chatId);
+    if(index>=0){items.splice(index,1);toast('Removed from Starred.');}
+    else{items.unshift({messageId,chatId,text:String(messageText||''),attachmentName:String(attachmentName||''),savedAt:new Date().toLocaleString()});toast('Saved to Starred.');}
+    localStorage.setItem(key,JSON.stringify(items));
+  };
+  window.menuReadAll=()=>{
+    closeHeaderMoreMenu();
+    if(!currentUser)return toast('Please sign in first.');
+    notifications=[];
+    Object.keys(tabNoticeCounts).forEach(k=>tabNoticeCounts[k]=0);
+    updateTabNoticeBadges();renderNotifications();closeNotifications();
+    toast('All EthioLegacy notifications marked as read.');
+  };
+  window.menuSettings=()=>{window.__returnToMoreMenu=true;closeHeaderMoreMenu();openSettings();};
+  window.menuSwitchAccount=async()=>{
+    closeHeaderMoreMenu();
+    if(!currentUser)return toast('Please sign in first.');
+    if(confirm('Switch account? You will be signed out of this EthioLegacy account.')) await signOut(auth);
+  };
+  document.addEventListener('click',e=>{if(!e.target.closest('.header-more-wrap'))closeHeaderMoreMenu();});
+  // Ask for contact access on the first main-tab interaction after sign-in.
+  // Native APKs can read contacts after Android permission; browsers show their
+  // supported contact picker and require the user to select contacts.
+  let autoContactSyncInProgress=false;
+  window.switchHomeTab = ((original)=>async function(paneId,button){
+    original(paneId,button);
+    if(paneId==='updatesPane'){openSpecialGroup(activeSpecialGroup);renderSpecialGroupDeviceContacts();}
+    if(!currentUser || autoContactSyncInProgress) return;
+    const syncKey='ethiolegacy_contacts_permission_prompted_'+currentUser.uid;
+    const hasSaved=Array.isArray(importedDeviceContacts)&&importedDeviceContacts.length>0;
+    if(!hasSaved && localStorage.getItem(syncKey)!=='yes'){
+      autoContactSyncInProgress=true;
+      try{
+        await window.importDeviceContacts();
+        if(importedDeviceContacts.length) localStorage.setItem(syncKey,'yes');
+      }finally{autoContactSyncInProgress=false;}
+    }
+    // Refresh all tab-specific contact views from the same saved contact list.
+    renderDeviceContacts();renderCommunityPicker();renderSpecialGroupDeviceContacts();renderWaContacts();
+    if(paneId==='callsPane')renderCallList(filterUserRecords(document.getElementById('searchInput')?.value||''));
+  })(window.switchHomeTab);
   // Refresh update listeners for each signed-in session and stop them at sign-out.
   const originalAuthUpdateHook = onAuthStateChanged;
   document.addEventListener('visibilitychange',()=>{if(!document.hidden&&currentUser&&document.getElementById('updatesPane')?.classList.contains('active'))loadUpdates();});
@@ -2741,6 +2879,21 @@ if (!window.Capacitor?.isNativePlatform?.() && 'serviceWorker' in navigator && (
    <h2 style="font-size:21px;margin:0 0 6px;color:#123b34">Discover more. Connect globally.</h2>
    <p style="font-size:13px;line-height:1.5;color:#60736e">Explore countries, knowledge, nature, culture and opportunities from one place.</p>
   </div>
+  <div style="background:white;border-radius:13px;padding:14px;margin:10px 0;box-shadow:0 1px 4px #0001">
+    <h3>🌍 Global Discovery</h3>
+    <p style="font-size:14px;line-height:1.5;color:#526170">Search deeply into history, science, geography, and cultures from anywhere in the world.</p>
+    <button class="contacts-button" style="margin-top:10px;border:0;border-radius:20px;padding:10px 14px;background:#008069;color:#fff;font-weight:700;cursor:pointer" onclick="searchExploreTopic('World History')">Search World History</button>
+    <button class="contacts-button" style="margin-top:10px;border:0;border-radius:20px;padding:10px 14px;background:#008069;color:#fff;font-weight:700;cursor:pointer" onclick="searchExploreTopic('Science and Technology')">Search Science</button>
+  </div>
+
+  <div style="background:white;border-radius:13px;padding:14px;margin:10px 0;box-shadow:0 1px 4px #0001">
+    <h3>🔎 Deep Search</h3>
+    <div style="display:flex;flex-direction:column;gap:9px;margin:12px 0">
+      <input id="exploreSearchInput" style="display:block;box-sizing:border-box;width:100%;min-width:0;padding:14px 12px;border:1.5px solid #9aaca6;border-radius:4px;font-size:16px;background:#fff" placeholder="Search any topic worldwide...">
+      <button onclick="runExploreSearch()" style="align-self:flex-start;min-height:44px;border:0;border-radius:4px;padding:0 22px;background:#008069;color:white;font-weight:700;cursor:pointer">Search</button>
+    </div>
+    <div id="exploreResults" style="font-size:13px;color:#526170">Tap any topic above to load its full information, or search for another topic.</div>
+  </div>
   <div id="exploreCategoryGrid" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:14px">
    <button class="explore-category" onclick="searchExploreTopic('Countries of the world: geography, culture and traditions')"><span>🌍</span><b>Explore Countries</b><small>Geography, cultures and traditions</small></button>
    <button class="explore-category" onclick="searchExploreTopic('Ethiopia history tourism heritage and culture')"><span>🇪🇹</span><b>Explore Ethiopia</b><small>History, tourism and heritage</small></button>
@@ -2752,10 +2905,16 @@ if (!window.Capacitor?.isNativePlatform?.() && 'serviceWorker' in navigator && (
    <button class="explore-category" onclick="searchExploreTopic('Environmental protection tree planting and climate action')"><span>🌱</span><b>Ethio Green Legacy</b><small>Environment and green projects</small></button>
    <button class="explore-category" onclick="searchExploreTopic('Translation technology multilingual communication')"><span>🔤</span><b>Smart Language Bridge</b><small>Translation and communication</small></button>
    <button class="explore-category" onclick="searchExploreTopic('Free learning digital skills careers and entrepreneurship')"><span>🎓</span><b>Knowledge & Learning</b><small>Skills, careers and education</small></button>
+   <button class="explore-category" onclick="openEducationalBooks()"><span>📚</span><b>Educational Books</b><small>Search books worldwide · Read online · Legal downloads</small></button>
    <button class="explore-category" onclick="searchExploreTopic('Global innovation inventions and entrepreneurship')"><span>💡</span><b>Innovation & Opportunities</b><small>Ideas, inventions and business</small></button>
    <button class="explore-category" onclick="openSportsNews()"><span>⚽</span><b>Sports & Sports News</b><small>Football, athletics, basketball and worldwide sports updates</small></button>
   </div>
   <style>
+   #exploreEthiopia .explore-full-card{grid-column:1/-1;min-width:0;background:#fff;border:1px solid #e1ebe7;border-radius:14px;padding:15px;margin:0 0 2px;box-shadow:0 2px 7px #173c3010;overflow-wrap:anywhere}
+   #exploreEthiopia .explore-full-card h3{margin:0 0 9px;color:#087b60;font-size:17px}
+   #exploreEthiopia .explore-full-card h4{margin:0 0 8px;color:#173b34;font-size:15px}
+   #exploreEthiopia .explore-full-card p{white-space:pre-line;margin:0 0 12px;font-size:13px;line-height:1.65;color:#40534d}
+   #exploreEthiopia .explore-full-card a{display:inline-block;color:#007b60;font-weight:700;text-decoration:none;font-size:13px}
    #exploreEthiopia .explore-category{min-width:0;text-align:left;border:1px solid #e1ebe7;background:#fff;border-radius:13px;padding:13px 11px;display:flex;flex-direction:column;gap:6px;box-shadow:0 2px 7px #173c3010;color:#173b34;cursor:pointer}
    #exploreEthiopia .explore-category:active{transform:scale(.98)}
    #exploreEthiopia .explore-category span{font-size:25px}
@@ -2763,22 +2922,34 @@ if (!window.Capacitor?.isNativePlatform?.() && 'serviceWorker' in navigator && (
    #exploreEthiopia .explore-category small{font-size:11px;line-height:1.4;color:#63746f}
    @media(min-width:600px){#exploreEthiopia #exploreCategoryGrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
   </style>
-  <div style="background:white;border-radius:13px;padding:14px;margin:10px 0;box-shadow:0 1px 4px #0001">
-    <h3>🌍 Global Discovery</h3>
-    <p style="font-size:14px;line-height:1.5;color:#526170">Search deeply into history, science, geography, and cultures from anywhere in the world.</p>
-    <button class="contacts-button" style="margin-top:10px;border:0;border-radius:20px;padding:10px 14px;background:#008069;color:#fff;font-weight:700;cursor:pointer" onclick="searchExploreTopic('World History')">Search World History</button>
-    <button class="contacts-button" style="margin-top:10px;border:0;border-radius:20px;padding:10px 14px;background:#008069;color:#fff;font-weight:700;cursor:pointer" onclick="searchExploreTopic('Science and Technology')">Search Science</button>
-  </div>
 
-  <div style="background:white;border-radius:13px;padding:14px;margin:10px 0;box-shadow:0 1px 4px #0001">
-    <h3>🔎 Deep Search</h3>
-    <div style="display:flex;gap:7px;margin:12px 0">
-      <input id="exploreSearchInput" style="min-width:0;flex:1;padding:12px;border:1px solid #d5dfdc;border-radius:10px;font-size:15px" placeholder="Search any topic worldwide...">
-      <button onclick="runExploreSearch()" style="border:0;border-radius:10px;padding:0 14px;background:#008069;color:white;font-weight:700;cursor:pointer">Search</button>
-    </div>
-    <div id="exploreResults" style="font-size:13px;color:#526170">Enter a topic above to read deeply.</div>
-  </div>
   
+ </div>
+</div>
+
+<!-- EDUCATIONAL BOOKS SEARCH -->
+<div id="educationalBooksScreen" style="display:none;position:fixed;inset:0;z-index:1350;background:#f4f8f6;flex-direction:column;color:#173b34">
+ <div style="display:flex;align-items:center;gap:12px;padding:15px;background:#008069;color:#fff;padding-top:max(15px,env(safe-area-inset-top))">
+  <button onclick="closeEducationalBooks()" aria-label="Back to Explore Worldwide" style="border:0;background:transparent;color:#fff;font-size:27px;cursor:pointer">←</button>
+  <div><b>📚 Educational Books</b><div style="font-size:12px;opacity:.9">Search books · Read online · Legal downloads</div></div>
+ </div>
+ <div style="padding:15px;overflow:auto;flex:1">
+  <div style="background:#fff;border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 2px 7px #173c3010">
+   <b style="font-size:16px">Find educational books worldwide</b>
+   <p style="font-size:13px;line-height:1.5;color:#60736e;margin:7px 0 12px">Search by book title, author, subject, school level or language. Reading and download options depend on the book's legal availability.</p>
+   <form onsubmit="searchEducationalBooks(event)" style="display:flex;flex-direction:column;gap:9px">
+    <input id="educationalBooksQuery" type="search" autocomplete="off" placeholder="e.g. Biology, Algebra, Ethiopian history…" style="box-sizing:border-box;width:100%;padding:14px;border:1.5px solid #9aaca6;border-radius:8px;font-size:16px;background:#fff;color:#173b34">
+    <button type="submit" style="min-height:46px;border:0;border-radius:8px;background:#008069;color:#fff;font-weight:700;font-size:15px">🔎 Search books</button>
+   </form>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px">
+   <button type="button" onclick="searchEducationalBooks(null,'mathematics')" style="border:0;border-radius:18px;padding:9px 12px;background:#dff2eb;color:#075c49">📐 Mathematics</button>
+   <button type="button" onclick="searchEducationalBooks(null,'biology')" style="border:0;border-radius:18px;padding:9px 12px;background:#dff2eb;color:#075c49">🧬 Biology</button>
+   <button type="button" onclick="searchEducationalBooks(null,'computer science')" style="border:0;border-radius:18px;padding:9px 12px;background:#dff2eb;color:#075c49">💻 Computer science</button>
+   <button type="button" onclick="searchEducationalBooks(null,'Ethiopian history')" style="border:0;border-radius:18px;padding:9px 12px;background:#dff2eb;color:#075c49">🇪🇹 Ethiopian history</button>
+  </div>
+  <div id="educationalBooksResults" aria-live="polite" style="display:grid;gap:10px"><div style="background:#fff;border-radius:12px;padding:14px;color:#60736e">Search for a book or choose a subject above.</div></div>
+  <div style="margin-top:14px;background:#e6f3ee;border-radius:12px;padding:13px;font-size:12px;line-height:1.5;color:#385b50">📌 EthioLegacy links to book platforms and publishers. Only use download options explicitly offered by the rights holder or a recognized public-domain library. Some books may be preview-only, borrow-only or unavailable in your country.</div>
  </div>
 </div>
 
@@ -2808,9 +2979,61 @@ if (!window.Capacitor?.isNativePlatform?.() && 'serviceWorker' in navigator && (
 </div>
 
 <script>
-window.openExploreEthiopia=()=>{document.getElementById('newChatModal')?.classList.remove('active');document.getElementById('exploreEthiopia').style.display='flex';};
+const exploreAllTopics = [
+  {icon:'🌍',title:'Explore Countries',query:'Countries of the world geography countries culture'},
+  {icon:'🇪🇹',title:'Explore Ethiopia',query:'Ethiopia history geography culture tourism'},
+  {icon:'🧠',title:'World Knowledge',query:'Science technology education knowledge'},
+  {icon:'🌿',title:'Explore Nature',query:'Biodiversity ecosystems wildlife conservation'},
+  {icon:'💻',title:'Digital Ethiopia',query:'Digital transformation in Ethiopia'},
+  {icon:'🤝',title:'Global Communities',query:'International cooperation global communities'},
+  {icon:'🗣️',title:'Language Discovery',query:'Languages of the world linguistics'},
+  {icon:'🌱',title:'Ethio Green Legacy',query:'Reforestation climate change environmental conservation Ethiopia'},
+  {icon:'🔤',title:'Smart Language Bridge',query:'Machine translation language technology'},
+  {icon:'🎓',title:'Knowledge & Learning',query:'Open education digital learning skills'},
+  {icon:'💡',title:'Innovation & Opportunities',query:'Innovation entrepreneurship technology'},
+  {icon:'⚽',title:'Sports & Sports News',query:'Sports worldwide football athletics basketball'}
+];
+window.openExploreEthiopia=()=>{
+  document.getElementById('newChatModal')?.classList.remove('active');
+  document.getElementById('exploreEthiopia').style.display='flex';
+  // Keep the original Explore Worldwide layout; load details only after a topic is tapped.
+};
 window.closeExploreEthiopia=()=>document.getElementById('exploreEthiopia').style.display='none';
-window.searchExploreTopic=(q)=>{document.getElementById('exploreSearchInput').value=q;runExploreSearch();};
+window.loadExploreAllTopics=async(force=false)=>{
+  const grid=document.getElementById('exploreCategoryGrid');
+  const box=document.getElementById('exploreResults');
+  if(!grid)return;
+  if(grid.dataset.loaded==='yes'&&!force)return;
+  grid.dataset.loaded='loading';
+  grid.innerHTML='<div id="exploreLoading" style="grid-column:1/-1;padding:24px;text-align:center;background:#fff;border-radius:14px;color:#176b52"><div style="font-size:30px">⏳</div><b>Loading worldwide information…</b><p style="font-size:12px;color:#65756f">Please wait while all Explore sections are collected.</p></div>';
+  if(box)box.innerHTML='Search any topic above to find more information.';
+  const escapeHTML=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const getArticle=async(topic)=>{
+    const u='https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch='+encodeURIComponent(topic.query)+'&format=json&origin=*&srlimit=1';
+    const sr=await fetch(u); if(!sr.ok)throw new Error('Search unavailable');
+    const sd=await sr.json(); const title=sd.query?.search?.[0]?.title;
+    if(!title)return {title:'Information not found',extract:'No matching article was found. Try the search box below.'};
+    const eu='https://en.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&exsectionformat=plain&titles='+encodeURIComponent(title)+'&format=json&origin=*';
+    const er=await fetch(eu); if(!er.ok)throw new Error('Article unavailable');
+    const ed=await er.json(); const pg=Object.values(ed.query?.pages||{})[0];
+    return {title:pg?.title||title,extract:pg?.extract||'No article text is available.'};
+  };
+  const results=await Promise.allSettled(exploreAllTopics.map(async t=>({topic:t,article:await getArticle(t)})));
+  const html=results.map((r,i)=>{
+    const t=exploreAllTopics[i];
+    if(r.status!=='fulfilled')return `<article class="explore-full-card"><h3>${t.icon} ${escapeHTML(t.title)}</h3><p>Could not load this section. Check your internet connection and tap Reload information.</p></article>`;
+    const a=r.value.article; const link='https://en.wikipedia.org/wiki/'+encodeURIComponent(a.title.replace(/ /g,'_'));
+    return `<article class="explore-full-card"><h3>${t.icon} ${escapeHTML(t.title)}</h3><h4>${escapeHTML(a.title)}</h4><p>${escapeHTML(a.extract)}</p><a href="${link}" target="_blank" rel="noopener noreferrer">Open full source article ↗</a></article>`;
+  }).join('');
+  grid.innerHTML=html;
+  grid.dataset.loaded='yes';
+  if(box)box.innerHTML='<button type="button" onclick="loadExploreAllTopics(true)" style="border:0;border-radius:9px;padding:10px 14px;background:#008069;color:#fff;font-weight:700">↻ Reload all information</button>';
+};
+window.searchExploreTopic=(q)=>{
+  const input=document.getElementById('exploreSearchInput');
+  if(input) input.value=q;
+  runExploreSearch();
+};
 window.openSportsNews=()=>{
   const panel=document.getElementById('sportsNewsScreen');
   if(panel){panel.style.display='flex';return;}
@@ -2827,47 +3050,83 @@ window.openSportsSource=(url)=>{
   if(!opened) window.location.href=url;
 };
 
+window.openEducationalBooks=()=>{
+ const panel=document.getElementById('educationalBooksScreen');
+ if(panel) panel.style.display='flex';
+};
+window.closeEducationalBooks=()=>{
+ const panel=document.getElementById('educationalBooksScreen');
+ if(panel) panel.style.display='none';
+};
+window.searchEducationalBooks=async(event, preset)=>{
+ if(event?.preventDefault) event.preventDefault();
+ const input=document.getElementById('educationalBooksQuery');
+ const box=document.getElementById('educationalBooksResults');
+ const query=(preset || input?.value || '').trim();
+ if(!query || !box) return;
+ if(input) input.value=query;
+ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ box.innerHTML='<div style="background:#fff;border-radius:12px;padding:18px;text-align:center;color:#087b60">⏳ Searching legal book catalogues…</div>';
+ try{
+  const url='https://openlibrary.org/search.json?q='+encodeURIComponent(query)+'&fields=key,title,author_name,first_publish_year,cover_i,ebook_access,ia,id_gutenberg,language,subject&limit=20';
+  const response=await fetch(url,{headers:{'Accept':'application/json'}});
+  if(!response.ok) throw new Error('Book catalogue unavailable');
+  const data=await response.json();
+  const docs=data.docs||[];
+  if(!docs.length){box.innerHTML='<div style="background:#fff;border-radius:12px;padding:15px">No matching books found. Try a shorter title, author name or subject.</div>';return;}
+  box.innerHTML=docs.map(book=>{
+   const title=esc(book.title||'Untitled');
+   const authors=esc((book.author_name||['Author not listed']).slice(0,3).join(', '));
+   const year=book.first_publish_year?` · ${esc(book.first_publish_year)}`:'';
+   const key=String(book.key||'');
+   const readUrl=key.startsWith('/works/')?'https://openlibrary.org'+key:'https://openlibrary.org/search?q='+encodeURIComponent(book.title||query);
+   const cover=book.cover_i?`https://covers.openlibrary.org/b/id/${Number(book.cover_i)}-M.jpg` : '';
+   const access=book.ebook_access||'no_ebook';
+   const canRead=['public','borrowable','printdisabled'].includes(access);
+   const gutenberg=(book.id_gutenberg||[]).find(id=>/^\d+$/.test(String(id)));
+   const accessLabel=access==='public'?'Free digital copy listed':access==='borrowable'?'Borrowing may be available':access==='printdisabled'?'Digital access may be restricted':'No online copy listed';
+   const downloadLink=gutenberg?`<a href="https://www.gutenberg.org/ebooks/${gutenberg}" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin:5px 5px 0 0;padding:9px 11px;background:#e8f4ed;color:#075c49;border-radius:7px;text-decoration:none;font-weight:700;font-size:12px">Legal download options ↗</a>`:(access==='public'?`<a href="${readUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin:5px 5px 0 0;padding:9px 11px;background:#e8f4ed;color:#075c49;border-radius:7px;text-decoration:none;font-weight:700;font-size:12px">Open free-copy options ↗</a>`:'');
+   return `<article style="display:flex;gap:12px;background:#fff;border:1px solid #e1ebe7;border-radius:12px;padding:12px;box-shadow:0 2px 6px #173c300c">${cover?`<img src="${cover}" alt="Book cover" loading="lazy" style="width:76px;height:108px;object-fit:cover;border-radius:5px;background:#eef2ef">`:'<div aria-hidden="true" style="width:76px;height:108px;display:grid;place-items:center;background:#e8f4ed;border-radius:5px;font-size:34px">📘</div>'}<div style="min-width:0;flex:1"><b style="display:block;font-size:14px;line-height:1.4;color:#173b34">${title}</b><div style="font-size:12px;color:#65756f;margin:4px 0">${authors}${year}</div><div style="font-size:11px;color:#087b60;margin:5px 0">${esc(accessLabel)}</div><a href="${readUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin:5px 5px 0 0;padding:9px 11px;background:#008069;color:#fff;border-radius:7px;text-decoration:none;font-weight:700;font-size:12px">${canRead?'Read / borrow online ↗':'View book details ↗'}</a>${downloadLink}</div></article>`;
+  }).join('');
+ }catch(error){
+  console.error('Educational book search failed:',error);
+  box.innerHTML='<div style="background:#fff;border-radius:12px;padding:15px;color:#8b2638">Could not search the book catalogue. Check your internet connection and try again.</div>';
+ }
+};
+
 window.runExploreSearch=async()=>{
   const input=document.getElementById('exploreSearchInput');
   const box=document.getElementById('exploreResults');
-  const q=(input.value||'').trim();
-  if(!q)return;
-  
-  box.innerHTML='<p>Searching deep worldwide data...</p>';
-  
+  const q=(input?.value||'').trim();
+  if(!q||!box)return;
+  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  box.innerHTML='<div style="padding:16px;text-align:center;color:#176b52"><div style="font-size:26px">⏳</div><b>Loading full information…</b><p>Please wait. Internet connection is required.</p></div>';
+  box.scrollIntoView({behavior:'smooth',block:'start'});
   try{
     const searchUrl='https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch='+encodeURIComponent(q)+'&format=json&origin=*&srlimit=1';
     const searchRes=await fetch(searchUrl);
+    if(!searchRes.ok)throw new Error('Search request failed');
     const searchData=await searchRes.json();
-    
-    if(!searchData.query?.search?.length){
-      box.innerHTML='<p>No results found. Try a different search.</p>';
-      return;
-    }
-    
-    const exactTitle = searchData.query.search[0].title;
-
-    const summaryUrl='https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exintro=1&explaintext=1&titles='+encodeURIComponent(exactTitle)+'&format=json&origin=*';
-    const summaryRes=await fetch(summaryUrl);
-    const summaryData=await summaryRes.json();
-    
-    const pages = summaryData.query.pages;
-    const pageId = Object.keys(pages)[0];
-    const extract = pages[pageId].extract || 'No detailed description available.';
-    
-    const pageLink = 'https://en.wikipedia.org/wiki/' + encodeURIComponent(exactTitle.replace(/ /g,'_'));
-    
-    box.innerHTML = `
-      <div style="padding:15px; border:1px solid #e2e8f0; border-radius:10px; background:#fff; box-shadow:0 2px 5px rgba(0,0,0,0.05);">
-        <h3 style="color:#007b66; margin-bottom:10px; font-size:18px;">${exactTitle}</h3>
-        <p style="line-height:1.6; color:#334155; font-size:14px; margin-bottom:15px;">${extract}</p>
-        <a href="${pageLink}" target="_blank" rel="noopener" style="display:inline-block; padding:10px 15px; background:#008069; color:#fff; text-decoration:none; border-radius:8px; font-weight:bold; font-size:14px;">Read Full Article ↗</a>
-      </div>
-    `;
-    
+    if(!searchData.query?.search?.length){box.innerHTML='<p>No results found. Try another topic.</p>';return;}
+    const exactTitle=searchData.query.search[0].title;
+    const detailUrl='https://en.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&exsectionformat=plain&titles='+encodeURIComponent(exactTitle)+'&format=json&origin=*';
+    const detailRes=await fetch(detailUrl);
+    if(!detailRes.ok)throw new Error('Article request failed');
+    const detailData=await detailRes.json();
+    const pages=detailData.query?.pages||{};
+    const page=Object.values(pages)[0];
+    const extract=page?.extract||'No detailed information is available for this topic.';
+    const pageTitle=page?.title||exactTitle;
+    const pageLink='https://en.wikipedia.org/wiki/'+encodeURIComponent(pageTitle.replace(/ /g,'_'));
+    box.innerHTML=`<article style="padding:16px;border:1px solid #e2e8f0;border-radius:12px;background:#fff;box-shadow:0 2px 5px #0000000d">\
+      <button type="button" onclick="document.getElementById('exploreResults').innerHTML='Tap a topic above to load its full information.';document.getElementById('exploreCategoryGrid').scrollIntoView({behavior:'smooth',block:'start'});" style="border:0;background:transparent;color:#087b60;font-weight:700;padding:4px 0 12px">← Back to topics</button>\
+      <h3 style="color:#007b66;margin:0 0 12px;font-size:19px">${esc(pageTitle)}</h3>\
+      <div style="white-space:pre-line;overflow-wrap:anywhere;line-height:1.7;color:#334155;font-size:14px">${esc(extract)}</div>\
+      <a href="${pageLink}" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin-top:16px;padding:10px 15px;background:#008069;color:#fff;text-decoration:none;border-radius:8px;font-weight:bold;font-size:14px">Read source article ↗</a>\
+    </article>`;
   }catch(e){
-    console.error(e);
-    box.innerHTML='<p>Could not load data. Check your internet connection.</p>';
+    console.error('Explore Worldwide load failed:',e);
+    box.innerHTML='<p style="padding:14px;background:#fff;border-radius:10px;color:#8b2638">Could not load information. Check your internet connection and try again.</p>';
   }
 };
 </script>
