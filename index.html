@@ -1958,7 +1958,7 @@ window.saveNewContact = async () => {
   }
 
   box.innerHTML += `
-  <div class="message ${isMine ? 'mine' : ''} ${selectedMessageIds.has(d.id) ? 'selected-message' : ''}" data-message-id="${escapeHTML(d.id)}" onclick="openMessageActions(this, '${d.id}')">
+  <div class="message ${isMine ? 'mine' : ''} ${selectedMessageIds.has(d.id) ? 'selected-message' : ''}" data-message-id="${escapeHTML(d.id)}" onclick="if(!event.target.closest('a,button,audio,video,input,textarea,select')) openMessageActions(this, '${d.id}')">
     ${!isMine ? `<div class="msg-name">${escapeHTML(m.senderName||'Member')}</div>` : ''}
     ${m.text ? `<div>${escapeHTML(m.text)}</div>` : ''}
     ${attachmentHtml}
@@ -2034,10 +2034,14 @@ window.saveNewContact = async () => {
       ...(isMine ? [['🗑️ Delete', async () => { if(confirm('Delete this message for everyone?')) await window.deleteMessage(messageId); }] : [])
     ];
     const old=document.getElementById('messageActionSheet');old?.remove();
-    const sheet=document.createElement('div');sheet.id='messageActionSheet';sheet.style.cssText='position:fixed;inset:0;background:#0005;z-index:9999;display:flex;align-items:flex-end;justify-content:center;';
-    sheet.innerHTML='<div style="background:#fff;width:min(100%,520px);border-radius:18px 18px 0 0;padding:12px 16px 24px;box-shadow:0 -4px 25px #0002;max-height:75vh;overflow:auto"><div style="text-align:center;font-size:22px;margin-bottom:12px">👍 ❤️ 😂 😮 😢 🙏</div><div id="msgActionList"></div><button style="width:100%;padding:12px;border:0;background:#eee;border-radius:10px;margin-top:10px" onclick="document.getElementById(\'messageActionSheet\').remove()">Cancel</button></div>';
+    const sheet=document.createElement('div');sheet.id='messageActionSheet';sheet.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.28);z-index:9999;display:flex;align-items:flex-end;justify-content:center;';
+    sheet.innerHTML=`<div style="background:#fff;width:min(100%,520px);border-radius:18px 18px 0 0;padding:10px 16px max(20px,env(safe-area-inset-bottom));box-shadow:0 -4px 25px #0002;max-height:78vh;overflow:auto;color:#263238"><div style="width:42px;height:4px;border-radius:4px;background:#ddd;margin:0 auto 14px"></div><div id="msgReactionBar" style="display:flex;justify-content:space-around;align-items:center;gap:4px;background:#f5f5f5;border-radius:24px;padding:8px 5px;margin-bottom:12px"></div><div id="msgActionList"></div><button id="msgActionCancel" style="width:100%;padding:12px;border:0;background:#f1f1f1;border-radius:10px;margin-top:10px;font-size:15px">Cancel</button></div>`;
     sheet.addEventListener('click',e=>{if(e.target===sheet)sheet.remove();});document.body.appendChild(sheet);
-    const list=sheet.querySelector('#msgActionList'); actions.forEach(([label,fn])=>{const b=document.createElement('button');b.textContent=label;b.style.cssText='display:block;width:100%;text-align:left;padding:13px 10px;border:0;border-bottom:1px solid #eee;background:#fff;font-size:16px;color:#263238';b.onclick=async()=>{sheet.remove();await fn();};list.appendChild(b);});
+    sheet.querySelector('#msgActionCancel').onclick=()=>sheet.remove();
+    const reactionBar=sheet.querySelector('#msgReactionBar');
+    ['👍','❤️','😂','😮','😢','🙏'].forEach(emoji=>{const rb=document.createElement('button');rb.textContent=emoji;rb.style.cssText='border:0;background:transparent;font-size:23px;padding:4px;cursor:pointer';rb.onclick=async()=>{try{await updateDoc(msgRef,{reactions:arrayUnion({uid:currentUser.uid,emoji,at:Date.now()})});toast('Reaction added.');}catch(e){console.error(e);toast('Could not add reaction.');}sheet.remove();};reactionBar.appendChild(rb);});
+    const plus=document.createElement('button');plus.textContent='＋';plus.title='More reactions';plus.style.cssText='border:0;background:transparent;font-size:22px;padding:4px;cursor:pointer';plus.onclick=async()=>{const reaction=prompt('Enter an emoji reaction:');if(!reaction)return;try{await updateDoc(msgRef,{reactions:arrayUnion({uid:currentUser.uid,emoji:reaction.trim(),at:Date.now()})});toast('Reaction added.');}catch(e){console.error(e);toast('Could not add reaction.');}sheet.remove();};reactionBar.appendChild(plus);
+    const list=sheet.querySelector('#msgActionList'); actions.forEach(([label,fn])=>{const b=document.createElement('button');b.textContent=label;b.style.cssText='display:flex;align-items:center;width:100%;text-align:left;padding:14px 10px;border:0;border-bottom:1px solid #eee;background:#fff;font-size:16px;color:#263238;cursor:pointer;min-height:48px';if(label.includes('Delete'))b.style.color='#c62828';b.onclick=async()=>{sheet.remove();await fn();};list.appendChild(b);});
   };
 
   window.removeUserFromLists = async (uid, name) => {
