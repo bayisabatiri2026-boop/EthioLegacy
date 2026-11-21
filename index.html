@@ -1958,7 +1958,7 @@ window.saveNewContact = async () => {
   }
 
   box.innerHTML += `
-  <div class="message ${isMine ? 'mine' : ''} ${selectedMessageIds.has(d.id) ? 'selected-message' : ''}" data-message-id="${escapeHTML(d.id)}" onclick="if(!event.target.closest('a,button,audio,video,input,textarea,select')) openMessageActions(this, '${d.id}')">
+  <div class="message ${isMine ? 'mine' : ''} ${selectedMessageIds.has(d.id) ? 'selected-message' : ''}" data-message-id="${escapeHTML(d.id)}" onclick="(function(ev,el,id){if(ev.target.closest('button,input,textarea,select'))return;const mediaControl=ev.target.closest('audio,video');if(mediaControl)return;const attachmentLink=ev.target.closest('.attachment-card a');if(attachmentLink){ev.preventDefault();ev.stopPropagation();}openMessageActions(el,id);})(event,this,'${d.id}')">
     ${!isMine ? `<div class="msg-name">${escapeHTML(m.senderName||'Member')}</div>` : ''}
     ${m.text ? `<div>${escapeHTML(m.text)}</div>` : ''}
     ${attachmentHtml}
