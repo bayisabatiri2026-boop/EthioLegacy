@@ -428,7 +428,7 @@
   </div>
   <button class="explore-front-banner" type="button" onclick="openExploreEthiopia()" aria-label="Explore Ethiopia">
   <span class="explore-globe" aria-hidden="true" style="width:58px;height:58px;flex:0 0 58px;display:grid;place-items:center;font-size:42px;line-height:1">🌍</span>
-  <span class="explore-front-copy"><strong>Explore Ethiopia</strong><small>History · People · Culture · Places</small></span>
+  <span class="explore-front-copy"><strong>Explore Worldwide</strong><small>History · People · Culture · Places</small></span>
   <span class="explore-front-arrow" aria-hidden="true">›</span>
 </button>
   <div class="main-tabs" role="tablist" aria-label="Main navigation">
@@ -2288,7 +2288,7 @@ window.saveNewContact = async () => {
   };
 
   let voiceRecorder=null, voiceChunks=[], voiceStartedAt=0, voiceStopTimer=null, voiceTickTimer=null, voicePausedMs=0, voicePauseAt=0, voiceDiscard=false, voiceStream=null;
-  function voiceElapsedMs(){return voicePausedMs+(voicePauseAt?Date.now()-voicePauseAt:Date.now()-voiceStartedAt);}
+  function voiceElapsedMs(){return Math.max(0,(voicePauseAt?voicePauseAt:Date.now())-voiceStartedAt-voicePausedMs);}
   function formatVoiceTime(ms){const sec=Math.floor(ms/1000);return String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0');}
   function updateVoiceTimer(){const el=document.getElementById('voiceRecordTimer');if(el)el.textContent=formatVoiceTime(voiceElapsedMs());}
   function showVoiceControls(show){const panel=document.getElementById('voiceRecordControls');if(panel)panel.style.display=show?'flex':'none';}
