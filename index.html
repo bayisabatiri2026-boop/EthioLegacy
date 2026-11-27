@@ -87,6 +87,11 @@
   .input-area input { flex: 1; padding: 14px; border-radius: 24px; border: none; outline: none; font-size: 15px; margin-right: 10px; }
   .input-area button { background: #00A884; color: white; border: none; border-radius: 50%; width: 45px; height: 45px; font-size: 20px; cursor: pointer; }
 
+  .voice-record-controls{display:flex;align-items:center;gap:9px;padding:9px 12px;background:#f0f2f5;border-top:1px solid #dfe5e7;}
+  .voice-record-controls #voiceRecordTimer{font-variant-numeric:tabular-nums;font-weight:700;color:#075e54;min-width:48px;}
+  .voice-record-controls button{border:0;border-radius:18px;padding:8px 12px;background:#d9fdd3;color:#075e54;font-weight:700;cursor:pointer;}
+  .voice-record-controls button.voice-delete{background:#fee2e2;color:#b91c1c;}
+  @media(max-width:390px){.voice-record-controls{gap:5px;padding:8px}.voice-record-controls button{padding:7px 8px;font-size:12px}}
   /* Modals & Calls */
   .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 999; }
   .modal.active { display: flex; }
@@ -477,6 +482,12 @@
     <input id="msgInput" placeholder="Message" onkeypress="if(event.key==='Enter') sendMessage()">
     <button class="header-icon" aria-label="Record voice message" id="voiceRecordBtn" onclick="toggleVoiceRecording()" style="color:#16a765;font-size:24px;">🎙️</button>
     <button onclick="sendMessage()">➤</button>
+  </div>
+  <div id="voiceRecordControls" class="voice-record-controls" style="display:none">
+    <span id="voiceRecordTimer">00:00</span>
+    <button type="button" id="voicePauseResumeBtn" onclick="pauseResumeVoiceRecording()">⏸ Pause</button>
+    <button type="button" onclick="finishVoiceRecording()">✓ Send</button>
+    <button type="button" class="voice-delete" onclick="deleteVoiceRecording()">🗑 Delete</button>
   </div>
   <div id="attachmentSheet" class="attachment-sheet" aria-label="Share content">
     <div class="attachment-sheet-handle"></div>
@@ -2276,43 +2287,51 @@ window.saveNewContact = async () => {
     });
   };
 
-  let voiceRecorder=null, voiceChunks=[], voiceStartedAt=0, voiceStopTimer=null;
+  let voiceRecorder=null, voiceChunks=[], voiceStartedAt=0, voiceStopTimer=null, voiceTickTimer=null, voicePausedMs=0, voicePauseAt=0, voiceDiscard=false, voiceStream=null;
+  function voiceElapsedMs(){return voicePausedMs+(voicePauseAt?Date.now()-voicePauseAt:Date.now()-voiceStartedAt);}
+  function formatVoiceTime(ms){const sec=Math.floor(ms/1000);return String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0');}
+  function updateVoiceTimer(){const el=document.getElementById('voiceRecordTimer');if(el)el.textContent=formatVoiceTime(voiceElapsedMs());}
+  function showVoiceControls(show){const panel=document.getElementById('voiceRecordControls');if(panel)panel.style.display=show?'flex':'none';}
+  function resetVoiceUi(){clearTimeout(voiceStopTimer);clearInterval(voiceTickTimer);showVoiceControls(false);voicePausedMs=0;voicePauseAt=0;voiceDiscard=false;voiceStream?.getTracks().forEach(t=>t.stop());voiceStream=null;voiceRecorder=null;const b=document.getElementById('voiceRecordBtn');if(b)b.textContent='🎙️';}
   window.toggleVoiceRecording = async () => {
-    if(voiceRecorder?.state==='recording'){voiceRecorder.stop();return;}
+    if(voiceRecorder){if(voiceRecorder.state==='recording')return finishVoiceRecording();if(voiceRecorder.state==='paused')return finishVoiceRecording();}
     if(!currentUser||!currentChatId)return toast('Open a chat first.');
     if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder)return toast('Voice recording is not supported in this app version.');
     try{
-      const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+      voiceStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
       const mime=['audio/webm;codecs=opus','audio/ogg;codecs=opus','audio/mp4'].find(t=>MediaRecorder.isTypeSupported(t))||'';
-      voiceChunks=[]; voiceRecorder=new MediaRecorder(stream,mime?{mimeType:mime}:undefined); voiceStartedAt=Date.now();
+      voiceChunks=[];voiceDiscard=false;voicePausedMs=0;voicePauseAt=0;voiceStartedAt=Date.now();
+      voiceRecorder=new MediaRecorder(voiceStream,mime?{mimeType:mime}:undefined);
       voiceRecorder.ondataavailable=e=>{if(e.data?.size)voiceChunks.push(e.data);};
       voiceRecorder.onstop=async()=>{
-        clearTimeout(voiceStopTimer); stream.getTracks().forEach(t=>t.stop());
-        const blob=new Blob(voiceChunks,{type:voiceRecorder.mimeType||'audio/webm'});
-        if(!blob.size)return toast('No voice was recorded.');
-        if(blob.size>5*1024*1024)return toast('Voice note exceeds 5 MB. Please record a shorter message.');
+        clearTimeout(voiceStopTimer);clearInterval(voiceTickTimer);
+        const blob=new Blob(voiceChunks,{type:voiceRecorder?.mimeType||'audio/webm'});
+        const duration=Math.max(1,Math.round(voiceElapsedMs()/1000));
+        voiceStream?.getTracks().forEach(t=>t.stop());
+        if(voiceDiscard){resetVoiceUi();toast('Recording deleted.');return;}
+        if(!blob.size){resetVoiceUi();toast('No voice was recorded.');return;}
+        if(blob.size>5*1024*1024){resetVoiceUi();toast('Voice note exceeds 5 MB. Please record a shorter message.');return;}
         try{
-          toast('Sending voice message…');
-          const ext=blob.type.includes('ogg')?'ogg':blob.type.includes('mp4')?'m4a':'webm';
-          const name=`voice-${Date.now()}.${ext}`;
-          const path=`chatFiles/${currentChatId}/${Date.now()}_${name}`;
-          const sr=ref(storage,path); await uploadBytes(sr,blob,{contentType:blob.type});
-          const url=await getDownloadURL(sr);
-          await addDoc(collection(db,'chats',currentChatId,'messages'),{
-            senderId:currentUser.uid,senderName:currentUser.displayName||'Member',text:'',
-            attachmentUrl:url,attachmentKind:'audio',attachmentName:name,attachmentSize:blob.size,storagePath:path,
-            durationSeconds:Math.round((Date.now()-voiceStartedAt)/1000),timestamp:serverTimestamp()
-          });
-          toast('Voice message sent.');
+          toast('Sending voice message…');const ext=blob.type.includes('ogg')?'ogg':blob.type.includes('mp4')?'m4a':'webm';const name=`voice-${Date.now()}.${ext}`;const path=`chatFiles/${currentChatId}/${Date.now()}_${name}`;const sr=ref(storage,path);await uploadBytes(sr,blob,{contentType:blob.type});const url=await getDownloadURL(sr);
+          await addDoc(collection(db,'chats',currentChatId,'messages'),{senderId:currentUser.uid,senderName:currentUser.displayName||'Member',text:'',attachmentUrl:url,attachmentKind:'audio',attachmentName:name,attachmentSize:blob.size,storagePath:path,durationSeconds:duration,timestamp:serverTimestamp()});toast('Voice message sent.');
         }catch(e){console.error('Voice upload failed',e);toast('Voice message failed to send. Check Storage rules and connection.');}
-        voiceRecorder=null; const b=document.getElementById('voiceRecordBtn');if(b)b.textContent='🎙️';
+        resetVoiceUi();
       };
-      voiceRecorder.start(1000);
-      const b=document.getElementById('voiceRecordBtn');if(b)b.textContent='⏹️';
-      toast('Recording… Tap stop to send. Maximum 2 minutes.');
-      voiceStopTimer=setTimeout(()=>{if(voiceRecorder?.state==='recording')voiceRecorder.stop();},120000);
-    }catch(e){console.error(e);toast('Microphone permission is required to record voice messages.');}
+      voiceRecorder.start(500);showVoiceControls(true);updateVoiceTimer();voiceTickTimer=setInterval(updateVoiceTimer,250);
+      const b=document.getElementById('voiceRecordBtn');if(b)b.textContent='●';
+      toast('Recording… Pause, resume, send, or delete below. Max 2 minutes.');
+      voiceStopTimer=setTimeout(()=>{if(voiceRecorder&&(voiceRecorder.state==='recording'||voiceRecorder.state==='paused'))finishVoiceRecording();},120000);
+    }catch(e){console.error(e);voiceStream?.getTracks().forEach(t=>t.stop());voiceStream=null;toast('Microphone permission is required to record voice messages.');}
   };
+  window.pauseResumeVoiceRecording=()=>{
+    if(!voiceRecorder)return;
+    const btn=document.getElementById('voicePauseResumeBtn');
+    if(voiceRecorder.state==='recording'){voiceRecorder.pause();voicePauseAt=Date.now();if(btn)btn.textContent='▶ Resume';toast('Recording paused.');}
+    else if(voiceRecorder.state==='paused'){voicePausedMs+=Date.now()-voicePauseAt;voicePauseAt=0;voiceRecorder.resume();if(btn)btn.textContent='⏸ Pause';toast('Recording resumed.');}
+    updateVoiceTimer();
+  };
+  window.finishVoiceRecording=()=>{if(voiceRecorder&&(voiceRecorder.state==='recording'||voiceRecorder.state==='paused'))voiceRecorder.stop();};
+  window.deleteVoiceRecording=()=>{if(!voiceRecorder)return;voiceDiscard=true;if(voiceRecorder.state==='recording'||voiceRecorder.state==='paused')voiceRecorder.stop();else resetVoiceUi();};
 
   // ================= WEBRTC CALLING =================
   // TURN credentials must be valid and active at the TURN provider.
