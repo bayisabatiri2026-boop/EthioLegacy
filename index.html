@@ -230,6 +230,32 @@
   #ethioInviteInstallLanding a{display:block;text-decoration:none;background:#6f172c;color:white;border-radius:12px;padding:16px 18px;font-size:17px;font-weight:700}
   #ethioInviteInstallLanding .small{font-size:12px;margin-top:16px;margin-bottom:0}
 </style>
+
+<style id="ethio-telegram-bottom-and-chat-wallpaper">
+/* Telegram-inspired bottom navigation: full-width, rectangular, sharp corners */
+#homeScreen .main-tabs {
+  left: 0; right: 0; bottom: 0; width: 100%; border-radius: 0 !important;
+  background: #ffffff; border-top: 1px solid #dfe5e8;
+  box-shadow: none; padding: 5px 4px max(6px, env(safe-area-inset-bottom));
+  gap: 0; grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+#homeScreen .main-tab {
+  border-radius: 0 !important; padding: 7px 2px 5px; gap: 3px;
+  background: transparent; color: #52616b;
+}
+#homeScreen .main-tab.active {
+  background: #e8f3fb; color: #1683c7;
+}
+#homeScreen .main-tab .tab-icon { font-size: 23px; }
+#homeScreen .main-tab span:not(.tab-icon):not(.tab-badge) { font-size: 11px; }
+/* Light, subtle chat-list wallpaper; chat content remains unchanged */
+#homeScreen #chatsPane {
+  background-color: #f6f8fa;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96' viewBox='0 0 96 96'%3E%3Cg fill='none' stroke='%23cbd7df' stroke-opacity='.28' stroke-width='1.3'%3E%3Ccircle cx='18' cy='18' r='8'/%3E%3Cpath d='M55 12h15v12H55z M9 59l10-8 10 8-10 8z M57 62c6-7 13-7 18 0s-2 12-9 12-14-5-9-12z M41 34l7 4-7 4-7-4z'/%3E%3C/g%3E%3C/svg%3E");
+}
+#homeScreen #chatsPane .chat-item { background: rgba(255,255,255,.84); }
+#homeScreen #chatsPane .chat-item:active { background: rgba(232,243,251,.95); }
+</style>
 </head>
 <body>
 <div id="ethioMessageActionOverlay" onclick="closeMessageActionMenu(event)"><div id="ethioMessageActionPanel" onclick="event.stopPropagation()"><div id="ethioMessageQuickReactions"><button onclick="messageReact('👍')">👍</button><button onclick="messageReact('❤️')">❤️</button><button onclick="messageReact('😂')">😂</button><button onclick="messageReact('😮')">😮</button><button onclick="messageReact('🙏')">🙏</button><button onclick="messageReact('➕')">➕</button></div><div id="ethioMessageActionList"><button onclick="messageReply()">↩️ Reply</button><button onclick="messageReactPrompt()">☺️ React</button><button onclick="messageDownload()">⬇️ Download</button><button onclick="messageForward()">↪️ Forward</button><button onclick="messagePin()">📌 Pin</button><button onclick="messageStar()">⭐ Star</button><button onclick="messageSelect()">☑️ Select</button><button class="danger" onclick="messageDelete()">🗑️ Delete</button></div></div></div>
