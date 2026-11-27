@@ -50,7 +50,7 @@
   .header-icon { border:0; background:transparent; color:#fff; font-size:24px; cursor:pointer; }
   .header-tree-button{width:44px;height:44px;min-width:44px;border:2px solid rgba(255,255,255,.9);border-radius:50%;background:#fff;color:#008069;display:grid;place-items:center;font-size:23px;line-height:1;cursor:pointer;box-shadow:0 2px 6px #003b3028;padding:0}.header-tree-button:active{transform:scale(.96)}
   .home-search-wrap { padding: 10px 14px; background: #fff; border-bottom: 1px solid #e6e9eb; }
-  .contacts-toolbar{display:flex;gap:8px;margin-top:9px;align-items:center}.contacts-button{border:0;border-radius:20px;padding:10px 13px;background:#e7f6f1;color:#006b58;font-weight:700;cursor:pointer}.contacts-hint{font-size:11px;color:#667781;line-height:1.35}.device-contact{display:flex;align-items:center;gap:12px;padding:12px 15px;border-bottom:1px solid #f0f2f5}.device-contact .contact-details{flex:1;min-width:0}.device-contact b{display:block;color:#172b2b}.device-contact small{color:#667781;overflow-wrap:anywhere}.contact-action{border:0;border-radius:18px;padding:8px 11px;background:#008069;color:#fff;font-weight:700;cursor:pointer;white-space:nowrap}
+  .contacts-toolbar{display:flex;gap:8px;margin-top:9px;align-items:center}.contacts-button{border:0;border-radius:20px;padding:10px 13px;background:#e7f6f1;color:#006b58;font-weight:700;cursor:pointer}.contacts-hint{font-size:11px;color:#667781;line-height:1.35}.device-contact{display:flex;align-items:center;gap:12px;padding:12px 15px;border-bottom:0}.device-contact .contact-details{flex:1;min-width:0}.device-contact b{display:block;color:#172b2b}.device-contact small{color:#667781;overflow-wrap:anywhere}.contact-action{border:0;border-radius:18px;padding:8px 11px;background:#008069;color:#fff;font-weight:700;cursor:pointer;white-space:nowrap}
   .main-tabs{position:fixed;left:0;right:0;bottom:0;z-index:1200;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2px;background:#fff;padding:7px 8px max(8px,env(safe-area-inset-bottom));border-top:1px solid #e7e9eb;box-shadow:0 -2px 10px #0000000d}
   .main-tab{position:relative;min-width:0;border:0;border-radius:12px;padding:8px 2px 6px;background:transparent;color:#263238;font-weight:600;font-size:12px;line-height:1.25;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
   .main-tab.active{background:#dcf8c6;color:#075e54}
@@ -1344,10 +1344,25 @@ window.openSettings = ((originalOpenSettings) => {
   }
 
   let importedDeviceContacts = [];
+  // Sort phone contacts by display name A-Z, with numeric portions in natural order
+  // (for example, 'Contact 2' appears before 'Contact 10').
+  const deviceContactCollator = new Intl.Collator(undefined, {numeric:true, sensitivity:'base', ignorePunctuation:true});
+  function sortDeviceContacts(contacts) {
+    return (contacts || []).slice().sort((a,b) => {
+      const nameA = String(a?.name || '').trim();
+      const nameB = String(b?.name || '').trim();
+      const byName = deviceContactCollator.compare(nameA, nameB);
+      if (byName) return byName;
+      const byPhone = deviceContactCollator.compare(String(a?.tel || a?.phone || ''), String(b?.tel || b?.phone || ''));
+      if (byPhone) return byPhone;
+      return deviceContactCollator.compare(String(a?.email || ''), String(b?.email || ''));
+    });
+  }
   function restoreDeviceContacts() {
-    try { importedDeviceContacts = JSON.parse(localStorage.getItem('ethiolegacy_device_contacts_' + currentUser.uid) || '[]'); } catch (_) { importedDeviceContacts = []; }
+    try { importedDeviceContacts = sortDeviceContacts(JSON.parse(localStorage.getItem('ethiolegacy_device_contacts_' + currentUser.uid) || '[]')); } catch (_) { importedDeviceContacts = []; }
   }
   function persistDeviceContacts() {
+    importedDeviceContacts = sortDeviceContacts(importedDeviceContacts);
     try { localStorage.setItem('ethiolegacy_device_contacts_' + currentUser.uid, JSON.stringify(importedDeviceContacts)); } catch (_) {}
   }
   async function resolveSelectedDeviceContacts() {
@@ -1457,7 +1472,7 @@ window.importDeviceContacts = async () => {
     const targets = [document.getElementById('deviceContactsList'), document.getElementById('callDeviceContactsList')].filter(Boolean);
     targets.forEach(box => {
       box.innerHTML = '';
-      const contacts = importedDeviceContacts.filter(c => !q || [c.name,c.tel,c.email].some(v => (v||'').toLowerCase().includes(q)));
+      const contacts = sortDeviceContacts(importedDeviceContacts).filter(c => !q || [c.name,c.tel,c.email].some(v => (v||'').toLowerCase().includes(q)));
       if (!contacts.length) return;
       const heading = document.createElement('div'); heading.className = 'pane-heading';
       heading.textContent = 'Device contacts (' + contacts.length + ')'; box.appendChild(heading);
@@ -1884,7 +1899,7 @@ function renderWaContacts() {
     heading.style.cssText = 'padding:15px 20px;font-weight:bold;color:#667781;font-size:13px;';
     heading.textContent = 'FROM YOUR PHONE CONTACTS';
     list.appendChild(heading);
-    importedDeviceContacts.forEach(c => {
+    sortDeviceContacts(importedDeviceContacts).forEach(c => {
       const match = findEthioLegacyContact(c);
       const row = document.createElement('div');
       row.className = 'wa-contact-item';
@@ -2723,7 +2738,7 @@ window.saveNewContact = async () => {
   window.renderSpecialGroupDeviceContacts=()=>{
     const box=document.getElementById('specialGroupDeviceContacts');if(!box)return;
     const q=(document.getElementById('specialGroupSearch')?.value||'').trim().toLowerCase();
-    const contacts=(importedDeviceContacts||[]).filter(c=>[c.name,c.tel,c.email].some(v=>String(v||'').toLowerCase().includes(q)));
+    const contacts=sortDeviceContacts(importedDeviceContacts||[]).filter(c=>[c.name,c.tel,c.email].some(v=>String(v||'').toLowerCase().includes(q)));
     box.replaceChildren();
     if(!contacts.length){box.innerHTML='<div class="empty-state">No synced contacts found. Tap “Search device contacts” to choose contacts from your phone.</div>';return;}
     contacts.forEach(c=>{
