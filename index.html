@@ -193,7 +193,7 @@
 
   .updates-actions{display:flex;gap:10px;padding:10px 14px}.updates-actions button,.update-action{border:0;border-radius:20px;padding:10px 14px;background:#008069;color:#fff;font-weight:700;cursor:pointer}.update-row,.channel-row{display:flex;align-items:center;gap:12px;padding:12px 15px;border-bottom:1px solid #edf0f1}.status-ring{width:50px;height:50px;border-radius:50%;border:3px solid #00a884;display:grid;place-items:center;font-size:22px;flex-shrink:0}.update-meta{flex:1;min-width:0}.update-meta b{display:block;color:#172b2b}.update-meta small{color:#667781}.update-preview{max-width:100px;max-height:65px;border-radius:8px;object-fit:cover}
   .explore-front-banner{width:calc(100% - 24px);margin:10px 12px 8px;padding:10px 13px;display:flex;align-items:center;gap:12px;text-align:left;border:1px solid #d7e9dc;border-radius:14px;background:linear-gradient(105deg,#f0fff4 0%,#fff 58%,#fff8dc 100%);box-shadow:0 2px 7px #12351a12;color:#173c2b;cursor:pointer}
-.explore-front-banner:active{transform:scale(.99)}.explore-flag{width:58px;height:40px;flex:0 0 58px;overflow:hidden;border-radius:6px;box-shadow:0 1px 4px #0003}.explore-flag svg{display:block;width:100%;height:100%}.explore-front-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px}.explore-front-copy strong{font-size:16px;font-weight:800}.explore-front-copy small{font-size:12px;color:#5c7065}.explore-front-arrow{font-size:30px;line-height:1;color:#16834a}
+.explore-heritage-art{width:112px;height:62px;flex:0 0 112px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));place-items:center;gap:1px;padding:4px;border-radius:10px;background:linear-gradient(135deg,#edf5e9,#f8f0df);box-shadow:inset 0 0 0 1px #dce8d8;overflow:hidden}.explore-heritage-art span{font-size:14px;line-height:1;filter:saturate(.68);opacity:.84}.explore-heritage-art span:nth-child(5n){font-size:15px}.explore-front-banner:active{transform:scale(.99)}.explore-flag{width:58px;height:40px;flex:0 0 58px;overflow:hidden;border-radius:6px;box-shadow:0 1px 4px #0003}.explore-flag svg{display:block;width:100%;height:100%}.explore-front-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px}.explore-front-copy strong{font-size:16px;font-weight:800}.explore-front-copy small{font-size:12px;color:#5c7065}.explore-front-arrow{font-size:30px;line-height:1;color:#16834a}
   .language-welcome{min-height:100%;height:100%;box-sizing:border-box;display:flex;align-items:center;justify-content:center;padding:24px;background:linear-gradient(145deg,#e9fff3,#f7fbff 55%,#fff8df);color:#173c2b}.language-welcome-card{width:min(440px,100%);box-sizing:border-box;background:#fff;padding:28px 22px;border-radius:24px;box-shadow:0 12px 38px #12351a20;text-align:center}.language-welcome-logo{width:82px;height:82px;object-fit:contain;margin-bottom:10px}.language-welcome h1{font-size:26px;margin:8px 0;color:#075e54}.language-welcome p{color:#64756c;line-height:1.5;margin:8px 0 20px}.language-welcome select{width:100%;padding:15px;border:1px solid #cbd8d0;border-radius:12px;background:#fff;font-size:16px;color:#20352b}.language-continue{width:100%;margin-top:18px;padding:15px;border:0;border-radius:12px;background:#008069;color:white;font-size:16px;font-weight:700;cursor:pointer}
 @keyframes ethioSpin{to{transform:rotate(360deg)}}
 
@@ -251,14 +251,14 @@
 #homeScreen .main-tab span:not(.tab-icon):not(.tab-badge) { font-size:11px !important; }
 /* Hide the device-contact sync controls/hints from the main screens; sync functions remain */
 .contacts-toolbar { display:none !important; }
-/* EthioLegacy heritage wallpaper: WhatsApp-inspired soft pastel line-art */
+/* EthioLegacy: soft WhatsApp-style warm ivory wallpaper with tiny Ethiopian heritage doodles */
 #homeScreen #chatsPane, #chatBox {
-  background-color:#f6f4e9 !important;
+  background-color:#efeae2 !important;
   background-image:
-    radial-gradient(ellipse at 12% 18%, rgba(216,235,208,.62) 0, rgba(216,235,208,0) 34%),
-    radial-gradient(ellipse at 88% 72%, rgba(220,232,244,.68) 0, rgba(220,232,244,0) 38%),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='360' height='360' viewBox='0 0 360 360'%3E%3Cg fill='none' stroke='%238da88d' stroke-opacity='.22' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3C!-- Lalibela rock-hewn church --%3E%3Cpath d='M30 78h66v8H30z M38 86v42h50V86 M49 128V99h28v29 M55 99v-9h16v9 M45 111h36 M62 99v29 M57 117h10 M42 86l21-15 21 15 M52 71v-9h20v9 M61 62v-8'/%3E%3C!-- Axum obelisk --%3E%3Cpath d='M151 48h22l-3 10h-16z M155 58h14v65h-14z M151 123h22v7h-22z M157 68h10v8h-10z M157 84h10v8h-10z M157 100h10v8h-10z M157 116h10'/%3E%3C!-- Gondar castle --%3E%3Cpath d='M245 83h76v48h-76z M253 83V68h15v15 M299 83V61h14v22 M260 96h10v14h-10z M286 96h10v14h-10z M307 96h8v35h-8z M240 131h86 M247 75l13-10 13 10 M294 68l12-12 12 12'/%3E%3C!-- coffee branch and cup --%3E%3Cpath d='M43 235c28-13 42-29 50-53 M69 213c-10-16-22-18-30-10 3 14 15 20 30 10z M81 197c-1-17 8-27 22-26 4 14-4 24-22 26z M48 243h43l-5 24H54z M91 249h12c10 0 10 15 0 15H88 M54 272h38'/%3E%3C!-- Ethiopian cross motif --%3E%3Cpath d='M178 215v58 M149 244h58 M163 229h30v30h-30z M170 236h16v16h-16z'/%3E%3C!-- hills and acacia tree --%3E%3Cpath d='M245 254c20-22 43-22 63 0-17 7-46 7-63 0z M275 254v38 M260 292h30 M254 240c-7-13-1-23 13-24 1-12 18-16 25-5 15-1 20 14 10 24'/%3E%3C!-- small cultural motifs --%3E%3Cpath d='M120 175c10-12 22-12 32 0-10 12-22 12-32 0z M128 175h16 M132 169l8 12 M333 184l-9 10 9 10 9-10z M112 310l14-8 14 8-14 8z M20 326c12-8 24-8 36 0 M187 320c8-9 17-9 25 0-8 9-17 9-25 0z'/%3E%3C/g%3E%3C/svg%3E");
-  background-size:auto,auto,360px 360px !important;
+    radial-gradient(circle at 18% 22%,rgba(255,255,255,.38),transparent 34%),
+    radial-gradient(circle at 82% 78%,rgba(221,232,214,.30),transparent 38%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320' viewBox='0 0 320 320'%3E%3Cg fill='none' stroke='%238a9b85' stroke-opacity='.19' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 58h48v5H18z M24 63v35h36V63 M32 98V75h20v23 M28 63l14-11 14 11'/%3E%3Cpath d='M139 30h18l-3 8h-12z M142 38h12v52h-12z M138 90h20v6h-20z M144 49h8v7h-8z M144 66h8v7h-8z'/%3E%3Cpath d='M239 52h60v42h-60z M246 52V39h12v13 M280 52V34h12v18 M251 66h8v12h-8z M275 66h8v12h-8z M235 94h68'/%3E%3Cpath d='M24 202c22-11 34-24 40-41 M45 184c-9-12-17-14-24-7 3 11 12 15 24 7z M55 168c0-13 7-20 18-19 3 11-4 18-18 19z M27 211h34l-4 19H32z M61 216h9c8 0 8 12 0 12h-9'/%3E%3Cpath d='M145 190v43 M124 211h43 M134 200h22v22h-22z'/%3E%3Cpath d='M236 208c17-18 35-18 52 0-14 6-38 6-52 0z M260 208v29 M248 237h25 M245 197c-6-10-1-18 11-19 1-10 14-13 20-4 12-1 16 11 8 19'/%3E%3C!-- small person silhouette --%3E%3Ccircle cx='93' cy='132' r='7'/%3E%3Cpath d='M93 139v25 M93 146l-12 10 M93 146l12 9 M93 164l-9 13 M93 164l10 13'/%3E%3C!-- football --%3E%3Ccircle cx='213' cy='145' r='15'/%3E%3Cpath d='M207 137l8-3 6 6-2 8-8 2-6-6z M207 137l-7-4 M221 140l7-4 M211 150l-2 9 M219 148l8 4'/%3E%3Cpath d='M112 270l10-8 10 8-10 8z M20 286c10-7 20-7 30 0 M178 282c7-8 14-8 21 0-7 8-14 8-21 0z M290 260l-7 8 7 8 7-8z'/%3E%3C/g%3E%3C/svg%3E");
+  background-size:auto,auto,280px 280px !important;
   background-attachment:scroll !important;
 }
 #homeScreen #chatsPane .chat-item {
@@ -402,9 +402,12 @@
       </div>
     </div>
   </div>
-  <button class="explore-front-banner" type="button" onclick="openExploreEthiopia()" aria-label="Explore Worldwide">
-  <span class="explore-flag" role="img" aria-label="Globe" style="font-size:30px; display:flex; align-items:center; justify-content:center; background:#e8f5e9; width:58px; height:40px; border-radius:6px; box-shadow:0 1px 4px #0003;">🌍</span>
-  <span class="explore-front-copy"><strong>Explore Worldwide</strong><small>Global Knowledge · Deep Information</small></span>
+  <button class="explore-front-banner" type="button" onclick="openExploreEthiopia()" aria-label="Explore Ethiopia">
+  <span class="explore-heritage-art" aria-hidden="true">
+    <span>🌍</span><span>⛪</span><span>🏛️</span><span>🗿</span><span>🧑🏽</span>
+    <span>⚽</span><span>☕</span><span>🌿</span><span>🏰</span><span>💧</span>
+  </span>
+  <span class="explore-front-copy"><strong>Explore Ethiopia</strong><small>History · People · Culture · Places</small></span>
   <span class="explore-front-arrow" aria-hidden="true">›</span>
 </button>
   <div class="main-tabs" role="tablist" aria-label="Main navigation">
