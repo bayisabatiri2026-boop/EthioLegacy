@@ -426,9 +426,9 @@
       </div>
     </div>
   </div>
-  <button class="explore-front-banner" type="button" onclick="openExploreEthiopia()" aria-label="Explore Ethiopia">
+  <button class="explore-front-banner" type="button" onclick="openExploreEthiopia()" aria-label="Explore Worldwide (EWW)">
   <span class="explore-globe" aria-hidden="true" style="width:58px;height:58px;flex:0 0 58px;display:grid;place-items:center;font-size:42px;line-height:1">🌍</span>
-  <span class="explore-front-copy"><strong>Explore Worldwide</strong><small>History · People · Culture · Places</small></span>
+  <span class="explore-front-copy"><strong>Explore Worldwide (EWW)</strong><small>History · People · Culture · Places</small></span>
   <span class="explore-front-arrow" aria-hidden="true">›</span>
 </button>
   <div class="main-tabs" role="tablist" aria-label="Main navigation">
@@ -2292,7 +2292,8 @@ window.saveNewContact = async () => {
   function formatVoiceTime(ms){const sec=Math.floor(ms/1000);return String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0');}
   function updateVoiceTimer(){const el=document.getElementById('voiceRecordTimer');if(el)el.textContent=formatVoiceTime(voiceElapsedMs());}
   function showVoiceControls(show){const panel=document.getElementById('voiceRecordControls');if(panel)panel.style.display=show?'flex':'none';}
-  function resetVoiceUi(){clearTimeout(voiceStopTimer);clearInterval(voiceTickTimer);showVoiceControls(false);voicePausedMs=0;voicePauseAt=0;voiceDiscard=false;voiceStream?.getTracks().forEach(t=>t.stop());voiceStream=null;voiceRecorder=null;const b=document.getElementById('voiceRecordBtn');if(b)b.textContent='🎙️';}
+  function scheduleVoiceLimit(){clearTimeout(voiceStopTimer);const remaining=Math.max(0,120000-voiceElapsedMs());voiceStopTimer=setTimeout(()=>{if(voiceRecorder?.state==='recording')finishVoiceRecording();},remaining);}
+  function resetVoiceUi(){clearTimeout(voiceStopTimer);clearInterval(voiceTickTimer);showVoiceControls(false);voicePausedMs=0;voicePauseAt=0;voiceDiscard=false;voiceStream?.getTracks().forEach(t=>t.stop());voiceStream=null;voiceRecorder=null;const timer=document.getElementById('voiceRecordTimer');if(timer)timer.textContent='00:00';const pauseBtn=document.getElementById('voicePauseResumeBtn');if(pauseBtn)pauseBtn.textContent='⏸ Pause';const b=document.getElementById('voiceRecordBtn');if(b)b.textContent='🎙️';}
   window.toggleVoiceRecording = async () => {
     if(voiceRecorder){if(voiceRecorder.state==='recording')return finishVoiceRecording();if(voiceRecorder.state==='paused')return finishVoiceRecording();}
     if(!currentUser||!currentChatId)return toast('Open a chat first.');
@@ -2320,14 +2321,14 @@ window.saveNewContact = async () => {
       voiceRecorder.start(500);showVoiceControls(true);updateVoiceTimer();voiceTickTimer=setInterval(updateVoiceTimer,250);
       const b=document.getElementById('voiceRecordBtn');if(b)b.textContent='●';
       toast('Recording… Pause, resume, send, or delete below. Max 2 minutes.');
-      voiceStopTimer=setTimeout(()=>{if(voiceRecorder&&(voiceRecorder.state==='recording'||voiceRecorder.state==='paused'))finishVoiceRecording();},120000);
+      scheduleVoiceLimit();
     }catch(e){console.error(e);voiceStream?.getTracks().forEach(t=>t.stop());voiceStream=null;toast('Microphone permission is required to record voice messages.');}
   };
   window.pauseResumeVoiceRecording=()=>{
     if(!voiceRecorder)return;
     const btn=document.getElementById('voicePauseResumeBtn');
-    if(voiceRecorder.state==='recording'){voiceRecorder.pause();voicePauseAt=Date.now();if(btn)btn.textContent='▶ Resume';toast('Recording paused.');}
-    else if(voiceRecorder.state==='paused'){voicePausedMs+=Date.now()-voicePauseAt;voicePauseAt=0;voiceRecorder.resume();if(btn)btn.textContent='⏸ Pause';toast('Recording resumed.');}
+    if(voiceRecorder.state==='recording'){voiceRecorder.pause();voicePauseAt=Date.now();clearTimeout(voiceStopTimer);if(btn)btn.textContent='▶ Resume';toast('Recording paused.');}
+    else if(voiceRecorder.state==='paused'){voicePausedMs+=Date.now()-voicePauseAt;voicePauseAt=0;voiceRecorder.resume();if(btn)btn.textContent='⏸ Pause';scheduleVoiceLimit();toast('Recording resumed.');}
     updateVoiceTimer();
   };
   window.finishVoiceRecording=()=>{if(voiceRecorder&&(voiceRecorder.state==='recording'||voiceRecorder.state==='paused'))voiceRecorder.stop();};
