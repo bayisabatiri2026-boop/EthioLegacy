@@ -431,6 +431,37 @@
   <span class="explore-front-copy"><strong>Explore Worldwide (EWW)</strong><small>History · People · Culture · Places</small></span>
   <span class="explore-front-arrow" aria-hidden="true">›</span>
 </button>
+  <div id="ethioAccessOptions" style="margin:0 12px 8px;padding:10px 12px;border:1px solid #dce8df;border-radius:14px;background:#fff;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+    <span style="font-size:13px;font-weight:700;color:#24523a;flex:1 1 100%;">Use EthioLegacy on Web or Android</span>
+    <a href="./" style="flex:1;min-width:110px;text-align:center;text-decoration:none;padding:10px 12px;border-radius:10px;background:#edf8f0;color:#21643a;font-weight:700;font-size:13px;">🌐 Website</a>
+    <button type="button" id="ethioHomeApkDownload" style="flex:1;min-width:140px;padding:10px 12px;border:0;border-radius:10px;background:#16834a;color:white;font-weight:700;font-size:13px;cursor:pointer;">📱 Download APK</button>
+    <small id="ethioHomeApkStatus" style="flex:1 1 100%;font-size:11px;color:#647568;">Download the latest Android app from GitHub Releases.</small>
+  </div>
+  <script>
+  (function(){
+    const btn=document.getElementById('ethioHomeApkDownload');
+    const status=document.getElementById('ethioHomeApkStatus');
+    if(!btn)return;
+    const api='https://api.github.com/repos/bayisabatiri2026-boop/EthioLegacy/releases/latest';
+    const releases='https://github.com/bayisabatiri2026-boop/EthioLegacy/releases';
+    btn.addEventListener('click',async()=>{
+      btn.disabled=true;btn.textContent='Checking APK…';
+      if(status)status.textContent='Finding the latest Android installer…';
+      try{
+        const response=await fetch(api,{headers:{'Accept':'application/vnd.github+json'}});
+        if(!response.ok)throw new Error('Release unavailable');
+        const release=await response.json();
+        const apk=(release.assets||[]).find(asset=>/\.apk$/i.test(asset.name));
+        if(!apk||!apk.browser_download_url)throw new Error('APK not found in release');
+        if(status)status.textContent='Starting APK download…';
+        window.location.href=apk.browser_download_url;
+      }catch(e){
+        if(status)status.textContent='No APK release found yet. Opening GitHub Releases.';
+        window.open(releases,'_blank','noopener');
+      }finally{btn.disabled=false;btn.textContent='📱 Download APK';}
+    });
+  })();
+  </script>
   <div class="main-tabs" role="tablist" aria-label="Main navigation">
     <button class="main-tab active" data-pane="chatsPane" onclick="switchHomeTab('chatsPane',this)"><span class="tab-icon">💬</span><span>Chats</span><span id="chatsTabBadge" class="tab-badge"></span></button>
     <button class="main-tab" data-pane="callsPane" onclick="switchHomeTab('callsPane',this)"><span class="tab-icon">📞</span><span>Calls</span><span id="callsTabBadge" class="tab-badge"></span></button>
